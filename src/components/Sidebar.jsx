@@ -2,7 +2,7 @@ import React from 'react';
 import { NavLink } from 'react-router-dom';
 import { useAuth } from '../AuthContext';
 
-export default function Sidebar() {
+export default function Sidebar({ isOpen, setIsOpen }) {
   const { logout, role } = useAuth();
   const allNavItems = [
     { name: 'Dashboard', path: '/', icon: 'dashboard', roles: ['admin', 'moderator', 'developer'] },
@@ -15,7 +15,7 @@ export default function Sidebar() {
   const navItems = allNavItems.filter(item => item.roles.includes(role || 'admin'));
 
   return (
-    <aside className="fixed left-0 top-0 h-full w-[280px] bg-surface border-r border-outline-variant flex flex-col z-50">
+    <aside className={`fixed left-0 top-0 h-full w-[280px] bg-surface border-r border-outline-variant flex flex-col z-50 transform transition-transform duration-300 ease-in-out ${isOpen ? 'translate-x-0' : '-translate-x-full'} md:translate-x-0`}>
       <div className="p-lg">
         <h1 className="font-headline-md text-headline-md font-bold text-primary">AdminConsole</h1>
         <p className="text-on-surface-variant font-label-md text-label-md">Platform Control</p>
@@ -26,6 +26,7 @@ export default function Sidebar() {
             <li key={item.name}>
               <NavLink
                 to={item.path}
+                onClick={() => setIsOpen(false)}
                 className={({ isActive }) =>
                   `flex items-center gap-md px-lg py-md transition-all active:scale-95 border-l-4 ${
                     isActive

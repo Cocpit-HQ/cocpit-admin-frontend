@@ -215,27 +215,27 @@ export default function ModerationQueue() {
     <div className="flex-1 flex flex-col max-w-max-width mx-auto w-full pb-xl">
       {/* Page Header & Filters */}
       <div className="flex flex-col gap-lg mb-xl">
-        <div className="flex justify-between items-end">
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-4">
           <div>
             <h2 className="font-display-lg text-display-lg text-on-surface">Moderation Queue</h2>
             <p className="font-body-md text-on-surface-variant mt-xs">Process reports to maintain community standards and safety.</p>
           </div>
-          <div className="flex items-center gap-md">
+          <div className="flex flex-wrap items-center gap-sm md:gap-md w-full md:w-auto">
             <Link 
               to="/review-history" 
               state={{ 
                 filter: activeTab === 'Appeals' ? 'Appeals' : 'All Cases',
                 fromTab: activeTab
               }}
-              className="flex items-center gap-xs font-label-md text-primary bg-primary/10 hover:bg-primary/20 px-md py-sm rounded-lg transition-colors"
+              className="flex items-center gap-xs font-label-md text-primary bg-primary/10 hover:bg-primary/20 px-md py-sm rounded-lg transition-colors whitespace-nowrap"
             >
               <span className="material-symbols-outlined text-[18px]">history</span>
               Review History
             </Link>
-            <div className="flex bg-surface-container-low p-1 rounded-xl border border-outline-variant">
+            <div className="flex bg-surface-container-low p-1 rounded-xl border border-outline-variant overflow-x-auto max-w-full w-full sm:w-auto">
             <button 
               onClick={() => setActiveTab('Active Reports')}
-              className={`px-lg py-sm rounded-lg font-label-md transition-colors ${activeTab === 'Active Reports' ? 'bg-surface shadow-sm text-on-surface' : 'text-on-surface-variant hover:text-on-surface'}`}
+              className={`px-sm md:px-lg py-sm rounded-lg font-label-md transition-colors whitespace-nowrap ${activeTab === 'Active Reports' ? 'bg-surface shadow-sm text-on-surface' : 'text-on-surface-variant hover:text-on-surface'}`}
             >
               Active Reports
             </button>
@@ -243,13 +243,13 @@ export default function ModerationQueue() {
               <>
                 <button 
                   onClick={() => setActiveTab('Escalations')}
-                  className={`px-lg py-sm rounded-lg font-label-md transition-colors ${activeTab === 'Escalations' ? 'bg-surface shadow-sm text-on-surface' : 'text-on-surface-variant hover:text-on-surface'}`}
+                  className={`px-sm md:px-lg py-sm rounded-lg font-label-md transition-colors whitespace-nowrap ${activeTab === 'Escalations' ? 'bg-surface shadow-sm text-on-surface' : 'text-on-surface-variant hover:text-on-surface'}`}
                 >
                   Escalations
                 </button>
                 <button 
                   onClick={() => setActiveTab('Appeals')}
-                  className={`px-lg py-sm rounded-lg font-label-md transition-colors ${activeTab === 'Appeals' ? 'bg-surface shadow-sm text-on-surface' : 'text-on-surface-variant hover:text-on-surface'}`}
+                  className={`px-sm md:px-lg py-sm rounded-lg font-label-md transition-colors whitespace-nowrap ${activeTab === 'Appeals' ? 'bg-surface shadow-sm text-on-surface' : 'text-on-surface-variant hover:text-on-surface'}`}
                 >
                   Appeals
                 </button>

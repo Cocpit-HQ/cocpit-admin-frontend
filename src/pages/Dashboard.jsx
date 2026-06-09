@@ -71,12 +71,12 @@ export default function Dashboard() {
   return (
     <div>
       {/* Page Header */}
-      <div className="mb-lg flex justify-between items-end relative z-10">
+      <div className="mb-lg flex flex-col md:flex-row justify-between items-start md:items-end gap-4 relative z-10">
         <div>
           <h3 className="font-display-lg text-display-lg text-on-background">System Overview</h3>
           <p className="text-body-lg text-on-surface-variant">Real-time performance metrics and ecosystem health.</p>
         </div>
-        <div className="flex gap-md">
+        <div className="flex flex-wrap items-center gap-sm md:gap-md w-full md:w-auto">
           {/* Date Picker Dropdown */}
           <div className="relative" ref={datePickerRef}>
             <button 

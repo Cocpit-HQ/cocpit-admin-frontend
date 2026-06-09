@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 
-export default function Header() {
+export default function Header({ toggleSidebar }) {
   const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
   const [hasUnread, setHasUnread] = useState(true);
   const dropdownRef = useRef(null);
@@ -57,19 +57,25 @@ export default function Header() {
   };
 
   return (
-    <header className="fixed top-0 right-0 w-[calc(100%-280px)] h-16 bg-surface-container-lowest flex justify-between items-center px-margin-desktop z-40">
-      <div className="flex items-center gap-xl flex-1">
-        <h2 className="font-headline-sm text-headline-sm font-black text-on-surface">AdminConsole</h2>
-        <div className="relative w-full max-w-[448px] focus-within:ring-2 focus-within:ring-primary rounded-full transition-all">
+    <header className="fixed top-0 right-0 w-full md:w-[calc(100%-280px)] h-16 bg-surface-container-lowest flex justify-between items-center px-4 md:px-margin-desktop z-30 transition-all">
+      <div className="flex items-center gap-2 md:gap-xl flex-1 min-w-0">
+        <button 
+          className="md:hidden material-symbols-outlined text-on-surface p-1 rounded hover:bg-surface-container transition-colors shrink-0" 
+          onClick={toggleSidebar}
+        >
+          menu
+        </button>
+        <h2 className="hidden sm:block font-headline-sm text-headline-sm font-black text-on-surface shrink-0">AdminConsole</h2>
+        <div className="relative w-full max-w-[448px] focus-within:ring-2 focus-within:ring-primary rounded-full transition-all min-w-0">
           <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-on-surface-variant">search</span>
           <input 
             type="text" 
-            placeholder="Search users, tickets, or organizations..." 
-            className="w-full bg-surface-container-low border border-outline-variant rounded-full py-2 pl-10 pr-4 font-body-md text-body-md text-on-surface placeholder:text-on-surface-variant focus:outline-none"
+            placeholder="Search users..." 
+            className="w-full bg-surface-container-low border border-outline-variant rounded-full py-2 pl-10 pr-4 font-body-md text-body-md text-on-surface placeholder:text-on-surface-variant focus:outline-none min-w-0 truncate"
           />
         </div>
       </div>
-      <div className="flex items-center gap-md">
+      <div className="flex items-center gap-2 md:gap-md shrink-0">
         
         {/* Notifications Dropdown */}
         <div className="relative" ref={dropdownRef}>
@@ -117,11 +123,11 @@ export default function Header() {
           )}
         </div>
 
-        <button className="material-symbols-outlined hover:bg-surface-container p-2 rounded-full transition-all text-on-surface-variant">help</button>
-        <div className="w-px h-6 bg-outline-variant mx-2"></div>
+        <button className="material-symbols-outlined hover:bg-surface-container p-2 rounded-full transition-all text-on-surface-variant hidden md:block">help</button>
+        <div className="w-px h-6 bg-outline-variant mx-1 md:mx-2"></div>
         <img
           alt="Administrator Profile"
-          className="w-8 h-8 rounded-full border border-outline-variant"
+          className="w-8 h-8 rounded-full border border-outline-variant shrink-0"
           src="https://ui-avatars.com/api/?name=Alex+Rivera&background=3525cd&color=fff"
         />
       </div>
