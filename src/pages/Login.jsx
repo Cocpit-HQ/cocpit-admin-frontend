@@ -10,8 +10,6 @@ export default function Login() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
-  const [rememberMe, setRememberMe] = useState(false);
-
   // If already logged in, redirect away from login page
   useEffect(() => {
     if (isLoggedIn) {
@@ -71,7 +69,7 @@ export default function Login() {
             <div className="w-8 h-2.5 bg-black rounded-sm transform skew-x-[-20deg] ml-0.5 mt-[-2px]"></div>
           </div>
         </div>
-        <h1 className="text-[#3A22D4] text-[28px] font-black tracking-widest uppercase">Cockpit</h1>
+        <h1 className="text-[#3A22D4] text-[28px] font-black tracking-widest uppercase">Cocpit</h1>
       </div>
 
       <div className="relative z-10 w-full max-w-[540px] px-4">
@@ -156,19 +154,7 @@ export default function Login() {
               </div>
             </div>
 
-            {/* Remember Me */}
-            <div className="flex items-center gap-2 pt-1 pb-2">
-              <input 
-                type="checkbox" 
-                id="remember"
-                checked={rememberMe}
-                onChange={(e) => setRememberMe(e.target.checked)}
-                className="w-4 h-4 rounded border-gray-300 text-[#3A22D4] focus:ring-[#3A22D4] cursor-pointer"
-              />
-              <label htmlFor="remember" className="text-[13px] text-gray-500 font-medium cursor-pointer select-none">
-                Remember this session for 30 days
-              </label>
-            </div>
+
 
             {/* Submit Button */}
             <button 
