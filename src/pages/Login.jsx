@@ -58,16 +58,8 @@ export default function Login() {
       
       {/* Top Logo Area */}
       <div className="relative z-10 flex flex-col items-center mb-8">
-        <div className="w-[72px] h-[72px] bg-white rounded-2xl shadow-sm border border-gray-100 flex flex-col items-center justify-center mb-4 relative overflow-hidden">
-          {/* Recreate the COCKPIT logo mark */}
-          <div className="flex flex-col items-start gap-[2px]">
-            <div className="flex items-center gap-1">
-              <div className="w-2 h-2 bg-black rounded-full"></div>
-              <div className="w-6 h-2.5 bg-black rounded-sm transform skew-x-[-20deg]"></div>
-            </div>
-            <div className="w-3 h-6 bg-black rounded-sm rounded-bl-xl ml-0.5"></div>
-            <div className="w-8 h-2.5 bg-black rounded-sm transform skew-x-[-20deg] ml-0.5 mt-[-2px]"></div>
-          </div>
+        <div className="w-[72px] h-[72px] bg-black rounded-2xl shadow-sm border border-gray-100 flex items-center justify-center mb-4 relative overflow-hidden">
+          <img src="/image.png" alt="Cocpit Logo" className="w-full h-full object-cover" />
         </div>
         <h1 className="text-[#3A22D4] text-[28px] font-black tracking-widest uppercase">Cocpit</h1>
       </div>
