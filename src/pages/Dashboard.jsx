@@ -152,7 +152,7 @@ export default function Dashboard() {
       
       {/* KPI Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-lg mb-lg">
-        <div className="bg-surface p-lg rounded-xl border border-outline-variant hover:border-primary transition-all group">
+        <div onClick={() => navigate('/detailed-analytics?metric=users')} className="bg-surface p-lg rounded-xl border border-outline-variant hover:border-primary transition-all group cursor-pointer">
           <div className="flex justify-between items-start mb-md">
             <div className="p-sm bg-primary-fixed rounded-lg text-on-primary-fixed">
               <span className="material-symbols-outlined">group</span>
@@ -168,7 +168,7 @@ export default function Dashboard() {
             <div className="bg-primary h-full w-[70%] group-hover:w-[75%] transition-all duration-700"></div>
           </div>
         </div>
-        <div className="bg-surface p-lg rounded-xl border border-outline-variant hover:border-primary transition-all group">
+        <div onClick={() => navigate('/detailed-analytics?metric=active_users')} className="bg-surface p-lg rounded-xl border border-outline-variant hover:border-primary transition-all group cursor-pointer">
           <div className="flex justify-between items-start mb-md">
             <div className="p-sm bg-secondary-container rounded-lg text-on-secondary-container">
               <span className="material-symbols-outlined">bolt</span>
@@ -184,7 +184,7 @@ export default function Dashboard() {
             <div className="bg-secondary h-full w-[45%] group-hover:w-[48%] transition-all duration-700"></div>
           </div>
         </div>
-        <div className="bg-surface p-lg rounded-xl border border-outline-variant hover:border-primary transition-all group">
+        <div onClick={() => navigate('/detailed-analytics?metric=user_growth')} className="bg-surface p-lg rounded-xl border border-outline-variant hover:border-primary transition-all group cursor-pointer">
           <div className="flex justify-between items-start mb-md">
             <div className="p-sm bg-tertiary-fixed rounded-lg text-on-tertiary-fixed">
               <span className="material-symbols-outlined">show_chart</span>
@@ -200,7 +200,7 @@ export default function Dashboard() {
             <div className="bg-tertiary h-full w-[60%] group-hover:w-[65%] transition-all duration-700"></div>
           </div>
         </div>
-        <div className="bg-surface p-lg rounded-xl border border-outline-variant hover:border-primary transition-all group">
+        <div onClick={() => navigate('/detailed-analytics?metric=organizations')} className="bg-surface p-lg rounded-xl border border-outline-variant hover:border-primary transition-all group cursor-pointer">
           <div className="flex justify-between items-start mb-md">
             <div className="p-sm bg-primary-fixed rounded-lg text-on-primary-fixed">
               <span className="material-symbols-outlined">domain</span>

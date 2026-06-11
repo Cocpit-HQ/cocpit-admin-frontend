@@ -12,6 +12,7 @@ import OrganizationProfile from './pages/OrganizationProfile';
 import Notifications from './pages/Notifications';
 import Login from './pages/Login';
 import ReviewHistory from './pages/ReviewHistory';
+import DetailedAnalytics from './pages/DetailedAnalytics';
 import { AuthProvider } from './AuthContext';
 import RoleGuard from './components/RoleGuard';
 
@@ -22,6 +23,7 @@ function AppRoutes() {
       
       <Route element={<RoleGuard><Layout /></RoleGuard>}>
         <Route index element={<Dashboard />} />
+        <Route path="detailed-analytics" element={<DetailedAnalytics />} />
         
         {/* Admin & Developer only */}
         <Route path="users" element={<RoleGuard allowedRoles={['admin', 'developer']}><UserManagement /></RoleGuard>} />
