@@ -216,7 +216,7 @@ export default function Dashboard() {
             <div className="bg-primary h-full w-[60%] group-hover:w-[65%] transition-all duration-700"></div>
           </div>
         </div>
-        <div className="bg-surface p-lg rounded-xl border border-outline-variant hover:border-primary transition-all group">
+        <div onClick={() => navigate('/detailed-analytics?metric=active_organizations')} className="bg-surface p-lg rounded-xl border border-outline-variant hover:border-primary transition-all group cursor-pointer">
           <div className="flex justify-between items-start mb-md">
             <div className="p-sm bg-secondary-container rounded-lg text-on-secondary-container">
               <span className="material-symbols-outlined">domain_verification</span>
@@ -232,7 +232,7 @@ export default function Dashboard() {
             <div className="bg-secondary h-full w-[80%] group-hover:w-[85%] transition-all duration-700"></div>
           </div>
         </div>
-        <div className="bg-surface p-lg rounded-xl border border-outline-variant hover:border-primary transition-all group">
+        <div onClick={() => navigate('/detailed-analytics?metric=organization_growth')} className="bg-surface p-lg rounded-xl border border-outline-variant hover:border-primary transition-all group cursor-pointer">
           <div className="flex justify-between items-start mb-md">
             <div className="p-sm bg-tertiary-fixed rounded-lg text-on-tertiary-fixed">
               <span className="material-symbols-outlined">show_chart</span>

@@ -14,9 +14,11 @@ import {
 
 const METRICS = [
   { id: 'users', label: 'Total Users', icon: 'group' },
-  { id: 'organizations', label: 'Organizations', icon: 'domain' },
   { id: 'active_users', label: 'Active Users', icon: 'bolt' },
-  { id: 'user_growth', label: 'User Growth', icon: 'show_chart' }
+  { id: 'user_growth', label: 'User Growth %', icon: 'show_chart' },
+  { id: 'organizations', label: 'Total Organisations', icon: 'domain' },
+  { id: 'active_organizations', label: 'Active Organisations', icon: 'domain_verification' },
+  { id: 'organization_growth', label: 'Organisation Growth %', icon: 'trending_up' }
 ];
 
 const TIME_INTERVALS = ['Daily', 'Weekly', 'Monthly', 'Yearly'];
@@ -36,8 +38,13 @@ const generateMockData = (metricId, interval) => {
   
   const points = labels.length;
   const data = [];
-  const baseValue = metricId === 'users' ? 2400000 : metricId === 'organizations' ? 1200 : metricId === 'active_users' ? 850000 : 4.2;
-  const variance = metricId === 'user_growth' ? 0.5 : baseValue * 0.05;
+  const baseValue = metricId === 'users' ? 2400000 
+                  : metricId === 'active_users' ? 850000 
+                  : metricId === 'user_growth' ? 4.2 
+                  : metricId === 'organizations' ? 1200 
+                  : metricId === 'active_organizations' ? 950 
+                  : metricId === 'organization_growth' ? 2.8 : 100;
+  const variance = (metricId === 'user_growth' || metricId === 'organization_growth') ? 0.5 : baseValue * 0.05;
 
   let currentVal = baseValue - (points * variance);
 
