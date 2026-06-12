@@ -11,6 +11,7 @@ import {
   AreaChart,
   Area
 } from 'recharts';
+import EngagementHeatmap from '../components/EngagementHeatmap';
 
 const METRICS = [
   { id: 'users', label: 'Total Users', icon: 'group' },
@@ -44,15 +45,23 @@ const generateMockData = (metricId, interval) => {
                   : metricId === 'organizations' ? 1200 
                   : metricId === 'active_organizations' ? 950 
                   : metricId === 'organization_growth' ? 2.8 : 100;
-  const variance = (metricId === 'user_growth' || metricId === 'organization_growth') ? 0.5 : baseValue * 0.05;
+  
+  // Moderate variance (10% of base) so the graph has gentle but visible curves
+  const variance = (metricId === 'user_growth' || metricId === 'organization_growth') ? 1.5 : baseValue * 0.10;
 
-  let currentVal = baseValue - (points * variance);
+  let currentVal = baseValue - (points * variance * 0.5);
 
   for (let i = 0; i < points; i++) {
-    currentVal += (Math.random() * variance * 2) - (variance * 0.5);
+    // Generate much larger swings up and down
+    const swing = (Math.random() > 0.5 ? 1 : -1) * (Math.random() * variance);
+    currentVal = Math.max(0, currentVal + swing);
+    
+    // Trend slightly upwards over time
+    currentVal += (baseValue * 0.05);
+
     data.push({
       date: labels[i],
-      value: Math.max(0, Math.round(currentVal * 100) / 100) // Keep it positive, round to 2 decimals
+      value: Math.max(0, Math.round(currentVal * 100) / 100)
     });
   }
   return data;
@@ -85,56 +94,77 @@ export default function DetailedAnalytics() {
 
   const currentMetricObj = METRICS.find(m => m.id === activeMetric) || METRICS[0];
 
+  const COLORS = {
+    users: '#1d4ed8', // Blue 700
+    active_users: '#0f172a', // Slate 900
+    user_growth: '#047857', // Emerald 700
+    organizations: '#4338ca', // Indigo 700
+    active_organizations: '#0e7490', // Cyan 700
+    organization_growth: '#b45309' // Amber 700
+  };
+
+  const chartColor = COLORS[activeMetric] || '#1d4ed8';
+
+  const CustomTooltip = ({ active, payload, label }) => {
+    if (active && payload && payload.length) {
+      return (
+        <div className="bg-white border border-gray-200 shadow-sm rounded-md p-3 min-w-[120px]">
+          <p className="text-xs font-medium text-gray-500 mb-1">{label}</p>
+          <p className="text-sm font-semibold text-gray-900">
+            {payload[0].value.toLocaleString()} {activeMetric.includes('growth') ? '%' : ''}
+          </p>
+        </div>
+      );
+    }
+    return null;
+  };
+
   return (
     <div className="flex h-[calc(100vh-100px)] overflow-hidden bg-background">
       {/* Sidebar Switcher */}
-      <div className="w-64 bg-surface border-r border-outline-variant p-4 flex flex-col gap-2 overflow-y-auto">
-        <div className="mb-4 flex items-center justify-between">
-          <h3 className="text-body-md font-bold text-on-surface uppercase tracking-wider">Switcher</h3>
-          <span className="material-symbols-outlined text-on-surface-variant cursor-pointer hover:text-primary">expand_more</span>
+      <div className="w-64 bg-surface border-r border-outline-variant p-4 flex flex-col gap-1 overflow-y-auto">
+        <div className="mb-4 mt-2 px-2 flex items-center justify-between">
+          <h3 className="text-xs font-semibold text-on-surface-variant uppercase tracking-wider">Metrics</h3>
         </div>
         
         {METRICS.map(metric => (
           <button
             key={metric.id}
             onClick={() => setActiveMetric(metric.id)}
-            className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all text-left ${
+            className={`flex items-center gap-3 px-3 py-2.5 rounded-md transition-colors text-left ${
               activeMetric === metric.id 
-                ? 'bg-primary-container text-on-primary-container font-semibold shadow-sm' 
-                : 'text-on-surface-variant hover:bg-surface-container hover:text-on-surface'
+                ? 'bg-blue-50 text-blue-700 font-medium' 
+                : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
             }`}
           >
-            <span className="material-symbols-outlined text-[20px]">{metric.icon}</span>
-            <span className="text-body-md flex-1">{metric.label}</span>
+            <span className="material-symbols-outlined text-[18px]">{metric.icon}</span>
+            <span className="text-sm flex-1">{metric.label}</span>
           </button>
         ))}
       </div>
 
       {/* Main Content Area */}
-      <div className="flex-1 flex flex-col bg-background">
+      <div className="flex-1 flex flex-col bg-gray-50">
         {/* Top Header */}
-        <div className="p-6 border-b border-outline-variant flex justify-between items-center bg-surface">
+        <div className="px-8 py-6 border-b border-gray-200 flex justify-between items-center bg-white">
           <div>
-            <h1 className="text-display-sm font-bold text-on-surface flex items-center gap-2">
+            <h1 className="text-xl font-semibold text-gray-900 flex items-center gap-2">
               {currentMetricObj.label}
-              <span className="text-xs font-medium px-2 py-1 bg-tertiary-container text-on-tertiary-container rounded-full uppercase tracking-widest ml-2">
-                Medium
-              </span>
             </h1>
-            <p className="text-body-md text-on-surface-variant mt-1">
-              Detailed breakdown of {currentMetricObj.label.toLowerCase()} over time.
+            <p className="text-sm text-gray-500 mt-1">
+              Historical performance and trends.
             </p>
           </div>
           
-          <div className="flex items-center gap-2 bg-surface-container-low p-1 rounded-xl border border-outline-variant">
+          <div className="flex items-center bg-gray-100 p-1 rounded-md border border-gray-200">
             {TIME_INTERVALS.map(t => (
               <button
                 key={t}
                 onClick={() => setInterval(t)}
-                className={`px-4 py-1.5 rounded-lg text-label-md transition-all ${
+                className={`px-3 py-1.5 rounded text-sm font-medium transition-colors ${
                   interval === t 
-                    ? 'bg-surface text-primary font-bold shadow-sm ring-1 ring-outline-variant/50' 
-                    : 'text-on-surface-variant hover:text-on-surface'
+                    ? 'bg-white text-gray-900 shadow-sm border border-gray-200' 
+                    : 'text-gray-500 hover:text-gray-700'
                 }`}
               >
                 {t}
@@ -144,27 +174,28 @@ export default function DetailedAnalytics() {
         </div>
 
         {/* Chart Area */}
-        <div className="flex-1 p-6 overflow-y-auto">
-          <div className="bg-surface border border-outline-variant rounded-2xl p-6 h-full min-h-[400px] flex flex-col shadow-sm">
-            <div className="mb-6 flex justify-between items-center">
-              <h2 className="text-headline-sm font-bold text-on-surface">Trend Analysis</h2>
+        <div className="flex-1 p-8 overflow-y-auto">
+          <div className="flex flex-col gap-8">
+            <div className="bg-white border border-gray-200 rounded-lg p-6 h-[450px] shrink-0 flex flex-col shadow-sm">
+            <div className="mb-8 flex justify-between items-center">
+              <h2 className="text-base font-semibold text-gray-900">Performance Over Time</h2>
               <button 
                 onClick={handleExport}
                 disabled={isExporting}
-                className="relative overflow-hidden bg-primary text-on-primary px-lg py-2.5 rounded-xl flex items-center gap-sm font-label-md text-label-md shadow-lg shadow-primary/20 hover:shadow-primary/40 hover:-translate-y-0.5 transition-all active:scale-95 disabled:opacity-70"
+                className="flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 transition-colors"
               >
-                {isExporting ? <span className="material-symbols-outlined text-[16px] animate-spin">sync</span> : <span className="material-symbols-outlined text-[18px]">download</span>}
-                {isExporting ? 'Downloading...' : 'Export CSV'}
+                {isExporting ? <span className="material-symbols-outlined text-[16px] animate-spin">sync</span> : <span className="material-symbols-outlined text-[16px]">download</span>}
+                {isExporting ? 'Exporting...' : 'Export CSV'}
               </button>
             </div>
             
-            <div className="flex-1 w-full">
+            <div className="flex-1 w-full relative">
               <ResponsiveContainer width="100%" height="100%">
-                <AreaChart data={chartData} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
+                <AreaChart data={chartData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
                   <defs>
                     <linearGradient id="colorValue" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="#3A22D4" stopOpacity={0.3} />
-                      <stop offset="95%" stopColor="#3A22D4" stopOpacity={0} />
+                      <stop offset="5%" stopColor={chartColor} stopOpacity={0.1} />
+                      <stop offset="95%" stopColor={chartColor} stopOpacity={0} />
                     </linearGradient>
                   </defs>
                   <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E5E7EB" />
@@ -181,23 +212,28 @@ export default function DetailedAnalytics() {
                     tick={{ fill: '#6B7280', fontSize: 12 }}
                     tickFormatter={(val) => val >= 1000 ? `${(val / 1000).toFixed(1)}k` : val}
                     dx={-10}
+                    domain={['dataMin - (dataMin * 0.05)', 'dataMax + (dataMax * 0.05)']}
                   />
-                  <Tooltip 
-                    contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
-                    itemStyle={{ color: '#3A22D4', fontWeight: 'bold' }}
-                  />
+                  <Tooltip content={<CustomTooltip />} cursor={{ stroke: '#E5E7EB', strokeWidth: 1 }} />
                   <Area 
                     type="monotone" 
                     dataKey="value" 
-                    stroke="#3A22D4" 
-                    strokeWidth={3}
+                    stroke={chartColor} 
+                    strokeWidth={2}
                     fillOpacity={1} 
                     fill="url(#colorValue)" 
-                    activeDot={{ r: 6, strokeWidth: 0, fill: '#3A22D4' }}
+                    activeDot={{ r: 4, strokeWidth: 2, stroke: '#fff', fill: chartColor }}
+                    animationDuration={1000}
                   />
                 </AreaChart>
               </ResponsiveContainer>
             </div>
+          </div>
+          
+          {/* Always show Heatmap */}
+          <div>
+            <EngagementHeatmap activeMetric={activeMetric} interval={interval} />
+          </div>
           </div>
         </div>
       </div>

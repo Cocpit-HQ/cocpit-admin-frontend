@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../AuthContext';
+import EngagementHeatmap from '../components/EngagementHeatmap';
 
 export default function Dashboard() {
   const { role } = useAuth();
@@ -357,6 +358,11 @@ export default function Dashboard() {
           </div>
         </div>
 
+      </div>
+
+      {/* Engagement Heatmap */}
+      <div className="mb-xl">
+        <EngagementHeatmap />
       </div>
 
       {/* Export Modal */}
