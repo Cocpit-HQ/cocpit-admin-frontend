@@ -11,6 +11,9 @@ import {
   AreaChart,
   Area
 } from 'recharts';
+import { subDays, format, addDays, differenceInDays } from 'date-fns';
+import TotalUsersBreakdown from '../components/TotalUsersBreakdown';
+import DatePickerDropdown from '../components/DatePickerDropdown';
 
 const METRICS = [
   { id: 'users', label: 'Total Users', icon: 'group' },
@@ -35,16 +38,16 @@ const generateMockData = (metricId, interval) => {
   } else {
     labels = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
   }
-  
+
   const points = labels.length;
   const data = [];
-  const baseValue = metricId === 'users' ? 2400000 
-                  : metricId === 'active_users' ? 850000 
-                  : metricId === 'user_growth' ? 4.2 
-                  : metricId === 'organizations' ? 1200 
-                  : metricId === 'active_organizations' ? 950 
-                  : metricId === 'organization_growth' ? 2.8 : 100;
-  
+  const baseValue = metricId === 'users' ? 2400000
+    : metricId === 'active_users' ? 850000
+      : metricId === 'user_growth' ? 4.2
+        : metricId === 'organizations' ? 1200
+          : metricId === 'active_organizations' ? 950
+            : metricId === 'organization_growth' ? 2.8 : 100;
+
   // Moderate variance (10% of base) so the graph has gentle but visible curves
   const variance = (metricId === 'user_growth' || metricId === 'organization_growth') ? 1.5 : baseValue * 0.10;
 
@@ -54,7 +57,7 @@ const generateMockData = (metricId, interval) => {
     // Generate much larger swings up and down
     const swing = (Math.random() > 0.5 ? 1 : -1) * (Math.random() * variance);
     currentVal = Math.max(0, currentVal + swing);
-    
+
     // Trend slightly upwards over time
     currentVal += (baseValue * 0.05);
 
@@ -71,8 +74,12 @@ export default function DetailedAnalytics() {
   const navigate = useNavigate();
   const initialMetric = searchParams.get('metric') || 'users';
 
+  const [dateRange, setDateRange] = useState({
+    startDate: subDays(new Date(), 30),
+    endDate: new Date(),
+    key: 'selection'
+  });
   const [activeMetric, setActiveMetric] = useState(initialMetric);
-  const [interval, setInterval] = useState('Monthly');
   const [chartData, setChartData] = useState([]);
   const [toastMessage, setToastMessage] = useState('');
   const [isExporting, setIsExporting] = useState(false);
@@ -121,25 +128,26 @@ export default function DetailedAnalytics() {
   return (
     <div className="flex h-[calc(100vh-100px)] overflow-hidden bg-background">
       {/* Sidebar Switcher */}
-      <div className="w-64 bg-surface border-r border-outline-variant p-4 flex flex-col gap-1 overflow-y-auto">
-        <div className="mb-4 mt-2 px-2 flex items-center justify-between">
-          <h3 className="text-xs font-semibold text-on-surface-variant uppercase tracking-wider">Metrics</h3>
+      <div className="w-[68px] shrink-0 z-20 relative h-full">
+        <div className="group absolute top-0 left-0 h-full w-[68px] hover:w-64 transition-all duration-300 bg-surface border-r border-outline-variant p-3 flex flex-col gap-1 overflow-hidden hover:shadow-xl">
+          <div className="mb-4 mt-2 px-3 flex items-center h-4 shrink-0">
+            <h3 className="text-xs font-semibold text-on-surface-variant uppercase tracking-wider whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity duration-300">Metrics</h3>
+          </div>
+
+          {METRICS.map(metric => (
+            <button
+              key={metric.id}
+              onClick={() => setActiveMetric(metric.id)}
+              className={`flex items-center px-3 py-2.5 rounded-md transition-colors text-left shrink-0 whitespace-nowrap w-[230px] ${activeMetric === metric.id
+                  ? 'bg-blue-50 text-blue-700 font-medium'
+                  : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
+                }`}
+            >
+              <span className="material-symbols-outlined text-[18px] shrink-0">{metric.icon}</span>
+              <span className="text-sm flex-1 opacity-0 group-hover:opacity-100 transition-opacity duration-300 ml-3">{metric.label}</span>
+            </button>
+          ))}
         </div>
-        
-        {METRICS.map(metric => (
-          <button
-            key={metric.id}
-            onClick={() => setActiveMetric(metric.id)}
-            className={`flex items-center gap-3 px-3 py-2.5 rounded-md transition-colors text-left ${
-              activeMetric === metric.id 
-                ? 'bg-blue-50 text-blue-700 font-medium' 
-                : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
-            }`}
-          >
-            <span className="material-symbols-outlined text-[18px]">{metric.icon}</span>
-            <span className="text-sm flex-1">{metric.label}</span>
-          </button>
-        ))}
       </div>
 
       {/* Main Content Area */}
@@ -155,20 +163,11 @@ export default function DetailedAnalytics() {
             </p>
           </div>
           
-          <div className="flex items-center bg-gray-100 p-1 rounded-md border border-gray-200">
-            {TIME_INTERVALS.map(t => (
-              <button
-                key={t}
-                onClick={() => setInterval(t)}
-                className={`px-3 py-1.5 rounded text-sm font-medium transition-colors ${
-                  interval === t 
-                    ? 'bg-white text-gray-900 shadow-sm border border-gray-200' 
-                    : 'text-gray-500 hover:text-gray-700'
-                }`}
-              >
-                {t}
-              </button>
-            ))}
+          <div className="flex items-center relative z-20">
+            <DatePickerDropdown 
+              onRangeChange={(range) => setDateRange(range)} 
+              initialRangeLabel="Last 30 Days"
+            />
           </div>
         </div>
 
@@ -176,61 +175,67 @@ export default function DetailedAnalytics() {
         <div className="flex-1 p-8 overflow-y-auto">
           <div className="flex flex-col gap-8">
             <div className="bg-white border border-gray-200 rounded-lg p-6 h-[450px] shrink-0 flex flex-col shadow-sm">
-            <div className="mb-8 flex justify-between items-center">
-              <h2 className="text-base font-semibold text-gray-900">Performance Over Time</h2>
-              <button 
-                onClick={handleExport}
-                disabled={isExporting}
-                className="flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 transition-colors"
-              >
-                {isExporting ? <span className="material-symbols-outlined text-[16px] animate-spin">sync</span> : <span className="material-symbols-outlined text-[16px]">download</span>}
-                {isExporting ? 'Exporting...' : 'Export CSV'}
-              </button>
+              <div className="mb-8 flex justify-between items-center">
+                <h2 className="text-base font-semibold text-gray-900">Performance Over Time</h2>
+                <button
+                  onClick={handleExport}
+                  disabled={isExporting}
+                  className="flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 transition-colors"
+                >
+                  {isExporting ? <span className="material-symbols-outlined text-[16px] animate-spin">sync</span> : <span className="material-symbols-outlined text-[16px]">download</span>}
+                  {isExporting ? 'Exporting...' : 'Export CSV'}
+                </button>
+              </div>
+
+              <div className="flex-1 w-full relative">
+                <ResponsiveContainer width="100%" height="100%">
+                  <AreaChart data={chartData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                    <defs>
+                      <linearGradient id="colorValue" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="5%" stopColor={chartColor} stopOpacity={0.1} />
+                        <stop offset="95%" stopColor={chartColor} stopOpacity={0} />
+                      </linearGradient>
+                    </defs>
+                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E5E7EB" />
+                    <XAxis
+                      dataKey="date"
+                      axisLine={false}
+                      tickLine={false}
+                      tick={{ fill: '#6B7280', fontSize: 12 }}
+                      dy={10}
+                    />
+                    <YAxis
+                      axisLine={false}
+                      tickLine={false}
+                      tick={{ fill: '#6B7280', fontSize: 12 }}
+                      tickFormatter={(val) => val >= 1000 ? `${(val / 1000).toFixed(1)}k` : val}
+                      dx={-10}
+                      domain={['dataMin - (dataMin * 0.05)', 'dataMax + (dataMax * 0.05)']}
+                    />
+                    <Tooltip content={<CustomTooltip />} cursor={{ stroke: '#E5E7EB', strokeWidth: 1 }} />
+                    <Area
+                      type="monotone"
+                      dataKey="value"
+                      stroke={chartColor}
+                      strokeWidth={2}
+                      fillOpacity={1}
+                      fill="url(#colorValue)"
+                      activeDot={{ r: 4, strokeWidth: 2, stroke: '#fff', fill: chartColor }}
+                      animationDuration={1000}
+                    />
+                  </AreaChart>
+                </ResponsiveContainer>
+              </div>
             </div>
-            
-            <div className="flex-1 w-full relative">
-              <ResponsiveContainer width="100%" height="100%">
-                <AreaChart data={chartData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
-                  <defs>
-                    <linearGradient id="colorValue" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor={chartColor} stopOpacity={0.1} />
-                      <stop offset="95%" stopColor={chartColor} stopOpacity={0} />
-                    </linearGradient>
-                  </defs>
-                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E5E7EB" />
-                  <XAxis 
-                    dataKey="date" 
-                    axisLine={false} 
-                    tickLine={false} 
-                    tick={{ fill: '#6B7280', fontSize: 12 }} 
-                    dy={10}
-                  />
-                  <YAxis 
-                    axisLine={false} 
-                    tickLine={false} 
-                    tick={{ fill: '#6B7280', fontSize: 12 }}
-                    tickFormatter={(val) => val >= 1000 ? `${(val / 1000).toFixed(1)}k` : val}
-                    dx={-10}
-                    domain={['dataMin - (dataMin * 0.05)', 'dataMax + (dataMax * 0.05)']}
-                  />
-                  <Tooltip content={<CustomTooltip />} cursor={{ stroke: '#E5E7EB', strokeWidth: 1 }} />
-                  <Area 
-                    type="monotone" 
-                    dataKey="value" 
-                    stroke={chartColor} 
-                    strokeWidth={2}
-                    fillOpacity={1} 
-                    fill="url(#colorValue)" 
-                    activeDot={{ r: 4, strokeWidth: 2, stroke: '#fff', fill: chartColor }}
-                    animationDuration={1000}
-                  />
-                </AreaChart>
-              </ResponsiveContainer>
-            </div>
+
+            {/* Additional Breakdowns for Total Users */}
+            {activeMetric === 'users' && (
+              <TotalUsersBreakdown />
+            )}
+
           </div>
         </div>
       </div>
-    </div>
 
       {/* Toast Notification */}
       {toastMessage && (

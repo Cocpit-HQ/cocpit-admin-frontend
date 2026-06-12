@@ -57,7 +57,7 @@ export default function Header({ toggleSidebar }) {
   };
 
   return (
-    <header className="fixed top-0 right-0 w-full md:w-[calc(100%-280px)] h-16 bg-surface-container-lowest flex justify-between items-center px-4 md:px-margin-desktop z-30 transition-all">
+    <header className="fixed top-0 right-0 w-full md:w-[calc(100%-80px)] h-16 bg-surface-container-lowest flex justify-between items-center px-4 md:px-margin-desktop z-30 transition-all duration-300">
       <div className="flex items-center gap-2 md:gap-xl flex-1 min-w-0">
         <button 
           className="md:hidden material-symbols-outlined text-on-surface p-1 rounded hover:bg-surface-container transition-colors shrink-0" 

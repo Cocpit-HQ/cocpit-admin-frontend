@@ -1,56 +1,23 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../AuthContext';
+import { format, subDays } from 'date-fns';
 import EngagementHeatmap from '../components/EngagementHeatmap';
+import DatePickerDropdown from '../components/DatePickerDropdown';
 
 export default function Dashboard() {
   const { role } = useAuth();
   const navigate = useNavigate();
-  const [isDatePickerOpen, setIsDatePickerOpen] = useState(false);
-  const [selectedRange, setSelectedRange] = useState('Last 30 Days');
-  const [startDate, setStartDate] = useState('');
-  const [endDate, setEndDate] = useState('');
-  const [dateError, setDateError] = useState('');
+  const [dateRange, setDateRange] = useState({
+    startDate: subDays(new Date(), 30),
+    endDate: new Date(),
+    key: 'selection'
+  });
   const [isExporting, setIsExporting] = useState(false);
   const [isExportModalOpen, setIsExportModalOpen] = useState(false);
   const [exportFormat, setExportFormat] = useState('csv');
-  const datePickerRef = useRef(null);
-
-  // Close dropdown if clicked outside
-  useEffect(() => {
-    function handleClickOutside(event) {
-      if (datePickerRef.current && !datePickerRef.current.contains(event.target)) {
-        setIsDatePickerOpen(false);
-      }
-    }
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, []);
-
-  const handleRangeSelect = (range) => {
-    setSelectedRange(range);
-    setIsDatePickerOpen(false);
-  };
 
   const today = new Date().toISOString().split('T')[0];
-
-  const handleCustomApply = () => {
-    if (!startDate || !endDate) {
-      setDateError('Please select both dates.');
-      return;
-    }
-    if (startDate > today || endDate > today) {
-      setDateError('Future dates are not allowed.');
-      return;
-    }
-    if (startDate > endDate) {
-      setDateError('Start date must be before end date.');
-      return;
-    }
-    setDateError('');
-    setSelectedRange('Custom');
-    setIsDatePickerOpen(false);
-  };
 
   const handleExport = () => {
     setIsExporting(true);
@@ -78,65 +45,12 @@ export default function Dashboard() {
           <p className="text-body-lg text-on-surface-variant">Real-time performance metrics and ecosystem health.</p>
         </div>
         <div className="flex flex-wrap items-center gap-sm md:gap-md w-full md:w-auto">
-          {/* Date Picker Dropdown */}
-          <div className="relative" ref={datePickerRef}>
-            <button 
-              onClick={() => setIsDatePickerOpen(!isDatePickerOpen)}
-              className={`bg-surface border ${isDatePickerOpen ? 'border-primary ring-2 ring-primary/20' : 'border-outline-variant'} px-md py-sm rounded-lg flex items-center gap-sm font-label-md text-label-md hover:bg-surface-container transition-all`}
-            >
-              <span className="material-symbols-outlined text-body-md">calendar_today</span>
-              {selectedRange === 'Custom' ? `${startDate || 'Start'} - ${endDate || 'End'}` : selectedRange}
-              <span className="material-symbols-outlined text-body-md ml-xs">{isDatePickerOpen ? 'expand_less' : 'expand_more'}</span>
-            </button>
-
-            {isDatePickerOpen && (
-              <div className="absolute right-0 mt-3 w-80 bg-surface border border-outline-variant rounded-2xl shadow-2xl overflow-hidden z-50 animate-in fade-in slide-in-from-top-2 duration-200">
-                <div className="p-sm">
-                  {['Today', 'Last 7 Days', 'Last 30 Days', 'This Year'].map((range) => (
-                    <button
-                      key={range}
-                      onClick={() => handleRangeSelect(range)}
-                      className={`w-full text-left px-md py-sm rounded-xl text-body-md transition-all duration-200 flex items-center justify-between ${selectedRange === range ? 'bg-primary-container text-on-primary-container font-semibold' : 'hover:bg-surface-container text-on-surface'}`}
-                    >
-                      {range}
-                      {selectedRange === range && <span className="material-symbols-outlined text-[18px]">check</span>}
-                    </button>
-                  ))}
-                </div>
-                <div className="border-t border-outline-variant p-md bg-surface-container-lowest">
-                  <p className="text-[11px] font-mono-label text-on-surface-variant mb-md uppercase tracking-wider">Custom Range</p>
-                  <div className="flex flex-col gap-md">
-                    <div>
-                      <label className="block text-[11px] font-mono-label text-on-surface-variant mb-xs ml-1">START DATE</label>
-                      <input 
-                        type="date" 
-                        value={startDate}
-                        max={today}
-                        onChange={(e) => { setStartDate(e.target.value); setDateError(''); }}
-                        className="w-full bg-surface border border-outline-variant rounded-xl px-md py-2 text-body-sm text-on-surface focus:outline-none focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all cursor-pointer"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-[11px] font-mono-label text-on-surface-variant mb-xs ml-1">END DATE</label>
-                      <input 
-                        type="date" 
-                        value={endDate}
-                        max={today}
-                        onChange={(e) => { setEndDate(e.target.value); setDateError(''); }}
-                        className="w-full bg-surface border border-outline-variant rounded-xl px-md py-2 text-body-sm text-on-surface focus:outline-none focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all cursor-pointer"
-                      />
-                    </div>
-                    {dateError && <p className="text-error text-[11px] font-medium">{dateError}</p>}
-                    <button 
-                      onClick={handleCustomApply}
-                      className="w-full bg-primary text-on-primary py-2 rounded-xl text-label-md font-semibold hover:bg-primary/90 transition-all active:scale-95"
-                    >
-                      Apply Range
-                    </button>
-                  </div>
-                </div>
-              </div>
-            )}
+          {/* Date Picker Modal Trigger */}
+          <div className="flex items-center relative z-20">
+            <DatePickerDropdown 
+              onRangeChange={(range) => setDateRange(range)} 
+              initialRangeLabel="Last 30 Days"
+            />
           </div>
 
           {role === 'admin' && (

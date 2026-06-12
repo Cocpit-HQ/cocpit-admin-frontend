@@ -16,7 +16,7 @@ export default function Layout() {
       )}
       <Sidebar isOpen={isSidebarOpen} setIsOpen={setIsSidebarOpen} />
       <Header toggleSidebar={() => setIsSidebarOpen(!isSidebarOpen)} />
-      <main className="flex-1 md:ml-[280px] mt-16 p-4 md:p-margin-desktop h-[calc(100vh-64px)] overflow-y-auto w-full transition-all">
+      <main className="flex-1 md:ml-[80px] mt-16 p-4 md:p-margin-desktop h-[calc(100vh-64px)] overflow-y-auto w-full transition-all duration-300">
         <div className="max-w-max-width mx-auto pb-xl">
           <Outlet />
         </div>
