@@ -11,7 +11,6 @@ import {
   AreaChart,
   Area
 } from 'recharts';
-import EngagementHeatmap from '../components/EngagementHeatmap';
 
 const METRICS = [
   { id: 'users', label: 'Total Users', icon: 'group' },
@@ -229,14 +228,9 @@ export default function DetailedAnalytics() {
               </ResponsiveContainer>
             </div>
           </div>
-          
-          {/* Always show Heatmap */}
-          <div>
-            <EngagementHeatmap activeMetric={activeMetric} interval={interval} />
-          </div>
-          </div>
         </div>
       </div>
+    </div>
 
       {/* Toast Notification */}
       {toastMessage && (
