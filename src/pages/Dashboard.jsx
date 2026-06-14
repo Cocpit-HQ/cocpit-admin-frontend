@@ -47,14 +47,14 @@ export default function Dashboard() {
         <div className="flex flex-wrap items-center gap-sm md:gap-md w-full md:w-auto">
           {/* Date Picker Modal Trigger */}
           <div className="flex items-center relative z-20">
-            <DatePickerDropdown 
-              onRangeChange={(range) => setDateRange(range)} 
+            <DatePickerDropdown
+              onRangeChange={(range) => setDateRange(range)}
               initialRangeLabel="Last 30 Days"
             />
           </div>
 
           {role === 'admin' && (
-            <button 
+            <button
               onClick={() => setIsExportModalOpen(true)}
               className={`relative overflow-hidden bg-primary text-on-primary px-lg py-2.5 rounded-xl flex items-center gap-sm font-label-md text-label-md shadow-lg shadow-primary/20 hover:shadow-primary/40 hover:-translate-y-0.5 transition-all active:scale-95`}
             >
@@ -64,7 +64,7 @@ export default function Dashboard() {
           )}
         </div>
       </div>
-      
+
       {/* KPI Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-lg mb-lg">
         <div onClick={() => navigate('/detailed-analytics?metric=users')} className="bg-surface p-lg rounded-xl border border-outline-variant hover:border-primary transition-all group cursor-pointer">
@@ -199,11 +199,11 @@ export default function Dashboard() {
                 {/* User Growth Line */}
                 <path d="M0,280 Q100,240 200,260 T400,180 T600,150 T800,80 T1000,40 L1000,300 L0,300 Z" fill="url(#chartFill)"></path>
                 <path d="M0,280 Q100,240 200,260 T400,180 T600,150 T800,80 T1000,40" fill="none" stroke="#3525cd" strokeWidth="4"></path>
-                
+
                 {/* Organisation Growth Line */}
                 <path d="M0,290 Q100,285 200,270 T400,250 T600,220 T800,190 T1000,160 L1000,300 L0,300 Z" fill="url(#orgChartFill)"></path>
                 <path d="M0,290 Q100,285 200,270 T400,250 T600,220 T800,190 T1000,160" fill="none" stroke="#10b981" strokeWidth="4"></path>
-                
+
                 <defs>
                   <linearGradient id="chartFill" x1="0" x2="0" y1="0" y2="1">
                     <stop offset="0%" stopColor="#3525cd" stopOpacity="0.15"></stop>
@@ -287,9 +287,9 @@ export default function Dashboard() {
               <h3 className="text-lg font-semibold text-on-surface">Export Data</h3>
               <button onClick={() => setIsExportModalOpen(false)} className="material-symbols-outlined text-on-surface-variant hover:text-on-surface">close</button>
             </div>
-            
+
             <p className="text-sm text-on-surface-variant mb-6">Select format to download the dashboard metrics.</p>
-            
+
             <div className="flex flex-col gap-3 mb-6">
               <label className="flex items-center gap-3 cursor-pointer p-3 border border-outline-variant rounded-lg hover:bg-surface-container transition-colors">
                 <input type="radio" name="format" value="csv" checked={exportFormat === 'csv'} onChange={() => setExportFormat('csv')} className="w-4 h-4 text-primary" />
@@ -303,7 +303,7 @@ export default function Dashboard() {
 
             <div className="flex justify-end gap-3">
               <button onClick={() => setIsExportModalOpen(false)} className="px-4 py-2 rounded-lg text-sm font-medium hover:bg-surface-container transition-colors">Cancel</button>
-              <button 
+              <button
                 onClick={handleExport}
                 disabled={isExporting}
                 className="bg-primary text-on-primary px-4 py-2 rounded-lg text-sm font-medium hover:bg-primary/90 transition-colors disabled:opacity-70 flex items-center gap-2"

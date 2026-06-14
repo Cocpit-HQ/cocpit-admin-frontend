@@ -12,8 +12,18 @@ import {
   Area
 } from 'recharts';
 import { subDays, format, addDays, differenceInDays } from 'date-fns';
-import TotalUsersBreakdown from '../components/TotalUsersBreakdown';
 import DatePickerDropdown from '../components/DatePickerDropdown';
+import TotalUsersBreakdown from '../components/analytics-breakdowns/TotalUsersBreakdown';
+import ActiveUsersBreakdown from '../components/analytics-breakdowns/ActiveUsersBreakdown';
+import UserGrowthBreakdown from '../components/analytics-breakdowns/UserGrowthBreakdown';
+import TotalOrganizationsBreakdown from '../components/analytics-breakdowns/TotalOrganizationsBreakdown';
+import ActiveOrganizationsBreakdown from '../components/analytics-breakdowns/ActiveOrganizationsBreakdown';
+import OrganizationGrowthBreakdown from '../components/analytics-breakdowns/OrganizationGrowthBreakdown';
+import ActiveJobsBreakdown from '../components/analytics-breakdowns/ActiveJobsBreakdown';
+import UpcomingEventsBreakdown from '../components/analytics-breakdowns/UpcomingEventsBreakdown';
+import FeedEngagementBreakdown from '../components/analytics-breakdowns/FeedEngagementBreakdown';
+import AIAnalyticsBreakdown from '../components/analytics-breakdowns/AIAnalyticsBreakdown';
+import NewConnectionsBreakdown from '../components/analytics-breakdowns/NewConnectionsBreakdown';
 
 const METRICS = [
   { id: 'users', label: 'Total Users', icon: 'group' },
@@ -21,8 +31,15 @@ const METRICS = [
   { id: 'user_growth', label: 'User Growth %', icon: 'show_chart' },
   { id: 'organizations', label: 'Total Organisations', icon: 'domain' },
   { id: 'active_organizations', label: 'Active Organisations', icon: 'domain_verification' },
-  { id: 'organization_growth', label: 'Organisation Growth %', icon: 'trending_up' }
+  { id: 'organization_growth', label: 'Organisation Growth %', icon: 'trending_up' },
+  { id: 'feed_engagement', label: 'Feed Engagement', icon: 'feed' },
+  { id: 'new_connections', label: 'New Connections', icon: 'people' },
+  { id: 'ai_usage', label: 'AI Usage', icon: 'auto_awesome' },
+  { id: 'active_jobs', label: 'Active Jobs', icon: 'work' },
+  { id: 'upcoming_events', label: 'Upcoming Events', icon: 'event' }
 ];
+
+const CORE_METRICS = ['users', 'active_users', 'user_growth', 'organizations', 'active_organizations', 'organization_growth'];
 
 const TIME_INTERVALS = ['Daily', 'Weekly', 'Monthly', 'Yearly'];
 
@@ -80,6 +97,7 @@ export default function DetailedAnalytics() {
     key: 'selection'
   });
   const [activeMetric, setActiveMetric] = useState(initialMetric);
+  const [interval, setInterval] = useState('Monthly');
   const [chartData, setChartData] = useState([]);
   const [toastMessage, setToastMessage] = useState('');
   const [isExporting, setIsExporting] = useState(false);
@@ -88,6 +106,15 @@ export default function DetailedAnalytics() {
     // Whenever metric or interval changes, regenerate mock data
     setChartData(generateMockData(activeMetric, interval));
   }, [activeMetric, interval]);
+
+  useEffect(() => {
+    const metricFromUrl = searchParams.get('metric');
+    if (metricFromUrl && metricFromUrl !== activeMetric) {
+      setActiveMetric(metricFromUrl);
+    }
+  }, [searchParams]);
+
+  const isCoreMetric = CORE_METRICS.includes(activeMetric);
 
   const handleExport = () => {
     setIsExporting(true);
@@ -126,21 +153,22 @@ export default function DetailedAnalytics() {
   };
 
   return (
-    <div className="flex h-[calc(100vh-100px)] overflow-hidden bg-background">
+    <div className="flex h-full overflow-hidden bg-background">
       {/* Sidebar Switcher */}
+      {isCoreMetric && (
       <div className="w-[68px] shrink-0 z-20 relative h-full">
         <div className="group absolute top-0 left-0 h-full w-[68px] hover:w-64 transition-all duration-300 bg-surface border-r border-outline-variant p-3 flex flex-col gap-1 overflow-hidden hover:shadow-xl">
           <div className="mb-4 mt-2 px-3 flex items-center h-4 shrink-0">
             <h3 className="text-xs font-semibold text-on-surface-variant uppercase tracking-wider whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity duration-300">Metrics</h3>
           </div>
 
-          {METRICS.map(metric => (
+          {METRICS.filter(metric => CORE_METRICS.includes(metric.id)).map(metric => (
             <button
               key={metric.id}
               onClick={() => setActiveMetric(metric.id)}
               className={`flex items-center px-3 py-2.5 rounded-md transition-colors text-left shrink-0 whitespace-nowrap w-[230px] ${activeMetric === metric.id
-                  ? 'bg-blue-50 text-blue-700 font-medium'
-                  : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
+                ? 'bg-blue-50 text-blue-700 font-medium'
+                : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
                 }`}
             >
               <span className="material-symbols-outlined text-[18px] shrink-0">{metric.icon}</span>
@@ -149,89 +177,105 @@ export default function DetailedAnalytics() {
           ))}
         </div>
       </div>
+      )}
 
       {/* Main Content Area */}
       <div className="flex-1 flex flex-col bg-gray-50">
-        {/* Top Header */}
-        <div className="px-8 py-6 border-b border-gray-200 flex justify-between items-center bg-white">
-          <div>
-            <h1 className="text-xl font-semibold text-gray-900 flex items-center gap-2">
-              {currentMetricObj.label}
-            </h1>
-            <p className="text-sm text-gray-500 mt-1">
-              Historical performance and trends.
-            </p>
-          </div>
-          
-          <div className="flex items-center relative z-20">
-            <DatePickerDropdown 
-              onRangeChange={(range) => setDateRange(range)} 
-              initialRangeLabel="Last 30 Days"
-            />
-          </div>
-        </div>
-
-        {/* Chart Area */}
-        <div className="flex-1 p-8 overflow-y-auto">
-          <div className="flex flex-col gap-8">
-            <div className="bg-white border border-gray-200 rounded-lg p-6 h-[450px] shrink-0 flex flex-col shadow-sm">
-              <div className="mb-8 flex justify-between items-center">
-                <h2 className="text-base font-semibold text-gray-900">Performance Over Time</h2>
-                <button
-                  onClick={handleExport}
-                  disabled={isExporting}
-                  className="flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 transition-colors"
-                >
-                  {isExporting ? <span className="material-symbols-outlined text-[16px] animate-spin">sync</span> : <span className="material-symbols-outlined text-[16px]">download</span>}
-                  {isExporting ? 'Exporting...' : 'Export CSV'}
-                </button>
+        {isCoreMetric && (
+          <>
+            {/* Top Header */}
+            <div className="px-8 py-6 border-b border-gray-200 flex justify-between items-center bg-white">
+              <div>
+                <h1 className="text-xl font-semibold text-gray-900 flex items-center gap-2">
+                  {currentMetricObj.label}
+                </h1>
+                <p className="text-sm text-gray-500 mt-1">
+                  Historical performance and trends.
+                </p>
               </div>
 
-              <div className="flex-1 w-full relative">
-                <ResponsiveContainer width="100%" height="100%">
-                  <AreaChart data={chartData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
-                    <defs>
-                      <linearGradient id="colorValue" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="5%" stopColor={chartColor} stopOpacity={0.1} />
-                        <stop offset="95%" stopColor={chartColor} stopOpacity={0} />
-                      </linearGradient>
-                    </defs>
-                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E5E7EB" />
-                    <XAxis
-                      dataKey="date"
-                      axisLine={false}
-                      tickLine={false}
-                      tick={{ fill: '#6B7280', fontSize: 12 }}
-                      dy={10}
-                    />
-                    <YAxis
-                      axisLine={false}
-                      tickLine={false}
-                      tick={{ fill: '#6B7280', fontSize: 12 }}
-                      tickFormatter={(val) => val >= 1000 ? `${(val / 1000).toFixed(1)}k` : val}
-                      dx={-10}
-                      domain={['dataMin - (dataMin * 0.05)', 'dataMax + (dataMax * 0.05)']}
-                    />
-                    <Tooltip content={<CustomTooltip />} cursor={{ stroke: '#E5E7EB', strokeWidth: 1 }} />
-                    <Area
-                      type="monotone"
-                      dataKey="value"
-                      stroke={chartColor}
-                      strokeWidth={2}
-                      fillOpacity={1}
-                      fill="url(#colorValue)"
-                      activeDot={{ r: 4, strokeWidth: 2, stroke: '#fff', fill: chartColor }}
-                      animationDuration={1000}
-                    />
-                  </AreaChart>
-                </ResponsiveContainer>
+              <div className="flex items-center relative z-20">
+                <DatePickerDropdown
+                  onRangeChange={(range) => setDateRange(range)}
+                  initialRangeLabel="Last 30 Days"
+                />
               </div>
             </div>
+          </>
+        )}
 
-            {/* Additional Breakdowns for Total Users */}
-            {activeMetric === 'users' && (
-              <TotalUsersBreakdown />
+        {/* Content Area */}
+        <div className={`flex-1 overflow-y-auto ${isCoreMetric ? 'p-8' : 'p-8 pt-6'}`}>
+          <div className="flex flex-col gap-8">
+            
+            {isCoreMetric && (
+              <div className="bg-white border border-gray-100 rounded-2xl p-6 h-[450px] shrink-0 flex flex-col shadow-sm hover:shadow-lg transition-shadow relative overflow-hidden">
+                <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-blue-400 via-indigo-500 to-purple-500"></div>
+                <div className="mb-8 flex justify-between items-center relative z-10">
+                  <h2 className="text-base font-semibold text-gray-900">Performance Over Time</h2>
+                  <button
+                    onClick={handleExport}
+                    disabled={isExporting}
+                    className="flex items-center gap-2 px-4 py-2 border border-gray-200 rounded-xl text-sm font-semibold text-gray-700 bg-white hover:bg-gray-50 focus:outline-none hover:shadow-md hover:border-gray-300 disabled:opacity-50 transition-all active:scale-95"
+                  >
+                    {isExporting ? <span className="material-symbols-outlined text-[16px] animate-spin">sync</span> : <span className="material-symbols-outlined text-[16px]">download</span>}
+                    {isExporting ? 'Exporting...' : 'Export CSV'}
+                  </button>
+                </div>
+
+                <div className="flex-1 w-full relative">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <AreaChart data={chartData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                      <defs>
+                        <linearGradient id="colorValue" x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="5%" stopColor={chartColor} stopOpacity={0.1} />
+                          <stop offset="95%" stopColor={chartColor} stopOpacity={0} />
+                        </linearGradient>
+                      </defs>
+                      <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E5E7EB" />
+                      <XAxis
+                        dataKey="date"
+                        axisLine={false}
+                        tickLine={false}
+                        tick={{ fill: '#6B7280', fontSize: 12 }}
+                        dy={10}
+                      />
+                      <YAxis
+                        axisLine={false}
+                        tickLine={false}
+                        tick={{ fill: '#6B7280', fontSize: 12 }}
+                        tickFormatter={(val) => val >= 1000 ? `${(val / 1000).toFixed(1)}k` : val}
+                        dx={-10}
+                        domain={['dataMin - (dataMin * 0.05)', 'dataMax + (dataMax * 0.05)']}
+                      />
+                      <Tooltip content={<CustomTooltip />} cursor={{ stroke: '#E5E7EB', strokeWidth: 1 }} />
+                      <Area
+                        type="monotone"
+                        dataKey="value"
+                        stroke={chartColor}
+                        strokeWidth={2}
+                        fillOpacity={1}
+                        fill="url(#colorValue)"
+                        activeDot={{ r: 4, strokeWidth: 2, stroke: '#fff', fill: chartColor }}
+                      />
+                    </AreaChart>
+                  </ResponsiveContainer>
+                </div>
+              </div>
             )}
+
+            {/* Dynamic Breakdowns based on selected metric */}
+            {activeMetric === 'users' && <TotalUsersBreakdown />}
+            {activeMetric === 'active_users' && <ActiveUsersBreakdown />}
+            {activeMetric === 'user_growth' && <UserGrowthBreakdown />}
+            {activeMetric === 'organizations' && <TotalOrganizationsBreakdown />}
+            {activeMetric === 'active_organizations' && <ActiveOrganizationsBreakdown />}
+            {activeMetric === 'organization_growth' && <OrganizationGrowthBreakdown />}
+            {activeMetric === 'active_jobs' && <ActiveJobsBreakdown />}
+            {activeMetric === 'upcoming_events' && <UpcomingEventsBreakdown />}
+            {activeMetric === 'feed_engagement' && <FeedEngagementBreakdown />}
+            {activeMetric === 'ai_usage' && <AIAnalyticsBreakdown />}
+            {activeMetric === 'new_connections' && <NewConnectionsBreakdown />}
 
           </div>
         </div>

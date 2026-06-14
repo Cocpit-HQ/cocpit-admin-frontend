@@ -42,6 +42,8 @@ function AppRoutes() {
         <Route path="profile" element={<UserProfile />} />
         <Route path="org-profile" element={<OrganizationProfile />} />
       </Route>
+      {/* Catch-all route for non-existent paths */}
+      <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   );
 }
