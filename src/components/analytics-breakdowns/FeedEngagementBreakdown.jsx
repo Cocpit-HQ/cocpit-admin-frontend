@@ -50,11 +50,6 @@ const initialHashtags = [
   { id: 'H-4', tag: '#DesignSystems', velocity: '+150/hr', status: 'active' }
 ];
 
-const initialUnverified = [
-  { id: 'U-1', name: 'John Doe', claimedTitle: 'Senior Software Engineer | Ex-FAANG | AI Prompt Master | 10x Developer', claimedCompany: 'Google', reason: 'Extreme Keyword Stuffing' },
-  { id: 'U-2', name: 'Jane Smith', claimedTitle: 'Chief Happiness Officer', claimedCompany: 'Apple', reason: 'Unverified Company Domain' }
-];
-
 const initialLeaderboard = [
   { id: 'L-1', title: 'Why AI is replacing Junior Devs (And what to do)', author: 'Mark Z.', likes: 4520, comments: 890 },
   { id: 'L-2', title: 'My journey from bootcamp to Senior Dev', author: 'Emily C.', likes: 3200, comments: 450 },
@@ -65,7 +60,6 @@ export default function FeedEngagementBreakdown() {
   const [viewMode, setViewMode] = useState('card'); // 'card' or 'list'
   const [posts, setPosts] = useState(initialPosts);
   const [hashtags, setHashtags] = useState(initialHashtags);
-  const [unverified, setUnverified] = useState(initialUnverified);
   const [leaderboard] = useState(initialLeaderboard);
   const [toastMessage, setToastMessage] = useState('');
   
@@ -102,11 +96,6 @@ export default function FeedEngagementBreakdown() {
   const togglePostStatus = (id, newStatus) => {
     setPosts(posts.map(p => p.id === id ? { ...p, status: newStatus } : p));
     showToast(`Post ${id} marked as ${newStatus}.`);
-  };
-
-  const handleStripBadge = (id) => {
-    setUnverified(unverified.filter(u => u.id !== id));
-    showToast(`Unverified badge stripped from user ${id}.`);
   };
 
   // 1. Dual-View Feed Stream
@@ -495,47 +484,6 @@ export default function FeedEngagementBreakdown() {
                   </li>
                 ))}
               </ul>
-            </div>
-          </div>
-
-          {/* Workplace Status Auditing */}
-          <div className="bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden">
-            <div className="bg-slate-50 p-5 border-b border-slate-200">
-              <h3 className="text-base font-bold text-slate-900 flex items-center gap-2">
-                <span className="material-symbols-outlined text-slate-600">verified_user</span>
-                Workplace Status Auditing
-              </h3>
-              <p className="text-xs text-slate-600 mt-1">Flagged profiles claiming unverified titles.</p>
-            </div>
-            <div className="p-0">
-              {unverified.length === 0 ? (
-                <div className="text-center py-8 text-gray-500 text-sm">All flagged badges resolved.</div>
-              ) : (
-                <ul className="divide-y divide-gray-100">
-                  {unverified.map(user => (
-                    <li key={user.id} className="p-4 hover:bg-slate-50 transition-colors">
-                      <div className="flex justify-between items-start mb-2">
-                        <h4 className="font-bold text-gray-900 text-sm">{user.name}</h4>
-                        <span className="bg-amber-100 text-amber-800 text-[10px] font-bold px-2 py-0.5 rounded border border-amber-200">
-                          {user.reason}
-                        </span>
-                      </div>
-                      
-                      <div className="bg-gray-100 p-2 rounded text-xs mb-3 border border-gray-200">
-                        <span className="text-gray-500 font-medium">Claimed Badge: </span>
-                        <span className="font-mono text-red-600 bg-red-50 px-1 rounded truncate block mt-1">{user.claimedTitle} @ {user.claimedCompany}</span>
-                      </div>
-
-                      <button 
-                        onClick={() => handleStripBadge(user.id)}
-                        className="w-full bg-white border border-slate-300 hover:bg-slate-50 text-slate-700 text-xs font-bold py-2 rounded transition-colors shadow-sm"
-                      >
-                        Strip Professional Badge
-                      </button>
-                    </li>
-                  ))}
-                </ul>
-              )}
             </div>
           </div>
 
