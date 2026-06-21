@@ -23,7 +23,7 @@ function AppRoutes() {
       
       <Route element={<RoleGuard><Layout /></RoleGuard>}>
         <Route index element={<Dashboard />} />
-        <Route path="detailed-analytics" element={<DetailedAnalytics />} />
+        <Route path="detailed-analytics" element={<RoleGuard allowedRoles={['admin', 'developer']}><DetailedAnalytics /></RoleGuard>} />
         
         {/* Admin & Developer only */}
         <Route path="users" element={<RoleGuard allowedRoles={['admin', 'developer']}><UserManagement /></RoleGuard>} />

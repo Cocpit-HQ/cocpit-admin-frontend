@@ -10,6 +10,9 @@ export default function Login() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const [errorMessage, setErrorMessage] = useState('');
+
   // If already logged in, redirect away from login page
   useEffect(() => {
     if (isLoggedIn) {
@@ -17,16 +20,23 @@ export default function Login() {
     }
   }, [isLoggedIn, navigate]);
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    // Map the selected display name back to the internal role name
-    const roleMap = {
-      'Administrator': 'admin',
-      'Moderator': 'moderator',
-      'Developer': 'developer'
-    };
-    login(roleMap[roleSelection]);
-    navigate('/', { replace: true });
+    setErrorMessage('');
+    setIsLoading(true);
+
+    try {
+      const result = await login(email, password);
+      if (result.success) {
+        navigate('/', { replace: true });
+      } else {
+        setErrorMessage(result.error || 'Invalid email or password');
+      }
+    } catch (err) {
+      setErrorMessage('An unexpected error occurred. Please try again.');
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const roles = [
@@ -104,6 +114,14 @@ export default function Login() {
               })}
             </div>
 
+            {/* Error Message Display */}
+            {errorMessage && (
+              <div className="bg-red-50 text-red-600 px-4 py-3 rounded-xl border border-red-100 flex items-center gap-3 text-[13px] font-medium animate-in fade-in slide-in-from-top-2">
+                <span className="material-symbols-outlined text-[18px]">error</span>
+                {errorMessage}
+              </div>
+            )}
+
             {/* Email Input */}
             <div className="space-y-2">
               <label className="text-[11px] font-bold text-gray-800 uppercase tracking-wider block">Email Address</label>
@@ -151,10 +169,23 @@ export default function Login() {
             {/* Submit Button */}
             <button 
               type="submit" 
-              className="w-full py-4 bg-[#3A22D4] text-white rounded-xl text-[15px] font-bold hover:bg-[#2C18A8] transition-all active:scale-[0.98] flex items-center justify-center gap-2 shadow-[0_6px_20px_rgba(58,34,212,0.25)]"
+              disabled={isLoading}
+              className={`w-full py-4 bg-[#3A22D4] text-white rounded-xl text-[15px] font-bold hover:bg-[#2C18A8] transition-all flex items-center justify-center gap-2 shadow-[0_6px_20px_rgba(58,34,212,0.25)] ${isLoading ? 'opacity-70 cursor-not-allowed' : 'active:scale-[0.98]'}`}
             >
-              Sign In as {roleSelection}
-              <span className="material-symbols-outlined text-[20px] font-bold" style={{ fontVariationSettings: "'wght' 600" }}>arrow_forward</span>
+              {isLoading ? (
+                <>
+                  <svg className="animate-spin -ml-1 mr-2 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                  </svg>
+                  Authenticating...
+                </>
+              ) : (
+                <>
+                  Sign In
+                  <span className="material-symbols-outlined text-[20px] font-bold" style={{ fontVariationSettings: "'wght' 600" }}>arrow_forward</span>
+                </>
+              )}
             </button>
           </form>
 

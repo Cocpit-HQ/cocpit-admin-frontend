@@ -38,7 +38,7 @@ export default function DatePickerDropdown({ onRangeChange, initialRangeLabel = 
       start = startOfYear(today);
     }
 
-    onRangeChange({ startDate: start, endDate: end });
+    onRangeChange({ startDate: start, endDate: end, rangeLabel });
   };
 
   const handleCustomApply = () => {
@@ -62,7 +62,7 @@ export default function DatePickerDropdown({ onRangeChange, initialRangeLabel = 
     setDateError('');
     setSelectedRange('Custom');
     setIsOpen(false);
-    onRangeChange({ startDate: start, endDate: end });
+    onRangeChange({ startDate: start, endDate: end, rangeLabel: 'Custom' });
   };
 
   const todayStr = new Date().toISOString().split('T')[0];

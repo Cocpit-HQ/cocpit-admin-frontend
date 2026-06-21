@@ -2,38 +2,185 @@ import React, { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../AuthContext';
 import { format, subDays } from 'date-fns';
-import EngagementHeatmap from '../components/EngagementHeatmap';
+import jsPDF from 'jspdf';
+import autoTable from 'jspdf-autotable';
+import * as XLSX from 'xlsx';
 import DatePickerDropdown from '../components/DatePickerDropdown';
+import PlatformGrowthChart from '../components/PlatformGrowthChart';
+import RecentActivity from '../components/RecentActivity';
+import PeakEngagementHeatmap from '../components/PeakEngagementHeatmap';
 
 export default function Dashboard() {
-  const { role } = useAuth();
+  const { role, accessToken } = useAuth();
   const navigate = useNavigate();
+  
   const [dateRange, setDateRange] = useState({
     startDate: subDays(new Date(), 30),
     endDate: new Date(),
+    rangeLabel: 'Last 30 Days',
     key: 'selection'
   });
+
+  const [metrics, setMetrics] = useState({
+    totalUsers: '...',
+    activeUsers: '...',
+    userGrowth: '...',
+    totalOrgs: '...',
+    activeOrgs: '...',
+    orgGrowth: '...',
+    hasPrevData: true,
+    chartData: []
+  });
+
+  useEffect(() => {
+    const fetchMetrics = async () => {
+      try {
+        const queryParams = new URLSearchParams({
+          startDate: dateRange.startDate.toISOString(),
+          endDate: dateRange.endDate.toISOString(),
+          isCustom: dateRange.rangeLabel === 'Custom'
+        });
+        
+        const res = await fetch(`/api/admin/dashboard/metrics?${queryParams.toString()}`, {
+          headers: {
+            'Authorization': `Bearer ${accessToken}`
+          }
+        });
+        if (res.ok) {
+          const data = await res.json();
+          const formatNumber = (num) => {
+            if (num >= 1000000) return (num / 1000000).toFixed(1) + 'M';
+            if (num >= 1000) return (num / 1000).toFixed(1) + 'k';
+            return num.toString();
+          };
+          setMetrics({
+            totalUsers: formatNumber(data.totalUsers),
+            activeUsers: formatNumber(data.activeUsers),
+            userGrowth: (data.userGrowth > 0 ? '+' : '') + data.userGrowth + '%',
+            totalOrgs: formatNumber(data.totalOrgs),
+            activeOrgs: formatNumber(data.activeOrgs),
+            orgGrowth: (data.orgGrowth > 0 ? '+' : '') + data.orgGrowth + '%',
+            hasPrevData: true,
+            chartData: data.chartData || []
+          });
+        }
+      } catch (err) {
+        console.error('Error fetching metrics', err);
+      }
+    };
+    if (accessToken) {
+      fetchMetrics();
+    }
+  }, [accessToken, dateRange.startDate, dateRange.endDate]);
   const [isExporting, setIsExporting] = useState(false);
   const [isExportModalOpen, setIsExportModalOpen] = useState(false);
-  const [exportFormat, setExportFormat] = useState('csv');
+  const [exportFormat, setExportFormat] = useState('excel');
 
   const today = new Date().toISOString().split('T')[0];
 
-  const handleExport = () => {
+  const handleExport = async () => {
     setIsExporting(true);
-    // Simulate network request and file generation
-    setTimeout(() => {
-      const csvContent = "data:text/csv;charset=utf-8,Metric,Value,Growth\nTotal Users,2400000,12%\nActive Users,850000,4%\nPlatform Growth,4.2%,-\n";
-      const encodedUri = encodeURI(csvContent);
-      const link = document.createElement("a");
-      link.setAttribute("href", encodedUri);
-      link.setAttribute("download", `dashboard_report_${today}.csv`);
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
+    
+    try {
+      const reportDateRange = `${format(dateRange.startDate, 'MMM dd, yyyy')} - ${format(dateRange.endDate, 'MMM dd, yyyy')}`;
+      
+      const summaryRows = [
+        ['Total Users', metrics.totalUsers, metrics.userGrowth],
+        ['Active Users', metrics.activeUsers, 'Healthy'],
+        ['Total Organisations', metrics.totalOrgs, metrics.orgGrowth],
+        ['Active Organisations', metrics.activeOrgs, 'Healthy'],
+      ];
+
+      const chartRows = (metrics.chartData || []).map(d => [
+        d.date || 'N/A', 
+        (d.newUsers || 0).toString(), 
+        (d.newOrganizations || 0).toString()
+      ]);
+
+      if (exportFormat === 'excel') {
+        const wb = XLSX.utils.book_new();
+        
+        // Sheet 1: Summary
+        const summaryData = [
+          ["System Overview Report"],
+          [`Date Range: ${reportDateRange}`],
+          [],
+          ["Metric", "Value", "Status/Growth"],
+          ...summaryRows
+        ];
+        const wsSummary = XLSX.utils.aoa_to_sheet(summaryData);
+        wsSummary['!cols'] = [{ wch: 25 }, { wch: 15 }, { wch: 15 }];
+        XLSX.utils.book_append_sheet(wb, wsSummary, "Summary");
+        
+        // Sheet 2: Platform Growth
+        const growthData = [
+          ["Daily Platform Growth"],
+          [],
+          ["Date", "New Users", "New Organisations"],
+          ...chartRows
+        ];
+        const wsGrowth = XLSX.utils.aoa_to_sheet(growthData);
+        wsGrowth['!cols'] = [{ wch: 15 }, { wch: 15 }, { wch: 20 }];
+        XLSX.utils.book_append_sheet(wb, wsGrowth, "Platform Growth");
+        
+        XLSX.writeFile(wb, `cocpit_dashboard_report_${today}.xlsx`);
+      } else if (exportFormat === 'pdf') {
+        const doc = new jsPDF();
+        
+        doc.setFillColor(79, 70, 229);
+        doc.rect(0, 0, 210, 40, 'F');
+        
+        doc.setTextColor(255, 255, 255);
+        doc.setFontSize(22);
+        doc.setFont("helvetica", "bold");
+        doc.text("COCPIT Admin Dashboard", 14, 20);
+        
+        doc.setFontSize(12);
+        doc.setFont("helvetica", "normal");
+        doc.text(`System Overview Report: ${reportDateRange}`, 14, 30);
+        
+        doc.setTextColor(0, 0, 0);
+        doc.setFontSize(14);
+        doc.setFont("helvetica", "bold");
+        doc.text("Executive Summary", 14, 52);
+        
+        autoTable(doc, {
+          startY: 58,
+          head: [['Metric', 'Value', 'Status / Growth']],
+          body: summaryRows,
+          theme: 'striped',
+          headStyles: { fillColor: [79, 70, 229], textColor: 255, fontStyle: 'bold' }
+        });
+        
+        let finalY = doc.lastAutoTable.finalY || 100;
+        doc.setFontSize(14);
+        doc.text("Daily Platform Growth", 14, finalY + 14);
+        
+        autoTable(doc, {
+          startY: finalY + 20,
+          head: [['Date', 'New Users', 'New Organisations']],
+          body: chartRows,
+          theme: 'grid',
+          headStyles: { fillColor: [55, 65, 81], textColor: 255 }
+        });
+        
+        const pageCount = doc.internal.getNumberOfPages();
+        for(let i = 1; i <= pageCount; i++) {
+          doc.setPage(i);
+          doc.setFontSize(8);
+          doc.setTextColor(150);
+          doc.text(`Generated on ${new Date().toLocaleString()} - Page ${i} of ${pageCount}`, 14, 285);
+        }
+        
+        doc.save(`cocpit_dashboard_report_${today}.pdf`);
+      }
+    } catch (err) {
+      console.error("Export failed:", err);
+      alert("Failed to export report. See console for details.");
+    } finally {
       setIsExporting(false);
       setIsExportModalOpen(false);
-    }, 800);
+    }
   };
 
   return (
@@ -78,7 +225,7 @@ export default function Dashboard() {
             </span>
           </div>
           <p className="text-on-surface-variant font-label-md text-label-md">Total Users</p>
-          <h4 className="font-headline-md text-headline-md font-bold mt-xs">2.4M</h4>
+          <h4 className="font-headline-md text-headline-md font-bold mt-xs">{metrics.totalUsers}</h4>
           <div className="mt-md w-full bg-surface-variant h-1 rounded-full overflow-hidden">
             <div className="bg-primary h-full w-[70%] group-hover:w-[75%] transition-all duration-700"></div>
           </div>
@@ -94,7 +241,7 @@ export default function Dashboard() {
             </span>
           </div>
           <p className="text-on-surface-variant font-label-md text-label-md">Active Users</p>
-          <h4 className="font-headline-md text-headline-md font-bold mt-xs">850k</h4>
+          <h4 className="font-headline-md text-headline-md font-bold mt-xs">{metrics.activeUsers}</h4>
           <div className="mt-md w-full bg-surface-variant h-1 rounded-full overflow-hidden">
             <div className="bg-secondary h-full w-[45%] group-hover:w-[48%] transition-all duration-700"></div>
           </div>
@@ -110,7 +257,7 @@ export default function Dashboard() {
             </span>
           </div>
           <p className="text-on-surface-variant font-label-md text-label-md">User Growth %</p>
-          <h4 className="font-headline-md text-headline-md font-bold mt-xs">4.2%</h4>
+          <h4 className="font-headline-md text-headline-md font-bold mt-xs">{metrics.userGrowth}</h4>
           <div className="mt-md w-full bg-surface-variant h-1 rounded-full overflow-hidden">
             <div className="bg-tertiary h-full w-[60%] group-hover:w-[65%] transition-all duration-700"></div>
           </div>
@@ -126,7 +273,7 @@ export default function Dashboard() {
             </span>
           </div>
           <p className="text-on-surface-variant font-label-md text-label-md">Total Organisations</p>
-          <h4 className="font-headline-md text-headline-md font-bold mt-xs">1.2k</h4>
+          <h4 className="font-headline-md text-headline-md font-bold mt-xs">{metrics.totalOrgs}</h4>
           <div className="mt-md w-full bg-surface-variant h-1 rounded-full overflow-hidden">
             <div className="bg-primary h-full w-[60%] group-hover:w-[65%] transition-all duration-700"></div>
           </div>
@@ -142,7 +289,7 @@ export default function Dashboard() {
             </span>
           </div>
           <p className="text-on-surface-variant font-label-md text-label-md">Active Organisations</p>
-          <h4 className="font-headline-md text-headline-md font-bold mt-xs">950</h4>
+          <h4 className="font-headline-md text-headline-md font-bold mt-xs">{metrics.activeOrgs}</h4>
           <div className="mt-md w-full bg-surface-variant h-1 rounded-full overflow-hidden">
             <div className="bg-secondary h-full w-[80%] group-hover:w-[85%] transition-all duration-700"></div>
           </div>
@@ -158,7 +305,7 @@ export default function Dashboard() {
             </span>
           </div>
           <p className="text-on-surface-variant font-label-md text-label-md">Organisation Growth %</p>
-          <h4 className="font-headline-md text-headline-md font-bold mt-xs">2.8%</h4>
+          <h4 className="font-headline-md text-headline-md font-bold mt-xs">{metrics.orgGrowth}</h4>
           <div className="mt-md w-full bg-surface-variant h-1 rounded-full overflow-hidden">
             <div className="bg-tertiary h-full w-[40%] group-hover:w-[45%] transition-all duration-700"></div>
           </div>
@@ -185,98 +332,21 @@ export default function Dashboard() {
               </div>
             </div>
           </div>
-          <div className="flex-1 min-h-[320px] relative mt-auto">
-            <div className="absolute inset-0 flex flex-col justify-between text-on-surface-variant text-[10px] font-mono-label opacity-50">
-              <div className="border-t border-outline-variant/30 pt-1 w-full">250k</div>
-              <div className="border-t border-outline-variant/30 pt-1 w-full">200k</div>
-              <div className="border-t border-outline-variant/30 pt-1 w-full">150k</div>
-              <div className="border-t border-outline-variant/30 pt-1 w-full">100k</div>
-              <div className="border-t border-outline-variant/30 pt-1 w-full">50k</div>
-              <div className="border-b border-outline-variant/30 pb-1 w-full">0</div>
-            </div>
-            <div className="absolute inset-0 pt-2 pb-6 flex items-end">
-              <svg className="w-full h-full preserve-3d transition-transform duration-300 ease-out hover:scale-[1.01]" viewBox="0 0 1000 300">
-                {/* User Growth Line */}
-                <path d="M0,280 Q100,240 200,260 T400,180 T600,150 T800,80 T1000,40 L1000,300 L0,300 Z" fill="url(#chartFill)"></path>
-                <path d="M0,280 Q100,240 200,260 T400,180 T600,150 T800,80 T1000,40" fill="none" stroke="#3525cd" strokeWidth="4"></path>
-
-                {/* Organisation Growth Line */}
-                <path d="M0,290 Q100,285 200,270 T400,250 T600,220 T800,190 T1000,160 L1000,300 L0,300 Z" fill="url(#orgChartFill)"></path>
-                <path d="M0,290 Q100,285 200,270 T400,250 T600,220 T800,190 T1000,160" fill="none" stroke="#10b981" strokeWidth="4"></path>
-
-                <defs>
-                  <linearGradient id="chartFill" x1="0" x2="0" y1="0" y2="1">
-                    <stop offset="0%" stopColor="#3525cd" stopOpacity="0.15"></stop>
-                    <stop offset="100%" stopColor="#3525cd" stopOpacity="0"></stop>
-                  </linearGradient>
-                  <linearGradient id="orgChartFill" x1="0" x2="0" y1="0" y2="1">
-                    <stop offset="0%" stopColor="#10b981" stopOpacity="0.15"></stop>
-                    <stop offset="100%" stopColor="#10b981" stopOpacity="0"></stop>
-                  </linearGradient>
-                </defs>
-                <circle cx="800" cy="80" fill="#3525cd" r="6" stroke="#fff" strokeWidth="2"></circle>
-                <circle cx="800" cy="190" fill="#10b981" r="6" stroke="#fff" strokeWidth="2"></circle>
-              </svg>
-            </div>
+          <div className="flex-1 min-h-[320px] relative mt-auto -ml-4">
+            <PlatformGrowthChart data={metrics.chartData || []} />
           </div>
-          <div className="flex justify-between px-md text-body-sm text-on-surface-variant mt-md">
-            <span>Oct 01</span>
-            <span>Oct 07</span>
-            <span>Oct 14</span>
-            <span>Oct 21</span>
-            <span>Oct 28</span>
-            <span>Today</span>
-          </div>
+        </div>
+
+        {/* Peak Engagement Heatmap */}
+        <div className="col-span-12 lg:col-span-8">
+          <PeakEngagementHeatmap />
         </div>
 
         {/* Recent Activity Feed */}
-        <div className="col-span-12 lg:col-span-4 bg-surface border border-outline-variant rounded-xl flex flex-col overflow-hidden">
-          <div className="p-lg border-b border-outline-variant">
-            <h5 className="font-headline-sm text-headline-sm font-bold">Recent Activity</h5>
-            <p className="text-body-sm text-on-surface-variant">Critical system and moderator events</p>
-          </div>
-          <div className="flex-1 overflow-y-auto p-md space-y-md">
-            <div className="flex gap-md group cursor-pointer">
-              <div className="mt-1 relative">
-                <div className="w-8 h-8 rounded-full bg-primary-container text-on-primary-container flex items-center justify-center">
-                  <span className="material-symbols-outlined text-[18px]">person_add</span>
-                </div>
-                <div className="absolute top-8 bottom-[-24px] left-4 border-l border-dashed border-outline-variant group-last:hidden"></div>
-              </div>
-              <div className="flex-1 pb-md border-b border-outline-variant group-last:border-none">
-                <div className="flex justify-between items-start">
-                  <p className="font-body-md text-body-md font-semibold">{role === 'moderator' ? 'You reviewed 15 cases' : 'Admin updated moderation rules'}</p>
-                  <span className="text-[10px] text-on-surface-variant font-mono-label">12m ago</span>
-                </div>
-                <p className="text-body-sm text-on-surface-variant mt-xs">{role === 'moderator' ? 'Completed your queue for the morning shift.' : 'System-wide moderation guidelines were refreshed by Alex Rivera for better compliance.'}</p>
-              </div>
-            </div>
-            <div className="flex gap-md group cursor-pointer">
-              <div className="mt-1 relative">
-                <div className="w-8 h-8 rounded-full bg-secondary-container text-on-secondary-container flex items-center justify-center">
-                  <span className="material-symbols-outlined text-[18px]">person</span>
-                </div>
-                <div className="absolute top-8 bottom-[-24px] left-4 border-l border-dashed border-outline-variant group-last:hidden"></div>
-              </div>
-              <div className="flex-1 pb-md border-b border-outline-variant group-last:border-none">
-                <div className="flex justify-between items-start">
-                  <p className="font-body-md text-body-md font-semibold">{role === 'moderator' ? 'You escalated 2 high severity cases' : 'Admin suspended user #402'}</p>
-                  <span className="text-[10px] text-on-surface-variant font-mono-label">45m ago</span>
-                </div>
-                <p className="text-body-sm text-on-surface-variant mt-xs">{role === 'moderator' ? 'Sent 2 Tier 3 cases to the admin team for review.' : 'User account suspended for repeated violations of platform community standards.'}</p>
-              </div>
-            </div>
-          </div>
-          <div className="p-md bg-surface-container-low text-center">
-            <button onClick={() => navigate('/notifications')} className="text-primary font-label-md text-label-md hover:underline">View All Notifications</button>
-          </div>
+        <div className="col-span-12 lg:col-span-4">
+          <RecentActivity />
         </div>
 
-      </div>
-
-      {/* Engagement Heatmap */}
-      <div className="mb-xl">
-        <EngagementHeatmap />
       </div>
 
       {/* Export Modal */}
@@ -292,8 +362,8 @@ export default function Dashboard() {
 
             <div className="flex flex-col gap-3 mb-6">
               <label className="flex items-center gap-3 cursor-pointer p-3 border border-outline-variant rounded-lg hover:bg-surface-container transition-colors">
-                <input type="radio" name="format" value="csv" checked={exportFormat === 'csv'} onChange={() => setExportFormat('csv')} className="w-4 h-4 text-primary" />
-                <span className="text-sm font-medium">CSV Format</span>
+                <input type="radio" name="format" value="excel" checked={exportFormat === 'excel'} onChange={() => setExportFormat('excel')} className="w-4 h-4 text-primary" />
+                <span className="text-sm font-medium">Excel (.xlsx) Format</span>
               </label>
               <label className="flex items-center gap-3 cursor-pointer p-3 border border-outline-variant rounded-lg hover:bg-surface-container transition-colors">
                 <input type="radio" name="format" value="pdf" checked={exportFormat === 'pdf'} onChange={() => setExportFormat('pdf')} className="w-4 h-4 text-primary" />
