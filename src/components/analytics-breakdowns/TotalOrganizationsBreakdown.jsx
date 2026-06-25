@@ -1,29 +1,58 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
+import { useAuth } from '../../AuthContext';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend } from 'recharts';
 
-// --- Mock Data ---
-const industryData = [
-  { name: 'Technology', value: 40, fill: '#4f46e5' }, // Indigo
-  { name: 'Education', value: 25, fill: '#0ea5e9' }, // Sky
-  { name: 'Finance', value: 20, fill: '#10b981' }, // Emerald
-  { name: 'Healthcare', value: 15, fill: '#8b5cf6' } // Violet
-].sort((a, b) => b.value - a.value);
+// Dynamic data fetched from backend
 
-const sizeData = [
-  { name: '1-10 Employees', value: 35, color: '#6366f1' },
-  { name: '11-50 Employees', value: 45, color: '#3b82f6' },
-  { name: '50-250 Employees', value: 15, color: '#14b8a6' },
-  { name: 'Enterprise', value: 5, color: '#f59e0b' }
-];
+export default function TotalOrganizationsBreakdown({ dateRange }) {
+  const { accessToken } = useAuth();
+  const [spreadMetric, setSpreadMetric] = useState(0);
+  const [industryData, setIndustryData] = useState([]);
+  const [sizeData, setSizeData] = useState([]);
 
-export default function TotalOrganizationsBreakdown() {
+  useEffect(() => {
+    const fetchData = async () => {
+      if (!accessToken || !dateRange) return;
+      
+      try {
+        const queryParams = new URLSearchParams({
+          endDate: dateRange.endDate.toISOString()
+        });
+        
+        // Fetch Spread Metric
+        const spreadRes = await fetch(`/api/admin/dashboard/internal-spread-metric?${queryParams.toString()}`, {
+          headers: { 'Authorization': `Bearer ${accessToken}` }
+        });
+        if (spreadRes.ok) {
+          const spreadData = await spreadRes.json();
+          setSpreadMetric(spreadData.value);
+        }
+
+        // Fetch Demographics
+        const demoRes = await fetch(`/api/admin/dashboard/organization-demographics?${queryParams.toString()}`, {
+          headers: { 'Authorization': `Bearer ${accessToken}` }
+        });
+        if (demoRes.ok) {
+          const demoData = await demoRes.json();
+          setIndustryData(demoData.industryData);
+          setSizeData(demoData.sizeData);
+        }
+
+      } catch (error) {
+        console.error('Failed to fetch organization data:', error);
+      }
+    };
+
+    fetchData();
+  }, [accessToken, dateRange]);
+
   return (
     <div className="flex flex-col gap-8">
       {/* Average Users per Organization (Stat Badge) */}
       <div className="bg-indigo-50 border border-indigo-100 rounded-lg p-8 shadow-sm flex flex-col md:flex-row items-center justify-between text-center md:text-left gap-6">
         <div>
           <p className="text-sm font-semibold text-indigo-800 uppercase tracking-wider mb-2">Internal Spread Metric</p>
-          <h4 className="text-4xl font-bold text-indigo-700">14.2 Users / Org</h4>
+          <h4 className="text-4xl font-bold text-indigo-700">{spreadMetric.toFixed(1)} Users / Org</h4>
           <p className="text-base text-indigo-900 mt-2">Average number of registered users per verified organization.</p>
         </div>
         <div className="w-24 h-24 bg-white/60 rounded-full flex items-center justify-center shrink-0 shadow-sm border border-indigo-50">

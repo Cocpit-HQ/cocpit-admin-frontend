@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
+import { useAuth } from '../AuthContext';
 import {
   LineChart,
   Line,
@@ -91,21 +92,126 @@ export default function DetailedAnalytics() {
   const navigate = useNavigate();
   const initialMetric = searchParams.get('metric') || 'users';
 
+  const { accessToken } = useAuth();
   const [dateRange, setDateRange] = useState({
     startDate: subDays(new Date(), 30),
     endDate: new Date(),
-    key: 'selection'
+    rangeLabel: 'Last 30 Days'
   });
   const [activeMetric, setActiveMetric] = useState(initialMetric);
   const [interval, setInterval] = useState('Monthly');
   const [chartData, setChartData] = useState([]);
+  const [metricsSummary, setMetricsSummary] = useState({ totalUsers: 0, activeUsers: 0, suspendedUsers: 0 });
   const [toastMessage, setToastMessage] = useState('');
-  const [isExporting, setIsExporting] = useState(false);
 
   useEffect(() => {
-    // Whenever metric or interval changes, regenerate mock data
-    setChartData(generateMockData(activeMetric, interval));
-  }, [activeMetric, interval]);
+    const loadData = async () => {
+      if (CORE_METRICS.includes(activeMetric) && accessToken) {
+        try {
+          const queryParams = new URLSearchParams({
+            startDate: dateRange.startDate.toISOString(),
+            endDate: dateRange.endDate.toISOString(),
+            isCustom: dateRange.rangeLabel === 'Custom'
+          });
+          const res = await fetch(`/api/admin/dashboard/metrics?${queryParams.toString()}`, {
+            headers: {
+              'Authorization': `Bearer ${accessToken}`
+            }
+          });
+          if (res.ok) {
+            const data = await res.json();
+            let cumulativeData = [];
+            
+            if (activeMetric === 'users') {
+              const totalNew = data.chartData.reduce((sum, item) => sum + (item.newUsers || 0), 0);
+              let currentTotal = data.totalUsers - totalNew;
+              
+              cumulativeData = data.chartData.map(item => {
+                currentTotal += (item.newUsers || 0);
+                return {
+                  date: item.date,
+                  value: currentTotal
+                };
+              });
+            } else if (activeMetric === 'organizations') {
+              const totalNew = data.chartData.reduce((sum, item) => sum + (item.newOrganizations || 0), 0);
+              let currentTotal = data.totalOrgs - totalNew;
+              
+              cumulativeData = data.chartData.map(item => {
+                currentTotal += (item.newOrganizations || 0);
+                return {
+                  date: item.date,
+                  value: currentTotal
+                };
+              });
+            } else if (activeMetric === 'active_organizations') {
+              cumulativeData = data.chartData.map(item => ({
+                date: item.date,
+                value: item.activeOrganizations || 0
+              }));
+            } else if (activeMetric === 'active_users') {
+              cumulativeData = data.chartData.map(item => ({
+                date: item.date,
+                value: item.activeUsers || 0
+              }));
+            } else if (activeMetric === 'user_growth') {
+              const totalNew = data.chartData.reduce((sum, item) => sum + (item.newUsers || 0), 0);
+              let startTotal = data.totalUsers - totalNew;
+              if (startTotal <= 0) startTotal = 1; // Prevent division by zero
+              let currentTotal = startTotal;
+
+              cumulativeData = data.chartData.map(item => {
+                currentTotal += (item.newUsers || 0);
+                const growthPct = ((currentTotal - startTotal) / startTotal) * 100;
+                return {
+                  date: item.date,
+                  value: parseFloat(growthPct.toFixed(2))
+                };
+              });
+            } else if (activeMetric === 'organization_growth') {
+              const totalNew = data.chartData.reduce((sum, item) => sum + (item.newOrganizations || 0), 0);
+              let startTotal = data.totalOrgs - totalNew;
+              if (startTotal <= 0) startTotal = 1; // Prevent division by zero
+              let currentTotal = startTotal;
+
+              cumulativeData = data.chartData.map(item => {
+                currentTotal += (item.newOrganizations || 0);
+                const growthPct = ((currentTotal - startTotal) / startTotal) * 100;
+                return {
+                  date: item.date,
+                  value: parseFloat(growthPct.toFixed(2))
+                };
+              });
+            }
+            setMetricsSummary({
+              totalUsers: data.totalUsers || 0,
+              activeUsers: data.activeUsers || 0,
+              suspendedUsers: data.suspendedUsers || 0
+            });
+            setChartData(cumulativeData);
+            return; // exit early
+          }
+        } catch (error) {
+          console.error("Failed to fetch metric data", error);
+        }
+      }
+      
+      // Fallback for other metrics or API failure
+      const diff = differenceInDays(dateRange.endDate, dateRange.startDate);
+      let newInterval = 'Monthly';
+      if (diff <= 1) newInterval = 'Daily';
+      else if (diff <= 31) newInterval = 'Weekly';
+      else if (diff <= 365) newInterval = 'Monthly';
+      else newInterval = 'Yearly';
+      
+      if (newInterval !== interval) {
+        setInterval(newInterval);
+      }
+      setChartData(generateMockData(activeMetric, newInterval));
+    };
+
+    loadData();
+  }, [activeMetric, dateRange.startDate, dateRange.endDate, accessToken]);
 
   useEffect(() => {
     const metricFromUrl = searchParams.get('metric');
@@ -115,15 +221,6 @@ export default function DetailedAnalytics() {
   }, [searchParams]);
 
   const isCoreMetric = CORE_METRICS.includes(activeMetric);
-
-  const handleExport = () => {
-    setIsExporting(true);
-    setTimeout(() => {
-      setIsExporting(false);
-      setToastMessage('Report downloaded successfully!');
-      setTimeout(() => setToastMessage(''), 3000);
-    }, 800);
-  };
 
   const currentMetricObj = METRICS.find(m => m.id === activeMetric) || METRICS[0];
 
@@ -213,19 +310,11 @@ export default function DetailedAnalytics() {
                 <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-blue-400 via-indigo-500 to-purple-500"></div>
                 <div className="mb-8 flex justify-between items-center relative z-10">
                   <h2 className="text-base font-semibold text-gray-900">Performance Over Time</h2>
-                  <button
-                    onClick={handleExport}
-                    disabled={isExporting}
-                    className="flex items-center gap-2 px-4 py-2 border border-gray-200 rounded-xl text-sm font-semibold text-gray-700 bg-white hover:bg-gray-50 focus:outline-none hover:shadow-md hover:border-gray-300 disabled:opacity-50 transition-all active:scale-95"
-                  >
-                    {isExporting ? <span className="material-symbols-outlined text-[16px] animate-spin">sync</span> : <span className="material-symbols-outlined text-[16px]">download</span>}
-                    {isExporting ? 'Exporting...' : 'Export CSV'}
-                  </button>
                 </div>
 
                 <div className="flex-1 w-full relative">
                   <ResponsiveContainer width="100%" height="100%">
-                    <AreaChart data={chartData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                    <AreaChart data={chartData} margin={{ top: 10, right: 10, left: 10, bottom: 0 }}>
                       <defs>
                         <linearGradient id="colorValue" x1="0" y1="0" x2="0" y2="1">
                           <stop offset="5%" stopColor={chartColor} stopOpacity={0.1} />
@@ -239,14 +328,24 @@ export default function DetailedAnalytics() {
                         tickLine={false}
                         tick={{ fill: '#6B7280', fontSize: 12 }}
                         dy={10}
+                        minTickGap={20}
                       />
                       <YAxis
                         axisLine={false}
                         tickLine={false}
                         tick={{ fill: '#6B7280', fontSize: 12 }}
-                        tickFormatter={(val) => val >= 1000 ? `${(val / 1000).toFixed(1)}k` : val}
-                        dx={-10}
-                        domain={['dataMin - (dataMin * 0.05)', 'dataMax + (dataMax * 0.05)']}
+                        allowDecimals={activeMetric.includes('growth')}
+                        tickFormatter={(val) => {
+                          if (activeMetric.includes('growth')) return `${val}%`;
+                          if (val >= 1000000) return `${(val / 1000000).toFixed(1)}M`;
+                          if (val >= 1000) return `${(val / 1000).toFixed(1)}k`;
+                          return val;
+                        }}
+                        domain={
+                          activeMetric === 'users' || activeMetric === 'organizations' ? ['dataMin', 'dataMax'] :
+                          activeMetric.includes('growth') ? ['auto', 'auto'] :
+                          [0, 'auto']
+                        }
                       />
                       <Tooltip content={<CustomTooltip />} cursor={{ stroke: '#E5E7EB', strokeWidth: 1 }} />
                       <Area
@@ -265,12 +364,12 @@ export default function DetailedAnalytics() {
             )}
 
             {/* Dynamic Breakdowns based on selected metric */}
-            {activeMetric === 'users' && <TotalUsersBreakdown />}
-            {activeMetric === 'active_users' && <ActiveUsersBreakdown />}
-            {activeMetric === 'user_growth' && <UserGrowthBreakdown />}
-            {activeMetric === 'organizations' && <TotalOrganizationsBreakdown />}
-            {activeMetric === 'active_organizations' && <ActiveOrganizationsBreakdown />}
-            {activeMetric === 'organization_growth' && <OrganizationGrowthBreakdown />}
+            {activeMetric === 'users' && <TotalUsersBreakdown metrics={metricsSummary} />}
+            {activeMetric === 'active_users' && <ActiveUsersBreakdown dateRange={dateRange} />}
+            {activeMetric === 'user_growth' && <UserGrowthBreakdown dateRange={dateRange} />}
+            {activeMetric === 'organizations' && <TotalOrganizationsBreakdown dateRange={dateRange} />}
+            {activeMetric === 'active_organizations' && <ActiveOrganizationsBreakdown dateRange={dateRange} />}
+            {activeMetric === 'organization_growth' && <OrganizationGrowthBreakdown dateRange={dateRange} />}
             {activeMetric === 'active_jobs' && <ActiveJobsBreakdown />}
             {activeMetric === 'upcoming_events' && <UpcomingEventsBreakdown />}
             {activeMetric === 'feed_engagement' && <FeedEngagementBreakdown />}

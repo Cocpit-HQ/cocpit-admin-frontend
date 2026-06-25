@@ -1,22 +1,54 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from 'recharts';
+import { useAuth } from '../../AuthContext';
 
-const funnelData = [
-  { name: 'Signups', value: 500, fill: '#6366f1' }, // Indigo
-  { name: 'Verified', value: 300, fill: '#3b82f6' }, // Blue
-  { name: 'Profile Complete', value: 210, fill: '#0ea5e9' }, // Sky
-  { name: 'First Action', value: 150, fill: '#10b981' } // Emerald
-];
+export default function OrganizationGrowthBreakdown({ dateRange }) {
+  const { accessToken } = useAuth();
+  const [funnelData, setFunnelData] = useState([]);
+  const [industryGrowthData, setIndustryGrowthData] = useState([]);
+  const [ttv, setTtv] = useState('3.2 Days'); // Kept static per user request
 
-const industryGrowthData = [
-  { name: 'Education', value: 12, fill: '#10b981' }, // Green
-  { name: 'Technology', value: 4, fill: '#10b981' },
-  { name: 'Finance', value: 2, fill: '#10b981' },
-  { name: 'Retail', value: -0.5, fill: '#ef4444' }, // Red
-  { name: 'Healthcare', value: -1, fill: '#ef4444' }
-].sort((a, b) => b.value - a.value);
+  useEffect(() => {
+    const fetchData = async () => {
+      if (!accessToken || !dateRange) return;
+      try {
+        const isCustom = dateRange.rangeLabel === 'Custom';
+        let end = dateRange.endDate;
+        let start = dateRange.startDate;
+        
+        if (!isCustom) {
+           end = new Date();
+           const durationMs = dateRange.endDate.getTime() - dateRange.startDate.getTime();
+           start = new Date(end.getTime() - durationMs);
+        }
 
-export default function OrganizationGrowthBreakdown() {
+        const queryParams = new URLSearchParams({
+          startDate: start.toISOString(),
+          endDate: end.toISOString()
+        });
+        
+        const res = await fetch(`/api/admin/dashboard/organization-growth?${queryParams.toString()}`, {
+          headers: { 'Authorization': `Bearer ${accessToken}` }
+        });
+        if (res.ok) {
+          const data = await res.json();
+          setFunnelData(data.funnelData || []);
+          setIndustryGrowthData(data.industryGrowthData || []);
+          setTtv(data.ttv || '0 Days');
+        }
+      } catch (error) {
+        console.error('Failed to fetch organization growth data', error);
+      }
+    };
+
+    fetchData(); // Initial fetch
+    
+    // Set up real-time polling
+    const intervalId = setInterval(fetchData, 5000); // 5 seconds
+    
+    return () => clearInterval(intervalId); // Cleanup on unmount
+  }, [accessToken, dateRange]);
+
   return (
     <div className="flex flex-col gap-8">
       {/* Time to Value / Onboarding Velocity (Stat Badge) */}
@@ -24,7 +56,7 @@ export default function OrganizationGrowthBreakdown() {
         <div>
           <p className="text-sm font-semibold text-emerald-800 uppercase tracking-wider mb-2">Time to Value (TTV)</p>
           <div className="flex items-baseline gap-3 justify-center md:justify-start">
-            <h4 className="text-4xl font-bold text-emerald-700">3.2 Days</h4>
+            <h4 className="text-4xl font-bold text-emerald-700">{ttv}</h4>
             <span className="flex items-center text-sm font-semibold text-emerald-700 bg-emerald-100/50 px-2 py-0.5 rounded-full">
               Average Onboarding Velocity
             </span>
@@ -52,9 +84,9 @@ export default function OrganizationGrowthBreakdown() {
               >
                 <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="#E5E7EB" />
                 <XAxis type="number" hide />
-                <YAxis dataKey="name" type="category" axisLine={false} tickLine={false} tick={{ fill: '#4B5563', fontSize: 13 }} />
+                <YAxis dataKey="name" type="category" axisLine={false} tickLine={false} tick={{ fill: '#4B5563', fontSize: 13 }} width={110} />
                 <Tooltip cursor={{ fill: '#F3F4F6' }} contentStyle={{ borderRadius: '8px', border: '1px solid #E5E7EB', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }} />
-                <Bar dataKey="value" radius={[0, 4, 4, 0]} barSize={32}>
+                <Bar dataKey="value" radius={[0, 4, 4, 0]} barSize={32} minPointSize={5}>
                   {funnelData.map((entry, index) => (
                     <Cell key={`cell-${index}`} fill={entry.fill} />
                   ))}
@@ -74,7 +106,7 @@ export default function OrganizationGrowthBreakdown() {
             <ResponsiveContainer width="100%" height="100%">
               <BarChart
                 data={industryGrowthData}
-                margin={{ top: 5, right: 10, left: -20, bottom: 25 }}
+                margin={{ top: 5, right: 10, left: -20, bottom: 45 }}
               >
                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E5E7EB" />
                 <XAxis 
@@ -82,7 +114,7 @@ export default function OrganizationGrowthBreakdown() {
                   axisLine={false} 
                   tickLine={false} 
                   tick={{ fill: '#4B5563', fontSize: 12 }} 
-                  dy={10}
+                  dy={15}
                   angle={-35}
                   textAnchor="end"
                 />
@@ -93,7 +125,7 @@ export default function OrganizationGrowthBreakdown() {
                   tickFormatter={(v) => `${v}%`}
                 />
                 <Tooltip cursor={{ fill: '#F3F4F6' }} formatter={(value) => [`${value}%`, 'Growth']} contentStyle={{ borderRadius: '8px', border: '1px solid #E5E7EB', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }} />
-                <Bar dataKey="value" radius={[4, 4, 0, 0]} barSize={40}>
+                <Bar dataKey="value" radius={[4, 4, 0, 0]} barSize={40} minPointSize={5}>
                   {industryGrowthData.map((entry, index) => (
                     <Cell key={`cell-${index}`} fill={entry.fill} />
                   ))}

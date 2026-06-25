@@ -140,10 +140,7 @@ export default function Login() {
 
             {/* Password Input */}
             <div className="space-y-2">
-              <div className="flex justify-between items-center">
-                <label className="text-[11px] font-bold text-gray-800 uppercase tracking-wider block">Password</label>
-                <button type="button" className="text-[13px] text-[#3A22D4] hover:underline font-semibold">Forgot password?</button>
-              </div>
+              <label className="text-[11px] font-bold text-gray-800 uppercase tracking-wider block">Password</label>
               <div className="relative">
                 <span className="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-gray-500 text-[20px]">lock</span>
                 <input 

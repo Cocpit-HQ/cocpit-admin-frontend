@@ -1,21 +1,57 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer, Legend } from 'recharts';
+import { useAuth } from '../../AuthContext';
 
-const activityData = [
-  { name: 'Sourcing Candidates / Profiles', value: 50, color: '#0ea5e9' }, // Sky
-  { name: 'Posting Jobs / Projects', value: 30, color: '#8b5cf6' }, // Violet
-  { name: 'Publishing Content / Ads', value: 20, color: '#10b981' } // Emerald
-];
 
-const powerOrgsData = [
-  { id: 1, name: 'Cloudline Inc.', employees: 412, jobs: 45, activity: 'Posting Jobs' },
-  { id: 2, name: 'Stark Industries', employees: 850, jobs: 12, activity: 'Sourcing Candidates' },
-  { id: 3, name: 'Wayne Enterprises', employees: 320, jobs: 28, activity: 'Publishing Content' },
-  { id: 4, name: 'Umbrella Corp', employees: 215, jobs: 54, activity: 'Posting Jobs' },
-  { id: 5, name: 'Acme Corp', employees: 140, jobs: 8, activity: 'Sourcing Candidates' }
-];
 
-export default function ActiveOrganizationsBreakdown() {
+export default function ActiveOrganizationsBreakdown({ dateRange }) {
+  const { accessToken } = useAuth();
+  const [utilizationRate, setUtilizationRate] = useState(0);
+  const [utilizationTrend, setUtilizationTrend] = useState(0);
+  const [activityData, setActivityData] = useState([]);
+  const [powerOrgsData, setPowerOrgsData] = useState([]);
+
+  useEffect(() => {
+    const fetchData = async () => {
+      if (!accessToken || !dateRange) return;
+      try {
+        const queryParams = new URLSearchParams({
+          startDate: dateRange.startDate.toISOString(),
+          endDate: dateRange.endDate.toISOString()
+        });
+        
+        // Fetch concurrently
+        const [seatRes, activityRes] = await Promise.all([
+          fetch(`/api/admin/dashboard/seat-utilization?${queryParams.toString()}`, {
+            headers: { 'Authorization': `Bearer ${accessToken}` }
+          }).catch(() => ({ ok: false })),
+          fetch(`/api/admin/dashboard/b2b-activity?${queryParams.toString()}`, {
+            headers: { 'Authorization': `Bearer ${accessToken}` }
+          }).catch(() => ({ ok: false }))
+        ]);
+
+        if (seatRes.ok) {
+          try {
+            const data = await seatRes.json();
+            setUtilizationRate(data.rate);
+            setUtilizationTrend(data.trend);
+          } catch(e) {}
+        }
+
+        if (activityRes.ok) {
+          try {
+            const data = await activityRes.json();
+            setActivityData(data.activityData);
+            setPowerOrgsData(data.powerOrgsData);
+          } catch(e) {}
+        }
+      } catch (error) {
+        console.error('Failed to fetch active organization data', error);
+      }
+    };
+    fetchData();
+  }, [accessToken, dateRange]);
+
   return (
     <div className="flex flex-col gap-8">
       {/* Seat Utilization Rate */}
@@ -23,12 +59,17 @@ export default function ActiveOrganizationsBreakdown() {
         <div>
           <p className="text-sm font-semibold text-indigo-800 uppercase tracking-wider mb-2">Average Seat Utilization Rate</p>
           <div className="flex items-baseline gap-3 justify-center md:justify-start">
-            <h4 className="text-4xl font-bold text-indigo-700">68.4%</h4>
-            <span className="flex items-center text-sm font-semibold text-green-600 bg-green-100 px-2 py-0.5 rounded-full">
-              <span className="material-symbols-outlined text-[16px] mr-1">trending_up</span> +2.1%
+            <h4 className="text-4xl font-bold text-indigo-700">{utilizationRate}%</h4>
+            <span className={`flex items-center text-sm font-semibold px-2 py-0.5 rounded-full ${
+              utilizationTrend >= 0 ? 'text-green-600 bg-green-100' : 'text-rose-600 bg-rose-100'
+            }`}>
+              <span className="material-symbols-outlined text-[16px] mr-1">
+                {utilizationTrend >= 0 ? 'trending_up' : 'trending_down'}
+              </span>
+              {utilizationTrend >= 0 ? '+' : ''}{utilizationTrend}%
             </span>
           </div>
-          <p className="text-sm text-indigo-900 mt-2">Active organizations are actively utilizing ~68% of their registered employee accounts.</p>
+          <p className="text-sm text-indigo-900 mt-2">Active organizations are actively utilizing ~{Math.round(utilizationRate)}% of their registered employee accounts.</p>
         </div>
         
         {/* Simple Progress Circle representation */}
@@ -43,7 +84,7 @@ export default function ActiveOrganizationsBreakdown() {
             />
             <path
               className="text-indigo-600"
-              strokeDasharray="68.4, 100"
+              strokeDasharray={`${utilizationRate}, 100`}
               strokeLinecap="round"
               strokeWidth="4"
               stroke="currentColor"

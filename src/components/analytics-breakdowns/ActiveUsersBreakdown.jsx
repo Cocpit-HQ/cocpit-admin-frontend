@@ -1,4 +1,5 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
+import { useAuth } from '../../AuthContext';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend } from 'recharts';
 
 // --- Mock Data ---
@@ -24,7 +25,71 @@ const cohortData = [
   { cohort: 'Feb (Week 1)', users: 2100, retention: [100, 55, 0, 0, 0] }
 ];
 
-export default function ActiveUsersBreakdown() {
+export default function ActiveUsersBreakdown({ dateRange }) {
+  const { accessToken } = useAuth();
+  const [actualCohortData, setActualCohortData] = useState(cohortData);
+  const [actualFeatureData, setActualFeatureData] = useState(featureData);
+  const [actualDemographicData, setActualDemographicData] = useState(demographicData);
+
+  useEffect(() => {
+    const loadCohortData = async () => {
+      try {
+        const res = await fetch('/api/admin/cohort-retention', {
+          headers: {
+            'Authorization': `Bearer ${accessToken}`
+          }
+        });
+        if (res.ok) {
+          const data = await res.json();
+          if (data.cohortData && data.cohortData.length > 0) {
+            setActualCohortData(data.cohortData);
+            return;
+          }
+        }
+      } catch (error) {
+        console.error('Failed to fetch cohort data', error);
+      }
+    };
+    if (accessToken) {
+      loadCohortData();
+    }
+  }, [accessToken]);
+
+  useEffect(() => {
+    const loadFeatureAndDemographicData = async () => {
+      try {
+        let dateRangeCode = '30d';
+        if (dateRange?.rangeLabel === 'Today') dateRangeCode = '24h';
+        else if (dateRange?.rangeLabel === 'Last 7 Days') dateRangeCode = '7d';
+        else if (dateRange?.rangeLabel === 'Last 90 Days') dateRangeCode = '90d';
+
+        const queryParams = new URLSearchParams({ dateRange: dateRangeCode });
+        
+        const featRes = await fetch(`/api/admin/feature-adoption?${queryParams.toString()}`, {
+          headers: { 'Authorization': `Bearer ${accessToken}` }
+        });
+        if (featRes.ok) {
+          const data = await featRes.json();
+          if (data && data.length > 0) setActualFeatureData(data);
+        }
+
+        const demoRes = await fetch(`/api/admin/user-demographics?${queryParams.toString()}`, {
+          headers: { 'Authorization': `Bearer ${accessToken}` }
+        });
+        if (demoRes.ok) {
+          const data = await demoRes.json();
+          const formattedDemo = data.map(d => ({ ...d, color: d.fill }));
+          if (formattedDemo && formattedDemo.length > 0) setActualDemographicData(formattedDemo);
+        }
+      } catch (error) {
+        console.error('Failed to fetch breakdown data', error);
+      }
+    };
+    if (accessToken) {
+      loadFeatureAndDemographicData();
+    }
+  }, [accessToken, dateRange]);
+
   const getHeatmapColor = (percentage) => {
     if (percentage === 0) return 'bg-gray-50 text-transparent'; // No data yet
     if (percentage === 100) return 'bg-blue-900 text-white';
@@ -56,7 +121,7 @@ export default function ActiveUsersBreakdown() {
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
-              {cohortData.map((row, i) => (
+              {actualCohortData.map((row, i) => (
                 <tr key={i} className="hover:bg-gray-50 transition-colors">
                   <td className="py-3 pr-4 font-medium text-gray-900">{row.cohort}</td>
                   <td className="py-3 px-2 text-center font-semibold">{row.users.toLocaleString()}</td>
@@ -84,7 +149,7 @@ export default function ActiveUsersBreakdown() {
           <div className="flex-1 min-h-[300px] relative">
             <ResponsiveContainer width="100%" height="100%">
               <BarChart
-                data={featureData}
+                data={actualFeatureData}
                 layout="vertical"
                 margin={{ top: 5, right: 30, left: 40, bottom: 5 }}
               >
@@ -93,7 +158,7 @@ export default function ActiveUsersBreakdown() {
                 <YAxis dataKey="name" type="category" axisLine={false} tickLine={false} tick={{ fill: '#4B5563', fontSize: 13 }} />
                 <Tooltip cursor={{ fill: '#F3F4F6' }} contentStyle={{ borderRadius: '8px', border: '1px solid #E5E7EB', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }} />
                 <Bar dataKey="value" radius={[0, 4, 4, 0]} barSize={24}>
-                  {featureData.map((entry, index) => (
+                  {actualFeatureData.map((entry, index) => (
                     <Cell key={`cell-${index}`} fill={entry.fill} />
                   ))}
                 </Bar>
@@ -112,7 +177,7 @@ export default function ActiveUsersBreakdown() {
             <ResponsiveContainer width="100%" height="100%">
               <PieChart>
                 <Pie
-                  data={demographicData}
+                  data={actualDemographicData}
                   cx="50%"
                   cy="50%"
                   innerRadius={70}
@@ -122,7 +187,7 @@ export default function ActiveUsersBreakdown() {
                   stroke="none"
                   cornerRadius={4}
                 >
-                  {demographicData.map((entry, index) => (
+                  {actualDemographicData.map((entry, index) => (
                     <Cell key={`cell-${index}`} fill={entry.color} />
                   ))}
                 </Pie>
