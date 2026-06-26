@@ -2,27 +2,34 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../AuthContext';
 
-const mockUsers = [
-  { id: 1, initials: 'SC', name: 'Sarah Chen', email: 'sarah.c@cloudline.com', role: 'WORKING PROFESSIONAL', status: 'Active' },
-  { id: 2, initials: 'MW', name: 'Marcus Wright', email: 'm.wright@design.io', role: 'STUDENT', status: 'Active' },
-  { id: 3, initials: 'ER', name: 'Elena Rodriguez', email: 'elena.rod@webmail.com', role: 'RECRUITER', status: 'Suspended' },
-  { id: 4, initials: 'JK', name: 'Jameson Kwoh', email: 'jkwoh@enterprise.net', role: 'FREELANCER', status: 'Active' },
-  { id: 5, initials: 'LV', name: 'Lila Vance', email: 'lvance@creative.com', role: 'STUDENT', status: 'Deleted' },
-  { id: 6, initials: 'OA', name: 'Omar Al-Fayed', email: 'omar.f@techhub.org', role: 'WORKING PROFESSIONAL', status: 'Active' },
-  { id: 7, initials: 'SM', name: 'Sienna Miller', email: 'smiller@studio.ca', role: 'STUDENT', status: 'Active' },
-  { id: 8, initials: 'DB', name: 'David Brooks', email: 'd.brooks@fintech.co', role: 'FREELANCER', status: 'Active' },
-  { id: 9, initials: 'AM', name: 'Alex Morgan', email: 'amorgan@startup.io', role: 'WORKING PROFESSIONAL', status: 'Active' },
-  { id: 10, initials: 'RJ', name: 'Rahul Jain', email: 'rjain@university.edu', role: 'STUDENT', status: 'Active' },
-  { id: 11, initials: 'NK', name: 'Nina Kraviz', email: 'nina.k@recruitment.com', role: 'RECRUITER', status: 'Active' },
-  { id: 12, initials: 'TJ', name: 'Tom Jones', email: 'tom.j@freelance.net', role: 'FREELANCER', status: 'Suspended' },
-  { id: 13, initials: 'CL', name: 'Chris Lee', email: 'clee@dev.io', role: 'WORKING PROFESSIONAL', status: 'Active' },
-  { id: 14, initials: 'MP', name: 'Maria Perez', email: 'mperez@art.com', role: 'STUDENT', status: 'Active' },
-  { id: 15, initials: 'AS', name: 'Ahmed Syed', email: 'asyed@corp.org', role: 'WORKING PROFESSIONAL', status: 'Deleted' },
-  { id: 16, initials: 'JW', name: 'Jane Woods', email: 'jwoods@nature.com', role: 'FREELANCER', status: 'Active' },
-];
+
 
 export default function UserManagement() {
-  const { role } = useAuth();
+  const { role, accessToken } = useAuth();
+  const [users, setUsers] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  React.useEffect(() => {
+    const fetchUsers = async () => {
+      if (!accessToken) return;
+      try {
+        const response = await fetch('/api/admin/users', {
+          headers: {
+            'Authorization': `Bearer ${accessToken}`
+          }
+        });
+        if (response.ok) {
+          const data = await response.json();
+          setUsers(data);
+        }
+      } catch (err) {
+        console.error('Failed to fetch users:', err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchUsers();
+  }, [accessToken]);
   const [selectedUsers, setSelectedUsers] = useState(new Set());
   const [roleFilter, setRoleFilter] = useState('All');
   const [statusFilter, setStatusFilter] = useState('All');
@@ -91,7 +98,7 @@ export default function UserManagement() {
     }
   };
 
-  const filteredUsers = mockUsers
+  const filteredUsers = users
     .filter(user => roleFilter === 'All' || user.role.toLowerCase() === roleFilter.toLowerCase())
     .filter(user => statusFilter === 'All' || user.status === statusFilter);
 
@@ -118,7 +125,7 @@ export default function UserManagement() {
           </div>
           <div>
             <p className="text-[11px] font-semibold text-on-surface-variant uppercase tracking-wider">Total Users</p>
-            <h3 className="text-xl font-bold text-on-surface">{mockUsers.length}</h3>
+            <h3 className="text-xl font-bold text-on-surface">{users.length}</h3>
           </div>
         </div>
 
@@ -128,7 +135,7 @@ export default function UserManagement() {
           </div>
           <div>
             <p className="text-[11px] font-semibold text-on-surface-variant uppercase tracking-wider">Active Users</p>
-            <h3 className="text-xl font-bold text-on-surface">{mockUsers.filter(u => u.status === 'Active').length}</h3>
+            <h3 className="text-xl font-bold text-on-surface">{users.filter(u => u.status === 'Active').length}</h3>
           </div>
         </div>
 
@@ -138,7 +145,7 @@ export default function UserManagement() {
           </div>
           <div>
             <p className="text-[11px] font-semibold text-on-surface-variant uppercase tracking-wider">Suspended Users</p>
-            <h3 className="text-xl font-bold text-on-surface">{mockUsers.filter(u => u.status === 'Suspended').length}</h3>
+            <h3 className="text-xl font-bold text-on-surface">{users.filter(u => u.status === 'Suspended').length}</h3>
           </div>
         </div>
       </div>
