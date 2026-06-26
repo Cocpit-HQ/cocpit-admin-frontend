@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
+import { useNavigate, useLocation, useParams } from 'react-router-dom';
+import { format, formatDistanceToNow } from 'date-fns';
 import { useAuth } from '../AuthContext';
 
 const baseActivity = [
@@ -25,9 +26,44 @@ const mockAllActivity = [
 ];
 
 export default function UserProfile() {
-  const { role } = useAuth();
+  const { role, accessToken } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
+  const { id } = useParams();
+  const [userData, setUserData] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [warningModalOpen, setWarningModalOpen] = useState(false);
+  const [warningReason, setWarningReason] = useState('Spam');
+  const [warningMessage, setWarningMessage] = useState('');
+  const [suspendConfirmModalOpen, setSuspendConfirmModalOpen] = useState(false);
+  const [suspendDuration, setSuspendDuration] = useState('Short Temporary (3-7 days)');
+  const [activityModalOpen, setActivityModalOpen] = useState(false);
+  const [activityFilter, setActivityFilter] = useState('All');
+  const [visibleCount, setVisibleCount] = useState(5);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
+  React.useEffect(() => {
+    if (!id || !accessToken) return;
+    const fetchUser = async () => {
+      try {
+        const response = await fetch('/api/admin/users/' + id, {
+          headers: { 'Authorization': 'Bearer ' + accessToken }
+        });
+        if (response.ok) {
+          const data = await response.json();
+          setUserData(data);
+        }
+      } catch (err) {
+        console.error(err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchUser();
+  }, [id, accessToken]);
+
+  if (loading) return <div className="flex justify-center p-10"><span className="material-symbols-outlined animate-spin text-4xl text-primary">progress_activity</span></div>;
+  if (!userData) return <div className="flex justify-center p-10">User not found</div>;
+
   const from = location.state?.from || '/users';
   const backLabel = location.state?.label || 'Users';
 
@@ -43,16 +79,6 @@ export default function UserProfile() {
     );
   }
 
-  const [warningModalOpen, setWarningModalOpen] = useState(false);
-  const [warningReason, setWarningReason] = useState('Spam');
-  const [warningMessage, setWarningMessage] = useState('');
-  const [suspendConfirmModalOpen, setSuspendConfirmModalOpen] = useState(false);
-  const [suspendDuration, setSuspendDuration] = useState('Short Temporary (3-7 days)');
-  const [activityModalOpen, setActivityModalOpen] = useState(false);
-  const [activityFilter, setActivityFilter] = useState('All');
-  const [visibleCount, setVisibleCount] = useState(5);
-  const [isLoadingMore, setIsLoadingMore] = useState(false);
-
   const handleLoadMore = () => {
     setIsLoadingMore(true);
     setTimeout(() => {
@@ -61,9 +87,41 @@ export default function UserProfile() {
     }, 800);
   };
 
+  const realAllActivity = (userData?.activities || []).map(a => {
+    let icon = 'history';
+    let color = 'bg-surface-container-highest text-primary ring-2 ring-surface';
+    let text = `performed action: ${a.action_type}`;
+    let type = 'other';
+
+    if (a.action_type === 'like_post') { icon = 'thumb_up'; text = 'liked a post'; type = 'engagement'; }
+    else if (a.action_type === 'vote_poll') { icon = 'how_to_vote'; text = 'voted on a poll'; type = 'engagement'; }
+    else if (a.action_type === 'repost_post') { icon = 'repeat'; text = 'reposted a post'; type = 'engagement'; }
+    else if (a.action_type === 'comment_post') { icon = 'comment'; text = 'commented on a post'; type = 'engagement'; }
+    else if (a.action_type === 'POST_CREATED' || a.action_type.includes('post')) { icon = 'post_add'; color = 'bg-primary text-white ring-0'; text = 'created a new post'; type = 'post'; }
+    else if (a.action_type === 'PROFILE_UPDATED' || a.action_type.includes('profile')) { icon = 'person'; text = 'updated their profile'; type = 'profile'; }
+    else if (a.action_type === 'USER_LOGGED_IN') { icon = 'login'; text = 'logged in'; type = 'profile'; }
+    else if (a.action_type === 'JOB_APPLIED' || a.action_type.includes('job')) { icon = 'work'; text = 'applied for a job'; type = 'job'; }
+    else if (a.action_type.includes('CONNECTION') || a.action_type.includes('connect')) { icon = 'handshake'; text = 'network connection event'; type = 'network'; }
+    else if (a.action_type === 'moderation_warn') { 
+      icon = 'warning'; color = 'bg-orange-100 text-orange-600 ring-2 ring-surface'; text = 'received an official moderation warning'; type = 'moderation'; 
+    }
+    else if (a.action_type.includes('REPORT') || a.action_type.includes('suspend') || a.action_type.includes('moderation')) { 
+      icon = 'gavel'; color = 'bg-error-container text-error ring-2 ring-surface'; text = `was affected by a moderation action`; type = 'moderation'; 
+    }
+
+    return {
+      id: a.id,
+      text,
+      time: formatDistanceToNow(new Date(a.created_at), { addSuffix: true }),
+      icon,
+      color,
+      type
+    };
+  });
+
   const filteredActivity = activityFilter === 'All' 
-    ? mockAllActivity 
-    : mockAllActivity.filter(a => {
+    ? realAllActivity 
+    : realAllActivity.filter(a => {
         if (activityFilter === 'Posts') return a.type === 'post';
         if (activityFilter === 'Engagement') return a.type === 'engagement';
         if (activityFilter === 'Moderation') return a.type === 'moderation';
@@ -79,12 +137,36 @@ export default function UserProfile() {
     setWarningMessage('');
   };
 
-  const handleSuspendUser = () => {
-    alert(`Omar Al-Fayed has been suspended. Duration: ${suspendDuration}`);
+  const handleSuspendUser = async () => {
+    try {
+      await fetch(`/api/admin/users/${userData.id}/suspend`, {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${accessToken}`, 'Content-Type': 'application/json' }
+      });
+      setUserData({ ...userData, status: 'Suspended' });
+      alert(`${userData.name} has been suspended.`);
+    } catch (e) {
+      console.error(e);
+    }
     setSuspendConfirmModalOpen(false);
   };
 
-  return (
+  const handleUnsuspendUser = async () => {
+    if (window.confirm(`Are you sure you want to unsuspend ${userData.name}? This will restore their access and reset their moderation flags to 0.`)) {
+      try {
+        await fetch(`/api/admin/users/${userData.id}/unsuspend`, {
+          method: 'POST',
+          headers: { 'Authorization': `Bearer ${accessToken}`, 'Content-Type': 'application/json' }
+        });
+        setUserData({ ...userData, status: 'Active', stats: { ...userData.stats, moderation_flags: 0 } });
+      } catch (e) {
+        console.error(e);
+      }
+    }
+  };
+
+  try {
+    return (
     <div className="max-w-[1440px] mx-auto pb-xl">
       {/* Top Navigation Bar */}
       <div className="flex justify-between items-center mb-6">
@@ -102,22 +184,22 @@ export default function UserProfile() {
         <div className="flex items-center gap-lg">
           <div className="relative">
             <img 
-              alt="Omar Al-Fayed Avatar" 
+              alt="${userData.name} Avatar" 
               className="w-32 h-32 rounded-xl border-4 border-surface shadow-sm object-cover" 
-              src="https://ui-avatars.com/api/?name=Omar+Al-Fayed&background=3525cd&color=fff&size=256" 
+              src={userData.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(userData.name || 'User')}&background=3525cd&color=fff&size=256`} 
             />
             <span className="absolute -bottom-2 -right-2 bg-green-500 border-4 border-surface w-6 h-6 rounded-full" title="Status: Active"></span>
           </div>
           <div>
             <div className="flex items-center gap-sm mb-xs">
-              <h2 className="font-display-lg text-display-lg text-on-surface">Omar Al-Fayed</h2>
-              <span className="bg-primary-container text-on-primary-container font-label-md text-label-md px-sm py-xs rounded-lg">Admin</span>
-              <span className="bg-green-100 text-green-700 font-label-md text-label-md px-sm py-xs rounded-lg flex items-center gap-1">
-                <span className="material-symbols-outlined text-[14px]" style={{ fontVariationSettings: "'FILL' 1" }}>check_circle</span>
-                Active
-              </span>
+              <h2 className="font-display-lg text-display-lg text-on-surface">{userData.name}</h2>
+              <span className="bg-primary-container text-on-primary-container font-label-md text-label-md px-sm py-xs rounded-lg">{userData.role}</span>
+              <span className={`font-label-md text-label-md px-sm py-xs rounded-lg flex items-center gap-1 ${userData.status === 'Active' ? 'bg-green-100 text-green-700' : 'bg-error-container text-error'}`}>
+    <span className="material-symbols-outlined text-[14px]" style={{ fontVariationSettings: "'FILL' 1" }}>{userData.status === 'Active' ? 'check_circle' : 'cancel'}</span>
+    {userData.status}
+  </span>
             </div>
-            <p className="text-on-surface-variant font-body-md text-body-md">User ID: #USR-99421 • Joined Jan 12, 2021</p>
+            <p className="text-on-surface-variant font-body-md text-body-md">User ID: #{userData.id.split('-')[0]} • Joined {userData.joined ? format(new Date(userData.joined), 'MMM d, yyyy') : 'Unknown'}</p>
           </div>
         </div>
         <div className="flex items-center gap-md">
@@ -130,13 +212,23 @@ export default function UserProfile() {
                 <span className="material-symbols-outlined text-[20px]">notifications</span>
                 Notify User
               </button>
-              <button 
-                onClick={() => setSuspendConfirmModalOpen(true)}
-                className="flex items-center gap-xs border border-error text-error font-label-md text-label-md px-lg py-md rounded-xl hover:bg-error-container hover:border-transparent transition-all active:scale-95"
-              >
-                <span className="material-symbols-outlined text-[20px]">gavel</span>
-                Suspend User
-              </button>
+              {userData.status === 'Suspended' ? (
+                <button 
+                  onClick={handleUnsuspendUser}
+                  className="flex items-center gap-xs border border-green-600 text-green-600 font-label-md text-label-md px-lg py-md rounded-xl hover:bg-green-50 hover:border-transparent transition-all active:scale-95"
+                >
+                  <span className="material-symbols-outlined text-[20px]">undo</span>
+                  Unsuspend User
+                </button>
+              ) : (
+                <button 
+                  onClick={() => setSuspendConfirmModalOpen(true)}
+                  className="flex items-center gap-xs border border-error text-error font-label-md text-label-md px-lg py-md rounded-xl hover:bg-error-container hover:border-transparent transition-all active:scale-95"
+                >
+                  <span className="material-symbols-outlined text-[20px]">gavel</span>
+                  Suspend User
+                </button>
+              )}
             </>
           )}
         </div>
@@ -154,7 +246,7 @@ export default function UserProfile() {
             </div>
             <div className="mt-md">
               <p className="font-label-md text-label-md text-on-surface-variant">Total Posts</p>
-              <h3 className="font-display-lg text-display-lg font-black mt-xs">1,284</h3>
+              <h3 className="font-display-lg text-display-lg font-black mt-xs">{userData.stats.posts}</h3>
             </div>
           </div>
           
@@ -165,7 +257,7 @@ export default function UserProfile() {
             </div>
             <div className="mt-md">
               <p className="font-label-md text-label-md text-on-surface-variant">Followers</p>
-              <h3 className="font-display-lg text-display-lg font-black mt-xs">42.5k</h3>
+              <h3 className="font-display-lg text-display-lg font-black mt-xs">{userData.stats.followers}</h3>
             </div>
           </div>
           
@@ -176,7 +268,7 @@ export default function UserProfile() {
             </div>
             <div className="mt-md">
               <p className="font-label-md text-label-md text-on-surface-variant">Following</p>
-              <h3 className="font-display-lg text-display-lg font-black mt-xs">892</h3>
+              <h3 className="font-display-lg text-display-lg font-black mt-xs">{userData.stats.following}</h3>
             </div>
           </div>
           
@@ -187,7 +279,7 @@ export default function UserProfile() {
             </div>
             <div className="mt-md">
               <p className="font-label-md text-label-md text-on-surface-variant">Moderation Flags</p>
-              <h3 className="font-display-lg text-display-lg font-black mt-xs">3</h3>
+              <h3 className="font-display-lg text-display-lg font-black mt-xs">{userData.stats.moderation_flags}</h3>
             </div>
           </div>
         </div>
@@ -201,33 +293,54 @@ export default function UserProfile() {
           <div className="p-lg space-y-md">
             <div className="flex flex-col gap-xs">
               <p className="font-label-md text-label-md text-on-surface-variant">Full Name</p>
-              <p className="font-body-md text-body-md font-semibold">Omar Al-Fayed</p>
+              <p className="font-body-md text-body-md font-semibold">{userData.name}</p>
             </div>
             <div className="flex flex-col gap-xs">
               <p className="font-label-md text-label-md text-on-surface-variant">Email Address</p>
-              <p className="font-body-md text-body-md font-semibold">omar.alfayed@enterprise.com</p>
+              <p className="font-body-md text-body-md font-semibold">{userData.email}</p>
             </div>
             <div className="flex flex-col gap-xs">
               <p className="font-label-md text-label-md text-on-surface-variant">Phone Number</p>
-              <p className="font-body-md text-body-md font-semibold">+1 (555) 012-3456</p>
+              <p className="font-body-md text-body-md font-semibold">{userData.phone || 'Not provided'}</p>
             </div>
             <div className="flex flex-col gap-xs">
               <p className="font-label-md text-label-md text-on-surface-variant">Location</p>
-              <p className="font-body-md text-body-md font-semibold">Dubai, United Arab Emirates</p>
+              <p className="font-body-md text-body-md font-semibold">{userData.location || 'Unknown'}</p>
             </div>
             <div className="flex flex-col gap-xs">
               <p className="font-label-md text-label-md text-on-surface-variant">Last Login</p>
-              <p className="font-body-md text-body-md font-semibold">2 hours ago (10.42.1.254)</p>
+              <p className="font-body-md text-body-md font-semibold">{userData.lastActive ? formatDistanceToNow(new Date(userData.lastActive), { addSuffix: true }) : 'Unknown'}</p>
             </div>
             <div className="pt-md">
               <div className="bg-surface-container-high rounded-xl p-md">
                 <p className="font-label-md text-label-md text-on-surface-variant mb-sm">Location Data</p>
-                <div className="w-full h-32 rounded-lg bg-surface-container-highest overflow-hidden relative group cursor-pointer">
-                  <div className="absolute inset-0 bg-primary/10 z-10"></div>
-                  <div className="w-full h-full bg-surface-variant grayscale opacity-50"></div>
-                  <div className="absolute inset-0 flex items-center justify-center z-20">
-                    <span className="material-symbols-outlined text-primary text-4xl" style={{ fontVariationSettings: "'FILL' 1" }}>location_on</span>
-                  </div>
+                <div className="w-full h-40 rounded-lg overflow-hidden relative group border border-outline-variant">
+                  {userData.coordinates?.lat && userData.coordinates?.lng ? (
+                    <iframe
+                      width="100%"
+                      height="100%"
+                      frameBorder="0"
+                      style={{ border: 0 }}
+                      src={`https://maps.google.com/maps?q=${userData.coordinates.lat},${userData.coordinates.lng}&z=13&output=embed`}
+                      allowFullScreen
+                      title="User Location Map"
+                    ></iframe>
+                  ) : userData.location && userData.location !== 'Unknown' ? (
+                    <iframe
+                      width="100%"
+                      height="100%"
+                      frameBorder="0"
+                      style={{ border: 0 }}
+                      src={`https://maps.google.com/maps?q=${encodeURIComponent(userData.location)}&z=11&output=embed`}
+                      allowFullScreen
+                      title="User Location Map"
+                    ></iframe>
+                  ) : (
+                    <div className="absolute inset-0 flex flex-col items-center justify-center bg-surface-variant grayscale opacity-70 z-20">
+                      <span className="material-symbols-outlined text-on-surface-variant text-4xl mb-2" style={{ fontVariationSettings: "'FILL' 1" }}>location_off</span>
+                      <p className="text-sm font-medium text-on-surface-variant">Location unavailable</p>
+                    </div>
+                  )}
                 </div>
               </div>
             </div>
@@ -246,48 +359,23 @@ export default function UserProfile() {
           <div className="p-lg space-y-lg relative">
             <div className="absolute left-lg top-[3.5rem] bottom-lg w-[2px] bg-outline-variant ml-[11px]"></div>
             
-            <div className="flex gap-md relative">
-              <div className="w-6 h-6 bg-primary rounded-full flex items-center justify-center z-10 mt-1">
-                <span className="material-symbols-outlined text-[14px] text-white" style={{ fontVariationSettings: "'FILL' 1" }}>photo</span>
-              </div>
-              <div>
-                <p className="font-body-md text-body-md"><span className="font-bold">Omar</span> posted a new photo in <span className="text-primary">Urban Photography</span>.</p>
-                <p className="text-xs text-on-surface-variant mt-1">12 minutes ago</p>
-                <div className="mt-md rounded-xl overflow-hidden border border-outline-variant max-w-sm bg-surface-variant h-32 flex items-center justify-center">
-                  <span className="material-symbols-outlined text-outline-variant text-4xl">image</span>
-                </div>
-              </div>
-            </div>
-            
-            <div className="flex gap-md relative">
-              <div className="w-6 h-6 bg-surface-container-highest rounded-full flex items-center justify-center z-10 mt-1 ring-2 ring-surface">
-                <span className="material-symbols-outlined text-[14px] text-primary" style={{ fontVariationSettings: "'FILL' 1" }}>person</span>
-              </div>
-              <div>
-                <p className="font-body-md text-body-md"><span className="font-bold">Omar</span> updated his professional bio.</p>
-                <p className="text-xs text-on-surface-variant mt-1">4 hours ago</p>
-              </div>
-            </div>
-            
-            <div className="flex gap-md relative">
-              <div className="w-6 h-6 bg-surface-container-highest rounded-full flex items-center justify-center z-10 mt-1 ring-2 ring-surface">
-                <span className="material-symbols-outlined text-[14px] text-primary" style={{ fontVariationSettings: "'FILL' 1" }}>group_add</span>
-              </div>
-              <div>
-                <p className="font-body-md text-body-md"><span className="font-bold">Omar</span> joined the <span className="text-primary">Tech Discussions</span> group.</p>
-                <p className="text-xs text-on-surface-variant mt-1">Yesterday at 11:30 PM</p>
-              </div>
-            </div>
-            
-            <div className="flex gap-md relative">
-              <div className="w-6 h-6 bg-error-container rounded-full flex items-center justify-center z-10 mt-1 ring-2 ring-surface">
-                <span className="material-symbols-outlined text-[14px] text-error" style={{ fontVariationSettings: "'FILL' 1" }}>warning</span>
-              </div>
-              <div>
-                <p className="font-body-md text-body-md">Account received a <span className="text-error font-bold">Spam Flag</span> from a moderator.</p>
-                <p className="text-xs text-on-surface-variant mt-1">Oct 24, 2023</p>
-              </div>
-            </div>
+            {realAllActivity.length > 0 ? (
+              realAllActivity.slice(0, 10).map((activity) => {
+                return (
+                  <div key={activity.id} className="flex gap-md relative">
+                    <div className={`w-8 h-8 rounded-full flex items-center justify-center z-10 mt-0.5 shadow-sm ${activity.color}`}>
+                      <span className="material-symbols-outlined text-[16px]" style={{ fontVariationSettings: "'FILL' 1" }}>{activity.icon}</span>
+                    </div>
+                    <div className="flex-1 pb-1">
+                      <p className="font-body-md text-body-md"><span className="font-bold">{userData.name}</span> {activity.text}.</p>
+                      <p className="text-xs text-on-surface-variant mt-0.5">{activity.time}</p>
+                    </div>
+                  </div>
+                );
+              })
+            ) : (
+              <p className="text-body-sm text-on-surface-variant pl-8">No recent activity.</p>
+            )}
           </div>
         </div>
 
@@ -299,33 +387,22 @@ export default function UserProfile() {
               <h4 className="font-headline-sm text-headline-sm">Security</h4>
             </div>
             <div className="p-lg space-y-lg">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-md">
-                  <span className="material-symbols-outlined text-green-600">verified_user</span>
-                  <div>
-                    <p className="font-label-md text-label-md font-bold">2FA Enabled</p>
-                    <p className="text-xs text-on-surface-variant">SMS &amp; Authenticator</p>
-                  </div>
-                </div>
-                <span className="w-8 h-4 bg-green-500 rounded-full relative"><span className="absolute right-0.5 top-0.5 w-3 h-3 bg-white rounded-full"></span></span>
-              </div>
-              <div className="h-[1px] bg-outline-variant"></div>
+              
               <p className="font-label-md text-label-md text-on-surface-variant uppercase tracking-wider">Linked Accounts</p>
               <div className="space-y-md">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-md">
-                    <div className="w-8 h-8 rounded-lg bg-surface-container flex items-center justify-center font-bold text-primary">G</div>
-                    <span className="font-body-md text-body-md">Google</span>
-                  </div>
-                  <span className="material-symbols-outlined text-on-surface-variant">check_circle</span>
-                </div>
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-md">
-                    <div className="w-8 h-8 rounded-lg bg-surface-container flex items-center justify-center font-bold text-on-surface">GH</div>
-                    <span className="font-body-md text-body-md">GitHub</span>
-                  </div>
-                  <span className="material-symbols-outlined text-outline">circle</span>
-                </div>
+                {userData.socialAccounts && userData.socialAccounts.length > 0 ? (
+                  userData.socialAccounts.map((provider, i) => (
+                    <div key={i} className="flex items-center justify-between">
+                      <div className="flex items-center gap-md">
+                        <div className="w-8 h-8 rounded-lg bg-surface-container flex items-center justify-center font-bold text-primary">{provider[0].toUpperCase()}</div>
+                        <span className="font-body-md text-body-md capitalize">{provider}</span>
+                      </div>
+                      <span className="material-symbols-outlined text-primary">check_circle</span>
+                    </div>
+                  ))
+                ) : (
+                  <p className="text-body-sm text-on-surface-variant">No linked accounts</p>
+                )}
               </div>
             </div>
           </div>
@@ -358,7 +435,7 @@ export default function UserProfile() {
             </div>
             
             <p className="text-sm text-on-surface-variant mb-6">
-              You are sending an official warning to <strong>Omar Al-Fayed</strong>. They will receive this via email.
+              You are sending an official warning to <strong>{userData.name}</strong>. They will receive this via email.
             </p>
 
             <div className="flex flex-col gap-4 mb-6">
@@ -424,7 +501,7 @@ export default function UserProfile() {
             </div>
             
             <p className="text-sm text-on-surface-variant mb-6">
-              Are you sure you want to suspend <strong>Omar Al-Fayed</strong>? This will revoke their access to the platform based on the selected duration.
+              Are you sure you want to suspend <strong>{userData.name}</strong>? This will revoke their access to the platform based on the selected duration.
             </p>
 
             <div className="mb-6">
@@ -469,7 +546,7 @@ export default function UserProfile() {
                 </div>
                 <div>
                   <h3 className="text-xl font-bold text-on-surface">Activity History</h3>
-                  <p className="text-sm text-on-surface-variant font-medium">Omar Al-Fayed</p>
+                  <p className="text-sm text-on-surface-variant font-medium">{userData.name}</p>
                 </div>
               </div>
               <button onClick={() => setActivityModalOpen(false)} className="material-symbols-outlined text-on-surface-variant hover:text-on-surface transition-colors p-1">close</button>
@@ -478,46 +555,22 @@ export default function UserProfile() {
             {/* Filters */}
             <div className="px-6 py-4 border-b border-outline-variant shrink-0 flex gap-3 overflow-x-auto">
               <button 
-                onClick={() => { setActivityFilter('All'); setVisibleCount(5); }} 
+                onClick={() => { setActivityFilter('All'); setVisibleCount(10); }} 
                 className={`px-4 py-1.5 rounded-full text-sm font-bold shrink-0 transition-colors ${activityFilter === 'All' ? 'bg-primary text-white' : 'border border-outline-variant text-on-surface-variant hover:bg-surface-container-lowest'}`}
               >
                 All
               </button>
               <button 
-                onClick={() => { setActivityFilter('Posts'); setVisibleCount(5); }} 
+                onClick={() => { setActivityFilter('Posts'); setVisibleCount(10); }} 
                 className={`px-4 py-1.5 rounded-full text-sm font-bold shrink-0 transition-colors ${activityFilter === 'Posts' ? 'bg-primary text-white' : 'border border-outline-variant text-on-surface-variant hover:bg-surface-container-lowest'}`}
               >
                 Posts
               </button>
               <button 
-                onClick={() => { setActivityFilter('Engagement'); setVisibleCount(5); }} 
+                onClick={() => { setActivityFilter('Engagement'); setVisibleCount(10); }} 
                 className={`px-4 py-1.5 rounded-full text-sm font-bold shrink-0 transition-colors ${activityFilter === 'Engagement' ? 'bg-primary text-white' : 'border border-outline-variant text-on-surface-variant hover:bg-surface-container-lowest'}`}
               >
                 Engagement
-              </button>
-              <button 
-                onClick={() => { setActivityFilter('Moderation'); setVisibleCount(5); }} 
-                className={`px-4 py-1.5 rounded-full text-sm font-bold shrink-0 transition-colors ${activityFilter === 'Moderation' ? 'bg-primary text-white' : 'border border-outline-variant text-on-surface-variant hover:bg-surface-container-lowest'}`}
-              >
-                Moderation
-              </button>
-              <button 
-                onClick={() => { setActivityFilter('Network'); setVisibleCount(5); }} 
-                className={`px-4 py-1.5 rounded-full text-sm font-bold shrink-0 transition-colors ${activityFilter === 'Network' ? 'bg-primary text-white' : 'border border-outline-variant text-on-surface-variant hover:bg-surface-container-lowest'}`}
-              >
-                Network
-              </button>
-              <button 
-                onClick={() => { setActivityFilter('Profile'); setVisibleCount(5); }} 
-                className={`px-4 py-1.5 rounded-full text-sm font-bold shrink-0 transition-colors ${activityFilter === 'Profile' ? 'bg-primary text-white' : 'border border-outline-variant text-on-surface-variant hover:bg-surface-container-lowest'}`}
-              >
-                Profile Updates
-              </button>
-              <button 
-                onClick={() => { setActivityFilter('Jobs'); setVisibleCount(5); }} 
-                className={`px-4 py-1.5 rounded-full text-sm font-bold shrink-0 transition-colors ${activityFilter === 'Jobs' ? 'bg-primary text-white' : 'border border-outline-variant text-on-surface-variant hover:bg-surface-container-lowest'}`}
-              >
-                Jobs
               </button>
             </div>
             
@@ -525,17 +578,27 @@ export default function UserProfile() {
             <div className="p-6 overflow-y-auto space-y-6 relative flex-1">
               <div className="absolute left-6 top-6 bottom-6 w-[2px] bg-outline-variant ml-[11px]"></div>
               
-              {filteredActivity.slice(0, visibleCount).map((activity) => (
-                <div key={activity.id} className="flex gap-4 relative group">
-                  <div className={`w-6 h-6 rounded-full flex items-center justify-center z-10 mt-1 shrink-0 shadow-sm ${activity.color}`}>
-                    <span className="material-symbols-outlined text-[14px]" style={{ fontVariationSettings: "'FILL' 1" }}>{activity.icon}</span>
-                  </div>
-                  <div className="flex-1 p-3 rounded-xl border border-transparent hover:border-outline-variant hover:bg-surface-container-lowest transition-colors">
-                    <p className="font-body-md text-body-md text-on-surface"><span className="font-bold">Omar</span> {activity.text}.</p>
-                    <time className="text-xs text-on-surface-variant font-medium mt-1">{activity.time}</time>
-                  </div>
+              {filteredActivity.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-10 relative z-10 bg-surface rounded-xl">
+                  <span className="material-symbols-outlined text-4xl text-on-surface-variant mb-2">inbox</span>
+                  <p className="text-on-surface-variant font-medium">No activity found for this category.</p>
                 </div>
-              ))}
+              ) : (
+                filteredActivity.slice(0, visibleCount).map((activity) => (
+                  <div key={activity.id} className="flex gap-4 relative group items-start">
+                    <div className={`w-10 h-10 rounded-full flex items-center justify-center z-10 shrink-0 shadow-md border-4 border-surface ${activity.color}`}>
+                      <span className="material-symbols-outlined text-[20px]" style={{ fontVariationSettings: "'FILL' 1" }}>{activity.icon}</span>
+                    </div>
+                    <div className="flex-1 p-4 rounded-xl border border-outline-variant bg-surface hover:border-primary/50 hover:bg-primary/5 transition-colors shadow-sm">
+                      <p className="font-body-md text-body-md text-on-surface mb-1"><span className="font-bold text-primary">{userData.name}</span> {activity.text}.</p>
+                      <time className="text-sm text-on-surface-variant font-medium flex items-center gap-1">
+                        <span className="material-symbols-outlined text-[14px]">schedule</span>
+                        {activity.time}
+                      </time>
+                    </div>
+                  </div>
+                ))
+              )}
 
               {/* Load More Button simulating pagination */}
               {visibleCount < filteredActivity.length && (
@@ -557,5 +620,16 @@ export default function UserProfile() {
         </div>
       )}
     </div>
-  );
+    );
+  } catch (err) {
+    return (
+      <div className="p-20 flex flex-col justify-center items-center h-screen bg-red-50">
+        <h1 className="text-3xl text-red-600 font-bold mb-4">Runtime Crash</h1>
+        <p className="text-lg text-red-800 font-mono bg-red-100 p-4 rounded-lg">{err.message}</p>
+        <pre className="mt-4 p-4 bg-gray-900 text-red-400 rounded-lg max-w-4xl overflow-auto text-sm">
+          {err.stack}
+        </pre>
+      </div>
+    );
+  }
 }

@@ -39,7 +39,7 @@ function AppRoutes() {
         {/* All roles */}
         <Route path="health" element={<SystemHealth />} />
         <Route path="notifications" element={<Notifications />} />
-        <Route path="profile" element={<UserProfile />} />
+        <Route path="profile/:id" element={<UserProfile />} />
         <Route path="org-profile" element={<OrganizationProfile />} />
       </Route>
       {/* Catch-all route for non-existent paths */}

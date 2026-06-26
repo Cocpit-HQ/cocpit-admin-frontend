@@ -33,6 +33,7 @@ export default function UserManagement() {
   const [selectedUsers, setSelectedUsers] = useState(new Set());
   const [roleFilter, setRoleFilter] = useState('All');
   const [statusFilter, setStatusFilter] = useState('All');
+  const [searchQuery, setSearchQuery] = useState('');
   const [warningModalOpen, setWarningModalOpen] = useState(false);
   const [userToWarn, setUserToWarn] = useState(null);
   const [warningReason, setWarningReason] = useState('Inappropriate Behavior');
@@ -43,15 +44,44 @@ export default function UserManagement() {
   const [bulkWarningMessage, setBulkWarningMessage] = useState('');
 
   const [suspendConfirmModalOpen, setSuspendConfirmModalOpen] = useState(false);
+  const [userToSuspend, setUserToSuspend] = useState(null);
   const [currentPage, setCurrentPage] = useState(1);
   const usersPerPage = 8;
 
   const navigate = useNavigate();
 
-  const handleSuspendSelected = () => {
-    alert(`Successfully suspended ${selectedUsers.size} users.`);
+  const handleSuspend = async () => {
+    if (userToSuspend) {
+      try {
+        await fetch(`/api/admin/users/${userToSuspend.id}/suspend`, {
+          method: 'POST',
+          headers: { 'Authorization': `Bearer ${accessToken}`, 'Content-Type': 'application/json' }
+        });
+        setUsers(users.map(u => u.id === userToSuspend.id ? { ...u, status: 'Suspended' } : u));
+        alert(`Successfully suspended ${userToSuspend.name}.`);
+        setUserToSuspend(null);
+      } catch (e) {
+        console.error(e);
+      }
+    } else {
+      alert(`Successfully suspended ${selectedUsers.size} users.`);
+      setSelectedUsers(new Set());
+    }
     setSuspendConfirmModalOpen(false);
-    setSelectedUsers(new Set());
+  };
+
+  const handleUnsuspend = async (user) => {
+    if (window.confirm(`Are you sure you want to unsuspend ${user.name}? This will restore their access and reset their moderation flags to 0.`)) {
+      try {
+        await fetch(`/api/admin/users/${user.id}/unsuspend`, {
+          method: 'POST',
+          headers: { 'Authorization': `Bearer ${accessToken}`, 'Content-Type': 'application/json' }
+        });
+        setUsers(users.map(u => u.id === user.id ? { ...u, status: 'Active' } : u));
+      } catch (e) {
+        console.error(e);
+      }
+    }
   };
 
   const handleSendBulkEmail = () => {
@@ -61,9 +91,24 @@ export default function UserManagement() {
     setBulkWarningMessage('');
   };
 
-  const handleSendWarning = () => {
-    // In a real app, send API request here
-    alert(`Warning sent to ${userToWarn?.name} (${userToWarn?.email}) for ${warningReason}`);
+  const handleSendWarning = async () => {
+    if (!userToWarn) return;
+    try {
+      const response = await fetch(`/api/admin/users/${userToWarn.id}/warn`, {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ reason: warningReason, message: warningMessage })
+      });
+      const data = await response.json();
+      if (data.autoSuspended) {
+        alert(`${userToWarn.name} has been warned and AUTOMATICALLY SUSPENDED due to exceeding 7 moderation flags.`);
+        setUsers(users.map(u => u.id === userToWarn.id ? { ...u, status: 'Suspended' } : u));
+      } else {
+        alert(`Warning sent to ${userToWarn.name}. They now have ${data.moderation_flags} moderation flags.`);
+      }
+    } catch (e) {
+      console.error(e);
+    }
     setWarningModalOpen(false);
     setUserToWarn(null);
     setWarningMessage('');
@@ -100,7 +145,8 @@ export default function UserManagement() {
 
   const filteredUsers = users
     .filter(user => roleFilter === 'All' || user.role.toLowerCase() === roleFilter.toLowerCase())
-    .filter(user => statusFilter === 'All' || user.status === statusFilter);
+    .filter(user => statusFilter === 'All' || user.status === statusFilter)
+    .filter(user => user.name.toLowerCase().includes(searchQuery.toLowerCase()) || user.email.toLowerCase().includes(searchQuery.toLowerCase()));
 
   const indexOfLastUser = currentPage * usersPerPage;
   const indexOfFirstUser = indexOfLastUser - usersPerPage;
@@ -152,7 +198,18 @@ export default function UserManagement() {
 
       {/* Filter Bar */}
       <div className="bg-surface border border-outline-variant rounded-xl p-md mb-xl flex flex-wrap items-center justify-between gap-md">
-        <div className="flex flex-wrap items-center gap-md">
+        <div className="flex flex-wrap items-center gap-md w-full md:w-auto flex-1">
+          <div className="relative flex-1 min-w-[200px] max-w-[300px]">
+            <span className="material-symbols-outlined absolute left-sm top-1/2 -translate-y-1/2 text-[20px] text-on-surface-variant pointer-events-none">search</span>
+            <input
+              type="text"
+              placeholder="Search users..."
+              value={searchQuery}
+              onChange={(e) => { setSearchQuery(e.target.value); setCurrentPage(1); }}
+              className="w-full bg-surface border border-outline-variant rounded-lg pl-10 pr-4 py-2 text-body-md focus:ring-1 focus:ring-primary focus:border-primary outline-none"
+            />
+          </div>
+
           <div className="relative">
             <span className="material-symbols-outlined absolute left-sm top-1/2 -translate-y-1/2 text-[20px] text-on-surface-variant pointer-events-none">filter_alt</span>
             <select
@@ -186,8 +243,8 @@ export default function UserManagement() {
 
         <div className="flex items-center gap-md">
           <button
-            onClick={() => { setRoleFilter('All'); setStatusFilter('All'); }}
-            className="text-primary font-label-md hover:underline"
+            onClick={() => { setRoleFilter('All'); setStatusFilter('All'); setSearchQuery(''); }}
+            className="text-primary font-label-md hover:underline shrink-0"
           >
             Clear all filters
           </button>
@@ -291,15 +348,34 @@ export default function UserManagement() {
                   <td className="px-lg py-md text-right">
                     <div className="flex items-center justify-end gap-sm">
                       {role !== 'developer' && (
-                        <button
-                          onClick={() => { setUserToWarn(user); setWarningModalOpen(true); }}
-                          className="p-xs text-outline hover:text-orange-500 transition-colors hover:bg-orange-50 rounded-lg"
-                          title="Send Alert/Email"
-                        >
-                          <span className="material-symbols-outlined text-[20px]">warning</span>
-                        </button>
+                        <>
+                          <button
+                            onClick={() => { setUserToWarn(user); setWarningModalOpen(true); }}
+                            className="p-xs text-outline hover:text-orange-500 transition-colors hover:bg-orange-50 rounded-lg"
+                            title="Send Warning"
+                          >
+                            <span className="material-symbols-outlined text-[20px]">warning</span>
+                          </button>
+                          {user.status === 'Suspended' ? (
+                            <button
+                              onClick={() => handleUnsuspend(user)}
+                              className="p-xs text-outline hover:text-green-600 transition-colors hover:bg-green-50 rounded-lg"
+                              title="Unsuspend User"
+                            >
+                              <span className="material-symbols-outlined text-[20px]">undo</span>
+                            </button>
+                          ) : (
+                            <button
+                              onClick={() => { setUserToSuspend(user); setSuspendConfirmModalOpen(true); }}
+                              className="p-xs text-outline hover:text-error transition-colors hover:bg-error-container/50 rounded-lg"
+                              title="Suspend User"
+                            >
+                              <span className="material-symbols-outlined text-[20px]">gavel</span>
+                            </button>
+                          )}
+                        </>
                       )}
-                      <button onClick={() => navigate('/profile')} className="p-xs text-outline hover:text-primary transition-colors hover:bg-surface-container rounded-lg" title="View Profile">
+                      <button onClick={() => navigate(`/profile/${user.id}`)} className="p-xs text-outline hover:text-primary transition-colors hover:bg-surface-container rounded-lg" title="View Profile">
                         <span className="material-symbols-outlined text-[20px]">visibility</span>
                       </button>
                     </div>
@@ -361,7 +437,7 @@ export default function UserManagement() {
             </div>
 
             <p className="text-sm text-on-surface-variant mb-6">
-              You are sending an official warning to <strong>{userToWarn?.name}</strong>. They will receive this via email.
+              You are sending an official warning to <strong>{userToWarn?.name}</strong>. They will receive this warning on the home page.
             </p>
 
             <div className="flex flex-col gap-4 mb-6">
@@ -416,7 +492,7 @@ export default function UserManagement() {
             </div>
 
             <p className="text-sm text-on-surface-variant mb-6">
-              You are sending an official warning to <strong>{selectedUsers.size} selected users</strong>. They will receive this via email.
+              You are sending an official warning to <strong>{selectedUsers.size} selected users</strong>. They will receive this warning on the home page.
             </p>
 
             <div className="flex flex-col gap-4 mb-6">
@@ -470,13 +546,16 @@ export default function UserManagement() {
             </div>
 
             <p className="text-sm text-on-surface-variant mb-6">
-              Are you sure you want to suspend <strong>{selectedUsers.size}</strong> selected users? This will immediately revoke their access to the platform.
+              {userToSuspend 
+                ? <>Are you sure you want to suspend <strong>{userToSuspend.name}</strong>? This will immediately revoke their access to the platform.</>
+                : <>Are you sure you want to suspend <strong>{selectedUsers.size}</strong> selected users? This will immediately revoke their access to the platform.</>
+              }
             </p>
 
             <div className="flex justify-end gap-3">
-              <button onClick={() => setSuspendConfirmModalOpen(false)} className="px-4 py-2 rounded-lg text-sm font-medium hover:bg-surface-container transition-colors">Cancel</button>
+              <button onClick={() => { setSuspendConfirmModalOpen(false); setUserToSuspend(null); }} className="px-4 py-2 rounded-lg text-sm font-medium hover:bg-surface-container transition-colors">Cancel</button>
               <button
-                onClick={handleSuspendSelected}
+                onClick={handleSuspend}
                 className="bg-error text-on-error px-4 py-2 rounded-lg text-sm font-medium hover:bg-error/90 transition-colors shadow-sm active:scale-95"
               >
                 Yes, Suspend
