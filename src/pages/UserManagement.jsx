@@ -1,4 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import PaginationBar from '../components/PaginationBar';
+import SearchInput from '../components/SearchInput';
+import FilterDropdown from '../components/FilterDropdown';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../AuthContext';
 
@@ -8,19 +11,40 @@ export default function UserManagement() {
   const { role, accessToken } = useAuth();
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
+  
+  const [stats, setStats] = useState({ totalUsers: 0, activeUsers: 0, suspendedUsers: 0 });
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalCount, setTotalCount] = useState(0);
+  const [currentPage, setCurrentPage] = useState(1);
 
-  React.useEffect(() => {
+  const [selectedUsers, setSelectedUsers] = useState(new Set());
+  const [roleFilter, setRoleFilter] = useState('All');
+  const [statusFilter, setStatusFilter] = useState('All');
+  const [searchQuery, setSearchQuery] = useState('');
+
+  useEffect(() => {
     const fetchUsers = async () => {
       if (!accessToken) return;
+      setLoading(true);
       try {
-        const response = await fetch('/api/admin/users', {
+        const queryParams = new URLSearchParams({
+          page: currentPage,
+          limit: 8,
+          search: searchQuery,
+          status: statusFilter
+        });
+        
+        const response = await fetch(`/api/admin/users?${queryParams}`, {
           headers: {
             'Authorization': `Bearer ${accessToken}`
           }
         });
         if (response.ok) {
-          const data = await response.json();
-          setUsers(data);
+          const resData = await response.json();
+          setUsers(resData.data || []);
+          setTotalPages(resData.totalPages || 1);
+          setTotalCount(resData.total || 0);
+          if (resData.stats) setStats(resData.stats);
         }
       } catch (err) {
         console.error('Failed to fetch users:', err);
@@ -29,11 +53,7 @@ export default function UserManagement() {
       }
     };
     fetchUsers();
-  }, [accessToken]);
-  const [selectedUsers, setSelectedUsers] = useState(new Set());
-  const [roleFilter, setRoleFilter] = useState('All');
-  const [statusFilter, setStatusFilter] = useState('All');
-  const [searchQuery, setSearchQuery] = useState('');
+  }, [accessToken, currentPage, searchQuery, statusFilter]);
   const [warningModalOpen, setWarningModalOpen] = useState(false);
   const [userToWarn, setUserToWarn] = useState(null);
   const [warningReason, setWarningReason] = useState('Inappropriate Behavior');
@@ -46,8 +66,7 @@ export default function UserManagement() {
 
   const [suspendConfirmModalOpen, setSuspendConfirmModalOpen] = useState(false);
   const [userToSuspend, setUserToSuspend] = useState(null);
-  const [currentPage, setCurrentPage] = useState(1);
-  const usersPerPage = 8;
+
 
   const navigate = useNavigate();
 
@@ -189,15 +208,7 @@ export default function UserManagement() {
     }
   };
 
-  const filteredUsers = users
-    .filter(user => roleFilter === 'All' || user.role.toLowerCase() === roleFilter.toLowerCase())
-    .filter(user => statusFilter === 'All' || user.status === statusFilter)
-    .filter(user => user.name.toLowerCase().includes(searchQuery.toLowerCase()) || user.email.toLowerCase().includes(searchQuery.toLowerCase()));
-
-  const indexOfLastUser = currentPage * usersPerPage;
-  const indexOfFirstUser = indexOfLastUser - usersPerPage;
-  const currentUsers = filteredUsers.slice(indexOfFirstUser, indexOfLastUser);
-  const totalPages = Math.ceil(filteredUsers.length / usersPerPage) || 1;
+  // Server-side paginated data is now directly in 'users'
 
   return (
     <div>
@@ -217,7 +228,7 @@ export default function UserManagement() {
           </div>
           <div>
             <p className="text-[11px] font-semibold text-on-surface-variant uppercase tracking-wider">Total Users</p>
-            <h3 className="text-xl font-bold text-on-surface">{users.length}</h3>
+            <h3 className="text-xl font-bold text-on-surface">{stats.totalUsers}</h3>
           </div>
         </div>
 
@@ -227,7 +238,7 @@ export default function UserManagement() {
           </div>
           <div>
             <p className="text-[11px] font-semibold text-on-surface-variant uppercase tracking-wider">Active Users</p>
-            <h3 className="text-xl font-bold text-on-surface">{users.filter(u => u.status === 'Active').length}</h3>
+            <h3 className="text-xl font-bold text-on-surface">{stats.activeUsers}</h3>
           </div>
         </div>
 
@@ -237,7 +248,7 @@ export default function UserManagement() {
           </div>
           <div>
             <p className="text-[11px] font-semibold text-on-surface-variant uppercase tracking-wider">Suspended Users</p>
-            <h3 className="text-xl font-bold text-on-surface">{users.filter(u => u.status === 'Suspended').length}</h3>
+            <h3 className="text-xl font-bold text-on-surface">{stats.suspendedUsers}</h3>
           </div>
         </div>
       </div>
@@ -245,59 +256,34 @@ export default function UserManagement() {
       {/* Filter Bar */}
       <div className="bg-surface border border-outline-variant rounded-xl p-md mb-xl flex flex-wrap items-center justify-between gap-md">
         <div className="flex flex-wrap items-center gap-md w-full md:w-auto flex-1">
-          <div className="relative flex-1 min-w-[200px] max-w-[300px]">
-            <span className="material-symbols-outlined absolute left-sm top-1/2 -translate-y-1/2 text-[20px] text-on-surface-variant pointer-events-none">search</span>
-            <input
-              type="text"
-              placeholder="Search users..."
+          <div className="flex-1 min-w-[200px] max-w-[300px]">
+            <SearchInput
               value={searchQuery}
-              onChange={(e) => { setSearchQuery(e.target.value); setCurrentPage(1); }}
-              className="w-full bg-surface border border-outline-variant rounded-lg pl-10 pr-4 py-2 text-body-md focus:ring-1 focus:ring-primary focus:border-primary outline-none"
+              onChange={(val) => { setSearchQuery(val); setCurrentPage(1); }}
+              placeholder="Search by name or email..."
             />
           </div>
 
-          <div className="relative">
-            <span className="material-symbols-outlined absolute left-sm top-1/2 -translate-y-1/2 text-[20px] text-on-surface-variant pointer-events-none">filter_alt</span>
-            <select
-              value={roleFilter}
-              onChange={(e) => { setRoleFilter(e.target.value); setCurrentPage(1); }}
-              className="appearance-none bg-surface border border-outline-variant rounded-lg pl-10 pr-10 py-2 text-body-md font-medium focus:ring-1 focus:ring-primary focus:border-primary outline-none cursor-pointer"
-            >
-              <option value="All">All Roles</option>
-              <option value="Student">Student</option>
-              <option value="Recruiter">Recruiter</option>
-              <option value="Freelancer">Freelancer</option>
-              <option value="Working Professional">Working Professional</option>
-            </select>
-            <span className="material-symbols-outlined absolute right-sm top-1/2 -translate-y-1/2 text-[20px] text-on-surface-variant pointer-events-none">expand_more</span>
-          </div>
-
-          <div className="relative">
-            <select
-              value={statusFilter}
-              onChange={(e) => { setStatusFilter(e.target.value); setCurrentPage(1); }}
-              className="appearance-none bg-surface border border-outline-variant rounded-lg pl-md pr-10 py-2 text-body-md font-medium focus:ring-1 focus:ring-primary focus:border-primary outline-none cursor-pointer"
-            >
-              <option value="All">Any</option>
-              <option value="Active">Active</option>
-              <option value="Suspended">Suspended</option>
-              <option value="Deleted">Deleted</option>
-            </select>
-            <span className="material-symbols-outlined absolute right-sm top-1/2 -translate-y-1/2 text-[20px] text-on-surface-variant pointer-events-none">expand_more</span>
-          </div>
+          <FilterDropdown
+            label="Status"
+            value={statusFilter}
+            options={[
+              { label: 'Any', value: 'All' },
+              { label: 'Active', value: 'Active' },
+              { label: 'Suspended', value: 'Suspended' },
+              { label: 'Deleted', value: 'Deleted' },
+            ]}
+            onChange={(val) => { setStatusFilter(val); setCurrentPage(1); }}
+          />
         </div>
 
         <div className="flex items-center gap-md">
           <button
-            onClick={() => { setRoleFilter('All'); setStatusFilter('All'); setSearchQuery(''); }}
+            onClick={() => { setStatusFilter('All'); setSearchQuery(''); }}
             className="text-primary font-label-md hover:underline shrink-0"
           >
             Clear all filters
           </button>
-          <div className="h-5 w-px bg-outline-variant mx-xs"></div>
-          <span className="text-body-md text-on-surface-variant">
-            Showing {filteredUsers.length > 0 ? indexOfFirstUser + 1 : 0}-{Math.min(indexOfLastUser, filteredUsers.length)} of {filteredUsers.length}
-          </span>
         </div>
       </div>
 
@@ -344,10 +330,10 @@ export default function UserManagement() {
                       className="rounded border-outline-variant text-primary focus:ring-primary h-4 w-4"
                       type="checkbox"
                       onChange={(e) => {
-                        if (e.target.checked) setSelectedUsers(new Set(filteredUsers.map(u => u.id)));
+                        if (e.target.checked) setSelectedUsers(new Set(users.map(u => u.id)));
                         else setSelectedUsers(new Set());
                       }}
-                      checked={selectedUsers.size === filteredUsers.length && filteredUsers.length > 0}
+                      checked={selectedUsers.size === users.length && users.length > 0}
                     />
                   </th>
                 )}
@@ -358,7 +344,7 @@ export default function UserManagement() {
               </tr>
             </thead>
             <tbody className="divide-y divide-outline-variant">
-              {currentUsers.map(user => (
+              {users.map(user => (
                 <tr key={user.id} className="data-row hover:bg-surface-container-low transition-colors group">
                   {role !== 'developer' && (
                     <td className="px-lg py-md">
@@ -434,41 +420,11 @@ export default function UserManagement() {
       </div>
 
       {/* Pagination */}
-      <div className="mt-xl py-lg flex flex-col items-center gap-md">
-        <p className="text-body-sm text-outline">
-          Showing {filteredUsers.length > 0 ? indexOfFirstUser + 1 : 0} - {Math.min(indexOfLastUser, filteredUsers.length)} of {filteredUsers.length} users
-        </p>
-        <div className="flex items-center gap-xs mt-sm">
-          <button
-            onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
-            disabled={currentPage === 1}
-            className="w-10 h-10 flex items-center justify-center rounded-lg border border-outline-variant hover:bg-surface-container-low disabled:opacity-50 transition-colors"
-          >
-            <span className="material-symbols-outlined">chevron_left</span>
-          </button>
-
-          {[...Array(totalPages)].map((_, index) => (
-            <button
-              key={index + 1}
-              onClick={() => setCurrentPage(index + 1)}
-              className={`w-10 h-10 flex items-center justify-center rounded-lg font-label-md transition-colors ${currentPage === index + 1
-                  ? 'bg-primary text-on-primary shadow-sm'
-                  : 'hover:bg-surface-container-low text-on-surface-variant'
-                }`}
-            >
-              {index + 1}
-            </button>
-          ))}
-
-          <button
-            onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
-            disabled={currentPage === totalPages}
-            className="w-10 h-10 flex items-center justify-center rounded-lg border border-outline-variant hover:bg-surface-container-low disabled:opacity-50 transition-colors"
-          >
-            <span className="material-symbols-outlined">chevron_right</span>
-          </button>
-        </div>
-      </div>
+      <PaginationBar 
+        currentPage={currentPage}
+        totalPages={totalPages}
+        onPageChange={(page) => setCurrentPage(page)}
+      />
 
       {/* Warning Modal */}
       {warningModalOpen && (

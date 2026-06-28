@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useState } from 'react';
+import api from './utils/api';
 
 const AuthContext = createContext();
 
@@ -10,13 +11,36 @@ export const AuthProvider = ({ children }) => {
   const [accessToken, setAccessToken] = useState(null);
   const [isInitializing, setIsInitializing] = useState(true);
 
+  const logout = React.useCallback(async () => {
+    try {
+      await fetch('/api/auth/logout', { method: 'POST' });
+    } catch (e) {
+      console.error('Logout error', e);
+    } finally {
+      setIsLoggedIn(false);
+      setRole(null);
+      setAccessToken(null);
+      api.setToken(null);
+    }
+  }, []);
+
   React.useEffect(() => {
+    // Register the session expiration callback
+    api.registerSessionExpiredCallback(() => {
+      console.warn('Session expired. Logging out.');
+      setIsLoggedIn(false);
+      setRole(null);
+      setAccessToken(null);
+      api.setToken(null);
+    });
+
     const initAuth = async () => {
       try {
         const response = await fetch('/api/auth/refresh', { method: 'POST' });
         if (response.ok) {
           const data = await response.json();
           setAccessToken(data.accessToken);
+          api.setToken(data.accessToken);
           setIsLoggedIn(true);
           const userRoles = data.roles || [];
           const primaryRole = userRoles.find(r => ['Admin', 'Moderator', 'Developer'].includes(r)) || 'Admin';
@@ -56,6 +80,7 @@ export const AuthProvider = ({ children }) => {
       }
 
       setAccessToken(data.accessToken);
+      api.setToken(data.accessToken);
       setIsLoggedIn(true);
       // Assuming user.roles is an array, take the highest priority role or a specific one
       const userRoles = data.user.roles || [];
@@ -67,18 +92,6 @@ export const AuthProvider = ({ children }) => {
       return { success: false, error: error.message };
     }
   };
-  
-  const logout = async () => {
-    try {
-      await fetch('/api/auth/logout', { method: 'POST' });
-    } catch (e) {
-      console.error('Logout error', e);
-    } finally {
-      setIsLoggedIn(false);
-      setRole(null);
-      setAccessToken(null);
-    }
-  };
 
   return (
     <AuthContext.Provider value={{ isLoggedIn, role, accessToken, login, logout }}>
@@ -86,3 +99,4 @@ export const AuthProvider = ({ children }) => {
     </AuthContext.Provider>
   );
 };
+

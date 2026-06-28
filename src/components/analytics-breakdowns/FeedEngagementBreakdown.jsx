@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import { useAuth } from '../../AuthContext';
 
 const stripHtml = (html) => {
@@ -41,7 +42,22 @@ const parseMarkdown = (text) => {
 
 export default function FeedEngagementBreakdown() {
   const { accessToken } = useAuth();
-  const [viewMode, setViewMode] = useState('card'); // 'card' or 'list'
+  const rightColumnRef = useRef(null);
+  const [rightColumnHeight, setRightColumnHeight] = useState(770);
+
+  useEffect(() => {
+    if (rightColumnRef.current) {
+      const resizeObserver = new ResizeObserver((entries) => {
+        for (let entry of entries) {
+          setRightColumnHeight(entry.contentRect.height);
+        }
+      });
+      resizeObserver.observe(rightColumnRef.current);
+      return () => resizeObserver.disconnect();
+    }
+  }, []);
+
+  const [viewMode, setViewMode] = useState('active'); // 'active' or 'unlisted'
   const [posts, setPosts] = useState([]);
   const [hashtags, setHashtags] = useState([]);
   const [leaderboard, setLeaderboard] = useState([]);
@@ -59,6 +75,12 @@ export default function FeedEngagementBreakdown() {
   // Comments State
   const [expandedComments, setExpandedComments] = useState({}); // { postId: [comments] }
   const [loadingComments, setLoadingComments] = useState({}); // { postId: boolean }
+
+  // Takedown Warning Modal State
+  const [takedownModalOpen, setTakedownModalOpen] = useState(false);
+  const [takedownPostId, setTakedownPostId] = useState(null);
+  const [takedownReason, setTakedownReason] = useState('Community Guidelines Violation');
+  const [takedownMessage, setTakedownMessage] = useState('Your post has been unlisted by moderation for violating community rules.');
 
   // KPI Metrics
   const [metrics, setMetrics] = useState({
@@ -93,7 +115,8 @@ export default function FeedEngagementBreakdown() {
         location: filterLocation,
         sort: filterSort,
         page: currentPage.toString(),
-        limit: '10'
+        limit: '10',
+        unlistedOnly: viewMode === 'unlisted' ? 'true' : 'false'
       });
       const res = await fetch(`/api/admin/feed/posts?${queryParams.toString()}`, {
         headers: { 'Authorization': `Bearer ${accessToken}` }
@@ -144,19 +167,19 @@ export default function FeedEngagementBreakdown() {
     }
   }, [accessToken]);
 
-  // Reset page to 1 when filters change
+  // Reset page to 1 when filters or viewMode change
   useEffect(() => {
     if (accessToken) {
       setCurrentPage(1);
     }
-  }, [filterRole, filterLocation, filterSort]);
+  }, [filterRole, filterLocation, filterSort, viewMode]);
 
-  // Fetch posts when access token, filters or page change
+  // Fetch posts when access token, filters, viewMode or page change
   useEffect(() => {
     if (accessToken) {
       fetchPosts();
     }
-  }, [accessToken, filterRole, filterLocation, filterSort, currentPage]);
+  }, [accessToken, filterRole, filterLocation, filterSort, currentPage, viewMode]);
 
   const toggleComments = async (postId) => {
     if (expandedComments[postId]) {
@@ -183,16 +206,112 @@ export default function FeedEngagementBreakdown() {
     }
   };
 
-  const handleTakedownPost = async (id) => {
-    if (!window.confirm('Are you sure you want to permanently delete this post?')) return;
+  const handleTakedownPost = (id) => {
+    setTakedownPostId(id);
+    setTakedownReason('Community Guidelines Violation');
+    setTakedownMessage('Your post has been unlisted by moderation for violating community rules.');
+    setTakedownModalOpen(true);
+  };
+
+  const submitTakedown = async () => {
     try {
-      const res = await fetch(`/api/admin/feed/posts/${id}`, {
+      const res = await fetch(`/api/admin/feed/posts/${takedownPostId}`, {
         method: 'DELETE',
+        headers: { 
+          'Authorization': `Bearer ${accessToken}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ reason: takedownReason, message: takedownMessage })
+      });
+      if (res.ok) {
+        setPosts(prev => prev.map(p => p.id === takedownPostId ? { ...p, isUnlisted: true } : p));
+        showToast('Post successfully unlisted and warning sent.');
+        fetchMetrics();
+        fetchLeaderboard();
+        setTakedownModalOpen(false);
+      } else {
+        const data = await res.json();
+        showToast(`Failed: ${data.error || 'Server error'}`);
+      }
+    } catch (err) {
+      console.error('Error unlisting post', err);
+      showToast('Error connecting to server.');
+    }
+  };
+
+  const renderTakedownModal = () => {
+    if (!takedownModalOpen) return null;
+    return createPortal(
+      <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/50 animate-in fade-in duration-200">
+        <div className="bg-surface border border-outline-variant w-[450px] max-w-[90vw] rounded-xl shadow-xl p-6 animate-in zoom-in-95 duration-200 flex flex-col text-left">
+          <div className="flex justify-between items-center mb-4">
+            <h3 className="text-lg font-semibold text-on-surface flex items-center gap-2">
+              <span className="material-symbols-outlined text-red-500">warning</span>
+              Unlist Post (Takedown)
+            </h3>
+            <button 
+              onClick={() => setTakedownModalOpen(false)}
+              className="material-symbols-outlined text-on-surface-variant hover:text-on-surface transition-colors"
+            >
+              close
+            </button>
+          </div>
+
+          <p className="text-sm text-on-surface-variant mb-4">
+            Unlisting this post will hide it from public feed views. The author will receive a warning notice.
+          </p>
+
+          <div className="flex flex-col gap-4 mb-6">
+            <div>
+              <label className="block text-[11px] font-mono-label text-on-surface-variant mb-1 ml-1">REASON</label>
+              <input 
+                type="text" 
+                value={takedownReason} 
+                onChange={(e) => setTakedownReason(e.target.value)} 
+                className="w-full bg-surface border border-outline-variant rounded-lg px-3 py-2 text-body-sm text-on-surface focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/20"
+              />
+            </div>
+            <div>
+              <label className="block text-[11px] font-mono-label text-on-surface-variant mb-1 ml-1">WARNING MESSAGE TO AUTHOR</label>
+              <textarea 
+                rows="3" 
+                value={takedownMessage} 
+                onChange={(e) => setTakedownMessage(e.target.value)} 
+                className="w-full bg-surface border border-outline-variant rounded-lg px-3 py-2 text-body-sm text-on-surface focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/20"
+              />
+            </div>
+          </div>
+
+          <div className="flex justify-end gap-3">
+            <button 
+              onClick={() => setTakedownModalOpen(false)}
+              className="px-4 py-2 border border-outline-variant text-sm font-semibold rounded-lg hover:bg-surface-container-low text-on-surface transition-colors"
+            >
+              Cancel
+            </button>
+            <button 
+              onClick={submitTakedown}
+              className="px-4 py-2 bg-error hover:bg-red-700 text-white text-sm font-semibold rounded-lg shadow-sm transition-colors"
+            >
+              Unlist Post
+            </button>
+          </div>
+        </div>
+      </div>,
+      document.body
+    );
+  };
+
+  const handleRestorePost = async (id) => {
+    if (!window.confirm('Are you sure you want to restore this post to public view?')) return;
+    try {
+      const res = await fetch(`/api/admin/feed/posts/${id}/restore`, {
+        method: 'POST',
         headers: { 'Authorization': `Bearer ${accessToken}` }
       });
       if (res.ok) {
-        setPosts(prev => prev.filter(p => p.id !== id));
-        showToast('Post permanently removed from feed.');
+        setPosts(prev => prev.map(p => p.id === id ? { ...p, isUnlisted: false, appeal: null } : p));
+        showToast('Post restored to public view.');
         fetchMetrics();
         fetchLeaderboard();
       } else {
@@ -200,8 +319,28 @@ export default function FeedEngagementBreakdown() {
         showToast(`Failed: ${data.error || 'Server error'}`);
       }
     } catch (err) {
-      console.error('Error deleting post', err);
-      showToast('Error connection to server.');
+      console.error('Error restoring post', err);
+      showToast('Error connecting to server.');
+    }
+  };
+
+  const handleRejectAppeal = async (id) => {
+    if (!window.confirm('Are you sure you want to reject this appeal? The post will remain unlisted.')) return;
+    try {
+      const res = await fetch(`/api/admin/feed/posts/${id}/reject-appeal`, {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${accessToken}` }
+      });
+      if (res.ok) {
+        setPosts(prev => prev.map(p => p.id === id ? { ...p, appeal: null } : p));
+        showToast('Appeal rejected. Post remains unlisted.');
+      } else {
+        const data = await res.json();
+        showToast(`Failed: ${data.error || 'Server error'}`);
+      }
+    } catch (err) {
+      console.error('Error rejecting appeal', err);
+      showToast('Error connecting to server.');
     }
   };
 
@@ -215,8 +354,47 @@ export default function FeedEngagementBreakdown() {
         posts.map(post => (
           <div key={post.id} className="bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden flex flex-col relative">
             
-            {/* Post Header */}
-            <div className="p-5 flex justify-between items-start">
+            {/* Unlisted Status Banner */}
+            {post.isUnlisted && (
+              <div className="px-5 py-2.5 bg-gray-100 border-b border-gray-200 flex items-center gap-2">
+                <span className="material-symbols-outlined text-gray-500 text-sm">visibility_off</span>
+                <span className="text-xs font-bold text-gray-700">Unlisted (Soft-Takedown)</span>
+              </div>
+            )}
+
+            {/* User Appeal Warning Block (Rendered outside the dimmed post data wrapper to keep at 100% full opacity) */}
+            {post.appeal && (
+              <div className="px-6 py-4 border-b flex flex-col gap-3 bg-amber-50/80 border-amber-200 shadow-inner">
+                <div className="flex items-start gap-3">
+                  <span className="material-symbols-outlined text-[20px] text-amber-700 mt-0.5">gavel</span>
+                  <div className="flex-1">
+                    <p className="text-sm font-bold text-amber-900">User Appeal Submitted</p>
+                    <div className="mt-2 bg-white/90 border border-amber-200/60 p-3 rounded-lg text-sm font-medium text-amber-800 shadow-sm leading-relaxed">
+                      {post.appeal.reason}
+                    </div>
+                  </div>
+                </div>
+                <div className="flex gap-3 justify-end items-center mt-1">
+                  <button 
+                    onClick={() => handleRejectAppeal(post.id)}
+                    className="px-3.5 py-1.5 bg-white border border-amber-300 text-xs font-bold rounded-lg hover:bg-amber-100/50 text-amber-900 shadow-sm transition-all"
+                  >
+                    Reject Appeal
+                  </button>
+                  <button 
+                    onClick={() => handleRestorePost(post.id)}
+                    className="px-3.5 py-1.5 bg-green-600 hover:bg-green-700 active:bg-green-800 text-xs font-bold rounded-lg text-white shadow-sm hover:shadow-md transition-all"
+                  >
+                    Approve & Restore
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* Main Post Data (Dimmed selectively if unlisted, keeping moderation/appeal blocks bright) */}
+            <div className={post.isUnlisted ? 'opacity-50 bg-gray-50/20' : ''}>
+              {/* Post Header */}
+              <div className="p-5 flex justify-between items-start">
               <div className="flex items-center gap-3">
                 <img src={post.avatar} alt={post.author} className="w-12 h-12 rounded-full border border-gray-100" />
                 <div>
@@ -246,9 +424,15 @@ export default function FeedEngagementBreakdown() {
               
               {/* Post Moderation Actions */}
               <div className="flex items-center gap-1 bg-gray-50 border border-gray-200 rounded-lg p-1">
-                <button onClick={() => handleTakedownPost(post.id)} className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded transition-colors" title="Takedown Post">
-                  <span className="material-symbols-outlined text-[18px]">delete</span>
-                </button>
+                {post.isUnlisted ? (
+                  <button onClick={() => handleRestorePost(post.id)} className="p-1.5 text-gray-400 hover:text-green-600 hover:bg-green-50 rounded transition-colors" title="Restore Post">
+                    <span className="material-symbols-outlined text-[18px]">settings_backup_restore</span>
+                  </button>
+                ) : (
+                  <button onClick={() => handleTakedownPost(post.id)} className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded transition-colors" title="Takedown Post">
+                    <span className="material-symbols-outlined text-[18px]">visibility_off</span>
+                  </button>
+                )}
               </div>
             </div>
 
@@ -262,6 +446,7 @@ export default function FeedEngagementBreakdown() {
                 </div>
               </div>
             )}
+
 
             {/* Post Content */}
             <div className="p-5 pt-3 text-sm text-gray-800">
@@ -333,6 +518,7 @@ export default function FeedEngagementBreakdown() {
                 <div className="w-5 h-5 border-2 border-indigo-600 border-t-transparent rounded-full animate-spin"></div>
               </div>
             )}
+            </div> {/* Closing main post data dimmed container */}
           </div>
         ))
       )}
@@ -360,7 +546,7 @@ export default function FeedEngagementBreakdown() {
               </tr>
             ) : (
               posts.map(post => (
-                <tr key={post.id} className="hover:bg-gray-50 transition-colors group">
+                <tr key={post.id} className={`hover:bg-gray-50 transition-colors group ${post.isUnlisted ? 'opacity-60 bg-gray-50/50' : ''}`}>
                   <td className="p-4">
                     <p className="font-bold text-gray-900 text-sm truncate">{post.author}</p>
                     <p className="text-xs text-gray-500 truncate" title={`${post.title} @ ${post.company}`}>
@@ -370,7 +556,8 @@ export default function FeedEngagementBreakdown() {
                   <td className="p-4">
                     <p className="text-sm text-gray-700 truncate max-w-md">{stripHtml(post.content)}</p>
                     {post.mediaUrl && <span className="text-[10px] bg-gray-200 text-gray-600 px-1.5 py-0.5 rounded font-bold mt-1 inline-block mr-2">Has Media</span>}
-                    {post.aiFlag && <span className="text-[10px] px-1.5 py-0.5 rounded font-bold mt-1 inline-block bg-red-100 text-red-700">Flagged</span>}
+                    {post.aiFlag && <span className="text-[10px] px-1.5 py-0.5 rounded font-bold mt-1 inline-block bg-red-100 text-red-700 mr-2">Flagged</span>}
+                    {post.isUnlisted && <span className="text-[10px] px-1.5 py-0.5 rounded font-bold mt-1 inline-block bg-gray-150 text-gray-700">Unlisted</span>}
                   </td>
                   <td className="p-4">
                     <div className="flex flex-col gap-1 items-center">
@@ -380,9 +567,15 @@ export default function FeedEngagementBreakdown() {
                   </td>
                   <td className="p-4 text-right">
                     <div className="flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                      <button onClick={() => handleTakedownPost(post.id)} className="p-1 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded transition-colors" title="Delete">
-                        <span className="material-symbols-outlined text-[16px]">delete</span>
-                      </button>
+                      {post.isUnlisted ? (
+                        <button onClick={() => handleRestorePost(post.id)} className="p-1 text-gray-400 hover:text-green-600 hover:bg-green-50 rounded transition-colors" title="Restore Post">
+                          <span className="material-symbols-outlined text-[16px]">settings_backup_restore</span>
+                        </button>
+                      ) : (
+                        <button onClick={() => handleTakedownPost(post.id)} className="p-1 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded transition-colors" title="Takedown Post">
+                          <span className="material-symbols-outlined text-[16px]">visibility_off</span>
+                        </button>
+                      )}
                     </div>
                   </td>
                 </tr>
@@ -452,18 +645,18 @@ export default function FeedEngagementBreakdown() {
         <div className="flex items-center gap-4">
           <div className="bg-gray-100 p-1 rounded-lg flex">
             <button 
-              onClick={() => setViewMode('card')}
-              className={`flex items-center gap-2 px-4 py-2 rounded-md text-sm font-semibold transition-all ${viewMode === 'card' ? 'bg-white shadow-sm text-blue-600' : 'text-gray-500 hover:text-gray-800'}`}
+              onClick={() => setViewMode('active')}
+              className={`flex items-center gap-2 px-4 py-2 rounded-md text-sm font-semibold transition-all ${viewMode === 'active' ? 'bg-white shadow-sm text-blue-600' : 'text-gray-500 hover:text-gray-800'}`}
             >
-              <span className="material-symbols-outlined text-[18px]">view_agenda</span>
-              Visual Cards
+              <span className="material-symbols-outlined text-[18px]">rss_feed</span>
+              Active Feed
             </button>
             <button 
-              onClick={() => setViewMode('list')}
-              className={`flex items-center gap-2 px-4 py-2 rounded-md text-sm font-semibold transition-all ${viewMode === 'list' ? 'bg-white shadow-sm text-blue-600' : 'text-gray-500 hover:text-gray-800'}`}
+              onClick={() => setViewMode('unlisted')}
+              className={`flex items-center gap-2 px-4 py-2 rounded-md text-sm font-semibold transition-all ${viewMode === 'unlisted' ? 'bg-white shadow-sm text-blue-600' : 'text-gray-500 hover:text-gray-800'}`}
             >
-              <span className="material-symbols-outlined text-[18px]">table_rows</span>
-              Condensed List
+              <span className="material-symbols-outlined text-[18px]">visibility_off</span>
+              Unlisted Posts
             </button>
           </div>
         </div>
@@ -481,15 +674,20 @@ export default function FeedEngagementBreakdown() {
         </div>
       </div>
 
-      <div className="flex flex-col lg:flex-row gap-8 items-start">
+      <div className="flex flex-col lg:flex-row gap-8 items-stretch">
         
         {/* Left Column: Feed Stream */}
-        <div className="w-full lg:w-2/3 flex flex-col gap-6">
-          {viewMode === 'card' ? renderCardView() : renderListView()}
+        <div 
+          className="w-full lg:w-2/3 flex flex-col justify-between"
+          style={{ height: rightColumnHeight ? `${rightColumnHeight}px` : 'auto' }}
+        >
+          <div className="flex flex-col gap-6 overflow-y-auto pr-3 custom-scrollbar flex-1 mb-4">
+            {renderCardView()}
+          </div>
 
           {/* Pagination Controls */}
           {totalPages > 1 && (
-            <div className="flex items-center justify-between bg-white border border-gray-200 rounded-xl p-4 shadow-sm mt-4">
+            <div className="flex items-center justify-between bg-white border border-gray-200 rounded-xl p-4 shadow-sm shrink-0">
               <button
                 disabled={currentPage <= 1}
                 onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
@@ -512,7 +710,7 @@ export default function FeedEngagementBreakdown() {
         </div>
 
         {/* Right Column: Side Panels */}
-        <div className="w-full lg:w-1/3 flex flex-col gap-6 sticky top-6">
+        <div ref={rightColumnRef} className="w-full lg:w-1/3 flex flex-col gap-6 sticky top-6">
           
           {/* Viral Content Leaderboard */}
           <div className="bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden">
@@ -598,6 +796,22 @@ export default function FeedEngagementBreakdown() {
 
         </div>
       </div>
+      {renderTakedownModal()}
+      <style dangerouslySetInnerHTML={{__html: `
+        .custom-scrollbar::-webkit-scrollbar {
+          width: 6px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+          background: transparent;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+          background: #e2e8f0;
+          border-radius: 4px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+          background: #cbd5e1;
+        }
+      `}} />
     </div>
   );
 }

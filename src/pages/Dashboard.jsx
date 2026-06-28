@@ -9,6 +9,7 @@ import DatePickerDropdown from '../components/DatePickerDropdown';
 import PlatformGrowthChart from '../components/PlatformGrowthChart';
 import RecentActivity from '../components/RecentActivity';
 import PeakEngagementHeatmap from '../components/PeakEngagementHeatmap';
+import KPICard from '../components/KPICard';
 
 export default function Dashboard() {
   const { role, accessToken } = useAuth();
@@ -214,102 +215,66 @@ export default function Dashboard() {
 
       {/* KPI Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-lg mb-lg">
-        <div onClick={() => navigate('/detailed-analytics?metric=users')} className="bg-surface p-lg rounded-xl border border-outline-variant hover:border-primary transition-all group cursor-pointer">
-          <div className="flex justify-between items-start mb-md">
-            <div className="p-sm bg-primary-fixed rounded-lg text-on-primary-fixed">
-              <span className="material-symbols-outlined">group</span>
-            </div>
-            <span className="text-tertiary font-label-md text-label-md flex items-center gap-xs">
-              <span className="material-symbols-outlined text-body-sm">trending_up</span>
-              +12%
-            </span>
-          </div>
-          <p className="text-on-surface-variant font-label-md text-label-md">Total Users</p>
-          <h4 className="font-headline-md text-headline-md font-bold mt-xs">{metrics.totalUsers}</h4>
-          <div className="mt-md w-full bg-surface-variant h-1 rounded-full overflow-hidden">
-            <div className="bg-primary h-full w-[70%] group-hover:w-[75%] transition-all duration-700"></div>
-          </div>
-        </div>
-        <div onClick={() => navigate('/detailed-analytics?metric=active_users')} className="bg-surface p-lg rounded-xl border border-outline-variant hover:border-primary transition-all group cursor-pointer">
-          <div className="flex justify-between items-start mb-md">
-            <div className="p-sm bg-secondary-container rounded-lg text-on-secondary-container">
-              <span className="material-symbols-outlined">bolt</span>
-            </div>
-            <span className="text-on-surface-variant font-label-md text-label-md flex items-center gap-xs">
-              <span className="material-symbols-outlined text-body-sm">check_circle</span>
-              Healthy
-            </span>
-          </div>
-          <p className="text-on-surface-variant font-label-md text-label-md">Active Users</p>
-          <h4 className="font-headline-md text-headline-md font-bold mt-xs">{metrics.activeUsers}</h4>
-          <div className="mt-md w-full bg-surface-variant h-1 rounded-full overflow-hidden">
-            <div className="bg-secondary h-full w-[45%] group-hover:w-[48%] transition-all duration-700"></div>
-          </div>
-        </div>
-        <div onClick={() => navigate('/detailed-analytics?metric=user_growth')} className="bg-surface p-lg rounded-xl border border-outline-variant hover:border-primary transition-all group cursor-pointer">
-          <div className="flex justify-between items-start mb-md">
-            <div className="p-sm bg-tertiary-fixed rounded-lg text-on-tertiary-fixed">
-              <span className="material-symbols-outlined">show_chart</span>
-            </div>
-            <span className="text-tertiary font-label-md text-label-md flex items-center gap-xs">
-              <span className="material-symbols-outlined text-body-sm">trending_up</span>
-              Strong
-            </span>
-          </div>
-          <p className="text-on-surface-variant font-label-md text-label-md">User Growth %</p>
-          <h4 className="font-headline-md text-headline-md font-bold mt-xs">{metrics.userGrowth}</h4>
-          <div className="mt-md w-full bg-surface-variant h-1 rounded-full overflow-hidden">
-            <div className="bg-tertiary h-full w-[60%] group-hover:w-[65%] transition-all duration-700"></div>
-          </div>
-        </div>
-        <div onClick={() => navigate('/detailed-analytics?metric=organizations')} className="bg-surface p-lg rounded-xl border border-outline-variant hover:border-primary transition-all group cursor-pointer">
-          <div className="flex justify-between items-start mb-md">
-            <div className="p-sm bg-primary-fixed rounded-lg text-on-primary-fixed">
-              <span className="material-symbols-outlined">domain</span>
-            </div>
-            <span className="text-tertiary font-label-md text-label-md flex items-center gap-xs">
-              <span className="material-symbols-outlined text-body-sm">trending_up</span>
-              +5%
-            </span>
-          </div>
-          <p className="text-on-surface-variant font-label-md text-label-md">Total Organisations</p>
-          <h4 className="font-headline-md text-headline-md font-bold mt-xs">{metrics.totalOrgs}</h4>
-          <div className="mt-md w-full bg-surface-variant h-1 rounded-full overflow-hidden">
-            <div className="bg-primary h-full w-[60%] group-hover:w-[65%] transition-all duration-700"></div>
-          </div>
-        </div>
-        <div onClick={() => navigate('/detailed-analytics?metric=active_organizations')} className="bg-surface p-lg rounded-xl border border-outline-variant hover:border-primary transition-all group cursor-pointer">
-          <div className="flex justify-between items-start mb-md">
-            <div className="p-sm bg-secondary-container rounded-lg text-on-secondary-container">
-              <span className="material-symbols-outlined">domain_verification</span>
-            </div>
-            <span className="text-on-surface-variant font-label-md text-label-md flex items-center gap-xs">
-              <span className="material-symbols-outlined text-body-sm">check_circle</span>
-              Healthy
-            </span>
-          </div>
-          <p className="text-on-surface-variant font-label-md text-label-md">Active Organisations</p>
-          <h4 className="font-headline-md text-headline-md font-bold mt-xs">{metrics.activeOrgs}</h4>
-          <div className="mt-md w-full bg-surface-variant h-1 rounded-full overflow-hidden">
-            <div className="bg-secondary h-full w-[80%] group-hover:w-[85%] transition-all duration-700"></div>
-          </div>
-        </div>
-        <div onClick={() => navigate('/detailed-analytics?metric=organization_growth')} className="bg-surface p-lg rounded-xl border border-outline-variant hover:border-primary transition-all group cursor-pointer">
-          <div className="flex justify-between items-start mb-md">
-            <div className="p-sm bg-tertiary-fixed rounded-lg text-on-tertiary-fixed">
-              <span className="material-symbols-outlined">show_chart</span>
-            </div>
-            <span className="text-tertiary font-label-md text-label-md flex items-center gap-xs">
-              <span className="material-symbols-outlined text-body-sm">trending_up</span>
-              Steady
-            </span>
-          </div>
-          <p className="text-on-surface-variant font-label-md text-label-md">Organisation Growth %</p>
-          <h4 className="font-headline-md text-headline-md font-bold mt-xs">{metrics.orgGrowth}</h4>
-          <div className="mt-md w-full bg-surface-variant h-1 rounded-full overflow-hidden">
-            <div className="bg-tertiary h-full w-[40%] group-hover:w-[45%] transition-all duration-700"></div>
-          </div>
-        </div>
+        <KPICard
+          title="Total Users"
+          value={metrics.totalUsers}
+          growth="+12%"
+          growthIcon="trending_up"
+          icon="group"
+          colorVariant="primary"
+          progressWidth={70}
+          onClick={() => navigate('/detailed-analytics?metric=users')}
+        />
+        <KPICard
+          title="Active Users"
+          value={metrics.activeUsers}
+          growth="Healthy"
+          growthIcon="check_circle"
+          icon="bolt"
+          colorVariant="secondary"
+          progressWidth={45}
+          onClick={() => navigate('/detailed-analytics?metric=active_users')}
+        />
+        <KPICard
+          title="User Growth %"
+          value={metrics.userGrowth}
+          growth="Strong"
+          growthIcon="trending_up"
+          icon="show_chart"
+          colorVariant="tertiary"
+          progressWidth={60}
+          onClick={() => navigate('/detailed-analytics?metric=user_growth')}
+        />
+        <KPICard
+          title="Total Organisations"
+          value={metrics.totalOrgs}
+          growth="+5%"
+          growthIcon="trending_up"
+          icon="domain"
+          colorVariant="primary"
+          progressWidth={60}
+          onClick={() => navigate('/detailed-analytics?metric=organizations')}
+        />
+        <KPICard
+          title="Active Organisations"
+          value={metrics.activeOrgs}
+          growth="Healthy"
+          growthIcon="check_circle"
+          icon="domain_verification"
+          colorVariant="secondary"
+          progressWidth={80}
+          onClick={() => navigate('/detailed-analytics?metric=active_organizations')}
+        />
+        <KPICard
+          title="Organisation Growth %"
+          value={metrics.orgGrowth}
+          growth="Steady"
+          growthIcon="trending_up"
+          icon="show_chart"
+          colorVariant="tertiary"
+          progressWidth={40}
+          onClick={() => navigate('/detailed-analytics?metric=organization_growth')}
+        />
       </div>
 
       {/* Bento Layout Main */}
