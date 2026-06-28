@@ -56,6 +56,10 @@ export default function FeedEngagementBreakdown() {
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
 
+  // Comments State
+  const [expandedComments, setExpandedComments] = useState({}); // { postId: [comments] }
+  const [loadingComments, setLoadingComments] = useState({}); // { postId: boolean }
+
   // KPI Metrics
   const [metrics, setMetrics] = useState({
     engagementRate: 0,
@@ -154,6 +158,31 @@ export default function FeedEngagementBreakdown() {
     }
   }, [accessToken, filterRole, filterLocation, filterSort, currentPage]);
 
+  const toggleComments = async (postId) => {
+    if (expandedComments[postId]) {
+      setExpandedComments(prev => {
+        const copy = { ...prev };
+        delete copy[postId];
+        return copy;
+      });
+    } else {
+      setLoadingComments(prev => ({ ...prev, [postId]: true }));
+      try {
+        const res = await fetch(`/api/admin/feed/posts/${postId}/comments`, {
+          headers: { 'Authorization': `Bearer ${accessToken}` }
+        });
+        if (res.ok) {
+          const data = await res.json();
+          setExpandedComments(prev => ({ ...prev, [postId]: data }));
+        }
+      } catch (err) {
+        console.error('Error fetching comments:', err);
+      } finally {
+        setLoadingComments(prev => ({ ...prev, [postId]: false }));
+      }
+    }
+  };
+
   const handleTakedownPost = async (id) => {
     if (!window.confirm('Are you sure you want to permanently delete this post?')) return;
     try {
@@ -195,7 +224,19 @@ export default function FeedEngagementBreakdown() {
                     <h4 className="font-bold text-gray-900 leading-tight">{post.author}</h4>
                   </div>
                   <p className="text-xs text-gray-600 mt-0.5">
-                    <span className="font-medium text-gray-800">{post.title}</span> @ <span className="text-blue-600 font-semibold">{post.company}</span>
+                    {post.title && post.company ? (
+                      <>
+                        <span className="font-medium text-gray-800">{post.title}</span>
+                        {" @ "}
+                        <span className="text-blue-600 font-semibold">{post.company}</span>
+                      </>
+                    ) : post.title ? (
+                      <span className="font-medium text-gray-800">{post.title}</span>
+                    ) : post.company ? (
+                      <span className="text-blue-600 font-semibold">{post.company}</span>
+                    ) : (
+                      <span className="text-gray-400 font-medium">Platform Member</span>
+                    )}
                   </p>
                   <p className="text-xs text-gray-400 mt-0.5 flex items-center gap-1">
                     <span className="material-symbols-outlined text-[12px]">location_on</span> {post.location}
@@ -241,20 +282,57 @@ export default function FeedEngagementBreakdown() {
             {/* Interactive Metric Analytics Overlay */}
             <div className="bg-slate-50 border-t border-gray-100 p-4 flex items-center justify-between">
               <div className="flex gap-4">
-                <div className="flex items-center gap-1.5 text-blue-600 bg-blue-50 px-2 py-1 rounded-full cursor-help" title="Likes">
+                <div className="flex items-center gap-1.5 text-blue-600 bg-blue-50 px-2 py-1 rounded-full" title="Likes">
                   <span className="material-symbols-outlined text-[16px]">thumb_up</span>
                   <span className="text-xs font-bold">{post.metrics.likes.toLocaleString()}</span>
                 </div>
-                <div className="flex items-center gap-1.5 text-indigo-600 bg-indigo-50 px-2 py-1 rounded-full cursor-help" title="Comments">
+                <button 
+                  onClick={() => toggleComments(post.id)}
+                  className="flex items-center gap-1.5 text-indigo-600 bg-indigo-50 px-3 py-1 rounded-full hover:bg-indigo-100 transition-colors"
+                  title="View Comments"
+                >
                   <span className="material-symbols-outlined text-[16px]">chat_bubble</span>
                   <span className="text-xs font-bold">{post.metrics.comments.toLocaleString()}</span>
-                </div>
-                <div className="flex items-center gap-1.5 text-green-600 bg-green-50 px-2 py-1 rounded-full cursor-help" title="Reposts">
+                </button>
+                <div className="flex items-center gap-1.5 text-green-600 bg-green-50 px-2 py-1 rounded-full" title="Reposts">
                   <span className="material-symbols-outlined text-[16px]">repeat</span>
                   <span className="text-xs font-bold">{post.metrics.shares.toLocaleString()}</span>
                 </div>
               </div>
             </div>
+
+            {/* Collapsible Comments Section */}
+            {expandedComments[post.id] && (
+              <div className="border-t border-gray-100 bg-gray-50/50 px-5 py-4 flex flex-col gap-3">
+                <h5 className="text-xs font-bold text-gray-500 uppercase tracking-wider">Comments ({expandedComments[post.id].length})</h5>
+                {expandedComments[post.id].length === 0 ? (
+                  <p className="text-xs text-gray-400 italic">No comments on this post yet.</p>
+                ) : (
+                  <div className="flex flex-col gap-3 max-h-[250px] overflow-y-auto pr-1">
+                    {expandedComments[post.id].map(comment => (
+                      <div key={comment.id} className="flex gap-2.5 items-start bg-white p-2.5 rounded-lg border border-gray-100 shadow-xs">
+                        <img src={comment.avatar} alt={comment.author} className="w-8 h-8 rounded-full border border-gray-50 shrink-0" />
+                        <div className="flex-1 min-w-0">
+                          <div className="flex justify-between items-baseline mb-0.5">
+                            <span className="text-xs font-bold text-gray-900">{comment.author}</span>
+                            <span className="text-[10px] text-gray-400">
+                              {new Date(comment.created_at).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
+                            </span>
+                          </div>
+                          <p className="text-xs text-gray-500 mb-1">{comment.title} @ <span className="text-blue-500 font-semibold">{comment.company}</span></p>
+                          <p className="text-xs text-gray-700 leading-snug break-words">{comment.content}</p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+            {loadingComments[post.id] && (
+              <div className="border-t border-gray-100 bg-gray-50/50 px-5 py-4 flex items-center justify-center">
+                <div className="w-5 h-5 border-2 border-indigo-600 border-t-transparent rounded-full animate-spin"></div>
+              </div>
+            )}
           </div>
         ))
       )}
@@ -400,27 +478,6 @@ export default function FeedEngagementBreakdown() {
             <option>Most Liked</option>
             <option>Highly Reported</option>
           </select>
-          <div className="w-px h-8 bg-gray-200 mx-1"></div>
-          <select 
-            value={filterRole}
-            onChange={(e) => setFilterRole(e.target.value)}
-            className="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block px-3 py-2 font-medium"
-          >
-            <option>All Roles</option>
-            <option>Software Engineers</option>
-            <option>Designers</option>
-            <option>Founders / Executives</option>
-          </select>
-          <select 
-            value={filterLocation}
-            onChange={(e) => setFilterLocation(e.target.value)}
-            className="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block px-3 py-2 font-medium"
-          >
-            <option>All Locations</option>
-            <option>Remote / Hybrid</option>
-            <option>San Francisco, CA</option>
-            <option>New York, NY</option>
-          </select>
         </div>
       </div>
 
@@ -470,20 +527,42 @@ export default function FeedEngagementBreakdown() {
                 {leaderboard.length === 0 ? (
                   <li className="p-4 text-center text-gray-500 text-sm">No viral content.</li>
                 ) : (
-                  leaderboard.map((item, index) => (
-                    <li key={item.id} className="p-4 hover:bg-gray-50 transition-colors flex items-center gap-4">
-                      <span className="text-2xl font-black text-gray-200 w-8 text-center">{index + 1}</span>
-                      <div className="flex-1">
-                        <p className="font-bold text-gray-900 text-sm leading-tight line-clamp-2">{stripHtml(item.title)}</p>
-                        <p className="text-xs text-gray-500 mt-1">by {item.author}</p>
-                      </div>
-                      <div className="flex flex-col items-end gap-1 shrink-0">
-                        <span className="text-[10px] font-bold text-blue-600 bg-blue-50 px-2 py-0.5 rounded-full flex items-center gap-1">
-                          <span className="material-symbols-outlined text-[12px]">thumb_up</span> {item.likes.toLocaleString()}
+                  leaderboard.map((item, index) => {
+                    const getRankStyle = (idx) => {
+                      switch (idx) {
+                        case 0: return 'bg-amber-100 text-amber-700 ring-2 ring-amber-300';
+                        case 1: return 'bg-slate-100 text-slate-700 ring-2 ring-slate-300';
+                        case 2: return 'bg-orange-100 text-orange-700 ring-2 ring-orange-300';
+                        default: return 'bg-gray-50 text-gray-400 border border-gray-200';
+                      }
+                    };
+                    return (
+                      <li key={item.id} className="p-4 hover:bg-gray-50 transition-colors flex items-center gap-4">
+                        <span className={`w-6 h-6 rounded-full flex items-center justify-center font-bold text-xs shrink-0 ${getRankStyle(index)}`}>
+                          {index + 1}
                         </span>
-                      </div>
-                    </li>
-                  ))
+                        <div className="flex-1 min-w-0">
+                          <p className="font-bold text-gray-900 text-sm leading-tight line-clamp-2">{stripHtml(item.title)}</p>
+                          <div className="flex items-center justify-between mt-2">
+                            <p className="text-xs text-gray-500">by {item.author}</p>
+                            <div className="flex items-center gap-2">
+                              <span className="flex items-center gap-1 text-[10px] font-extrabold text-blue-600 bg-blue-50/60 px-1.5 py-0.5 rounded-md" title="Likes">
+                                <span className="material-symbols-outlined text-[12px]">thumb_up</span> {item.likes.toLocaleString()}
+                              </span>
+                              <span className="flex items-center gap-1 text-[10px] font-extrabold text-indigo-600 bg-indigo-50/60 px-1.5 py-0.5 rounded-md" title="Comments">
+                                <span className="material-symbols-outlined text-[12px]">chat_bubble</span> {item.comments.toLocaleString()}
+                              </span>
+                              {item.shares > 0 && (
+                                <span className="flex items-center gap-1 text-[10px] font-extrabold text-green-600 bg-green-50/60 px-1.5 py-0.5 rounded-md" title="Shares">
+                                  <span className="material-symbols-outlined text-[12px]">repeat</span> {item.shares.toLocaleString()}
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      </li>
+                    );
+                  })
                 )}
               </ul>
             </div>
