@@ -38,6 +38,7 @@ export default function UserManagement() {
   const [userToWarn, setUserToWarn] = useState(null);
   const [warningReason, setWarningReason] = useState('Inappropriate Behavior');
   const [warningMessage, setWarningMessage] = useState('');
+  const [isSevereWarning, setIsSevereWarning] = useState(false);
 
   const [bulkEmailModalOpen, setBulkEmailModalOpen] = useState(false);
   const [bulkWarningReason, setBulkWarningReason] = useState('Inappropriate Behavior');
@@ -64,8 +65,21 @@ export default function UserManagement() {
         console.error(e);
       }
     } else {
-      alert(`Successfully suspended ${selectedUsers.size} users.`);
-      setSelectedUsers(new Set());
+      try {
+        const userIds = Array.from(selectedUsers);
+        const response = await fetch('/api/admin/users/bulk-suspend', {
+          method: 'POST',
+          headers: { 'Authorization': `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ userIds })
+        });
+        if (response.ok) {
+          setUsers(users.map(u => userIds.includes(u.id) ? { ...u, status: 'Suspended' } : u));
+          alert(`Successfully suspended ${userIds.length} users.`);
+          setSelectedUsers(new Set());
+        }
+      } catch (e) {
+        console.error(e);
+      }
     }
     setSuspendConfirmModalOpen(false);
   };
@@ -84,11 +98,39 @@ export default function UserManagement() {
     }
   };
 
-  const handleSendBulkEmail = () => {
-    alert(`Bulk warning sent to ${selectedUsers.size} selected users.\nReason: ${bulkWarningReason}`);
+  const handleSendBulkEmail = async () => {
+    const userIds = Array.from(selectedUsers);
+    try {
+      const response = await fetch('/api/admin/users/bulk-warn', {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          userIds,
+          reason: bulkWarningReason,
+          message: bulkWarningMessage,
+          isSevere: isSevereWarning
+        })
+      });
+      if (response.ok) {
+        const data = await response.json();
+        const autoSuspendedCount = data.results.filter(r => r.autoSuspended).length;
+        
+        let alertMsg = `Bulk warnings sent successfully to ${userIds.length} users.`;
+        if (autoSuspendedCount > 0) {
+          alertMsg += `\n\n${autoSuspendedCount} user(s) were AUTOMATICALLY SUSPENDED due to exceeding 7 moderation flags.`;
+          const autoSuspendedIds = data.results.filter(r => r.autoSuspended).map(r => r.id);
+          setUsers(users.map(u => autoSuspendedIds.includes(u.id) ? { ...u, status: 'Suspended' } : u));
+        }
+        alert(alertMsg);
+        setSelectedUsers(new Set());
+      }
+    } catch (e) {
+      console.error(e);
+    }
     setBulkEmailModalOpen(false);
     setBulkWarningReason('Inappropriate Behavior');
     setBulkWarningMessage('');
+    setIsSevereWarning(false);
   };
 
   const handleSendWarning = async () => {
@@ -97,14 +139,18 @@ export default function UserManagement() {
       const response = await fetch(`/api/admin/users/${userToWarn.id}/warn`, {
         method: 'POST',
         headers: { 'Authorization': `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ reason: warningReason, message: warningMessage })
+        body: JSON.stringify({ reason: warningReason, message: warningMessage, isSevere: isSevereWarning })
       });
       const data = await response.json();
       if (data.autoSuspended) {
         alert(`${userToWarn.name} has been warned and AUTOMATICALLY SUSPENDED due to exceeding 7 moderation flags.`);
         setUsers(users.map(u => u.id === userToWarn.id ? { ...u, status: 'Suspended' } : u));
       } else {
-        alert(`Warning sent to ${userToWarn.name}. They now have ${data.moderation_flags} moderation flags.`);
+        if (isSevereWarning) {
+          alert(`Severe warning sent to ${userToWarn.name}. Their moderation flag was incremented (Total: ${data.moderation_flags}).`);
+        } else {
+          alert(`Warning sent to ${userToWarn.name}. No moderation flags were added.`);
+        }
       }
     } catch (e) {
       console.error(e);
@@ -464,6 +510,19 @@ export default function UserManagement() {
                   className="w-full bg-surface border border-outline-variant rounded-lg px-md py-2 text-body-sm text-on-surface focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/20 resize-none h-24"
                 ></textarea>
               </div>
+
+              <div className="flex items-center gap-2">
+                <input
+                  type="checkbox"
+                  id="severeWarning"
+                  checked={isSevereWarning}
+                  onChange={(e) => setIsSevereWarning(e.target.checked)}
+                  className="rounded border-outline-variant text-orange-500 focus:ring-orange-500 h-4 w-4"
+                />
+                <label htmlFor="severeWarning" className="text-sm font-medium text-on-surface">
+                  Severe Warning (Increments Moderation Flags)
+                </label>
+              </div>
             </div>
 
             <div className="flex justify-end gap-3">
@@ -518,6 +577,19 @@ export default function UserManagement() {
                   placeholder="Provide any specific context or links to offending content..."
                   className="w-full bg-surface border border-outline-variant rounded-lg px-md py-2 text-body-sm text-on-surface focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/20 resize-none h-24"
                 ></textarea>
+              </div>
+
+              <div className="flex items-center gap-2">
+                <input
+                  type="checkbox"
+                  id="severeBulkWarning"
+                  checked={isSevereWarning}
+                  onChange={(e) => setIsSevereWarning(e.target.checked)}
+                  className="rounded border-outline-variant text-primary focus:ring-primary h-4 w-4"
+                />
+                <label htmlFor="severeBulkWarning" className="text-sm font-medium text-on-surface">
+                  Severe Warning (Increments Moderation Flags)
+                </label>
               </div>
             </div>
 

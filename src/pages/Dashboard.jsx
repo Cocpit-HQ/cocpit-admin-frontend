@@ -337,14 +337,14 @@ export default function Dashboard() {
           </div>
         </div>
 
-        {/* Peak Engagement Heatmap */}
-        <div className="col-span-12 lg:col-span-8">
-          <PeakEngagementHeatmap />
-        </div>
-
         {/* Recent Activity Feed */}
         <div className="col-span-12 lg:col-span-4">
           <RecentActivity />
+        </div>
+
+        {/* Peak Engagement Heatmap */}
+        <div className="col-span-12 lg:col-span-12 mt-lg">
+          <PeakEngagementHeatmap />
         </div>
 
       </div>

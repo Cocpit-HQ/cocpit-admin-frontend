@@ -87,37 +87,41 @@ export default function UserProfile() {
     }, 800);
   };
 
-  const realAllActivity = (userData?.activities || []).map(a => {
-    let icon = 'history';
-    let color = 'bg-surface-container-highest text-primary ring-2 ring-surface';
-    let text = `performed action: ${a.action_type}`;
-    let type = 'other';
+  const realAllActivity = (userData?.activities || [])
+    .filter(a => {
+      const type = (a.action_type || '').toLowerCase();
+      return !(
+        type === 'moderation_warn' ||
+        type.includes('report') ||
+        type.includes('suspend') ||
+        type.includes('moderation')
+      );
+    })
+    .map(a => {
+      let icon = 'history';
+      let color = 'bg-surface-container-highest text-primary ring-2 ring-surface';
+      let text = `performed action: ${a.action_type}`;
+      let type = 'other';
 
-    if (a.action_type === 'like_post') { icon = 'thumb_up'; text = 'liked a post'; type = 'engagement'; }
-    else if (a.action_type === 'vote_poll') { icon = 'how_to_vote'; text = 'voted on a poll'; type = 'engagement'; }
-    else if (a.action_type === 'repost_post') { icon = 'repeat'; text = 'reposted a post'; type = 'engagement'; }
-    else if (a.action_type === 'comment_post') { icon = 'comment'; text = 'commented on a post'; type = 'engagement'; }
-    else if (a.action_type === 'POST_CREATED' || a.action_type.includes('post')) { icon = 'post_add'; color = 'bg-primary text-white ring-0'; text = 'created a new post'; type = 'post'; }
-    else if (a.action_type === 'PROFILE_UPDATED' || a.action_type.includes('profile')) { icon = 'person'; text = 'updated their profile'; type = 'profile'; }
-    else if (a.action_type === 'USER_LOGGED_IN') { icon = 'login'; text = 'logged in'; type = 'profile'; }
-    else if (a.action_type === 'JOB_APPLIED' || a.action_type.includes('job')) { icon = 'work'; text = 'applied for a job'; type = 'job'; }
-    else if (a.action_type.includes('CONNECTION') || a.action_type.includes('connect')) { icon = 'handshake'; text = 'network connection event'; type = 'network'; }
-    else if (a.action_type === 'moderation_warn') { 
-      icon = 'warning'; color = 'bg-orange-100 text-orange-600 ring-2 ring-surface'; text = 'received an official moderation warning'; type = 'moderation'; 
-    }
-    else if (a.action_type.includes('REPORT') || a.action_type.includes('suspend') || a.action_type.includes('moderation')) { 
-      icon = 'gavel'; color = 'bg-error-container text-error ring-2 ring-surface'; text = `was affected by a moderation action`; type = 'moderation'; 
-    }
+      if (a.action_type === 'like_post') { icon = 'thumb_up'; text = 'liked a post'; type = 'engagement'; }
+      else if (a.action_type === 'vote_poll') { icon = 'how_to_vote'; text = 'voted on a poll'; type = 'engagement'; }
+      else if (a.action_type === 'repost_post') { icon = 'repeat'; text = 'reposted a post'; type = 'engagement'; }
+      else if (a.action_type === 'comment_post') { icon = 'comment'; text = 'commented on a post'; type = 'engagement'; }
+      else if (a.action_type === 'POST_CREATED' || a.action_type.includes('post')) { icon = 'post_add'; color = 'bg-primary text-white ring-0'; text = 'created a new post'; type = 'post'; }
+      else if (a.action_type === 'PROFILE_UPDATED' || a.action_type.includes('profile')) { icon = 'person'; text = 'updated their profile'; type = 'profile'; }
+      else if (a.action_type === 'USER_LOGGED_IN') { icon = 'login'; text = 'logged in'; type = 'profile'; }
+      else if (a.action_type === 'JOB_APPLIED' || a.action_type.includes('job')) { icon = 'work'; text = 'applied for a job'; type = 'job'; }
+      else if (a.action_type.includes('CONNECTION') || a.action_type.includes('connect')) { icon = 'handshake'; text = 'network connection event'; type = 'network'; }
 
-    return {
-      id: a.id,
-      text,
-      time: formatDistanceToNow(new Date(a.created_at), { addSuffix: true }),
-      icon,
-      color,
-      type
-    };
-  });
+      return {
+        id: a.id,
+        text,
+        time: formatDistanceToNow(new Date(a.created_at), { addSuffix: true }),
+        icon,
+        color,
+        type
+      };
+    });
 
   const filteredActivity = activityFilter === 'All' 
     ? realAllActivity 
@@ -237,51 +241,103 @@ export default function UserProfile() {
       {/* Bento Grid Layout */}
       <div className="grid grid-cols-12 gap-lg">
         
-        {/* Statistics Grid */}
-        <div className="col-span-12 grid grid-cols-2 md:grid-cols-4 gap-lg mb-sm">
-          <div className="bg-surface border border-outline-variant p-lg rounded-xl flex flex-col justify-between hover:border-primary transition-all hover:bg-surface-container-low">
-            <div className="flex items-center justify-between">
-              <span className="material-symbols-outlined text-primary">post</span>
-              <span className="text-green-600 font-label-md text-label-md flex items-center">+12% <span className="material-symbols-outlined text-[14px]">trending_up</span></span>
+        {/* ── Metrics Grid ─────────────────────────────────────── */}
+        <div className="col-span-12 space-y-lg">
+
+          {/* Row 1 – Activity Metrics */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-lg">
+            {/* Total Posts */}
+            <div className="bg-surface border border-outline-variant rounded-2xl p-lg flex items-center gap-lg hover:shadow-md transition-all group">
+              <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center shrink-0 group-hover:bg-primary/20 transition-colors">
+                <span className="material-symbols-outlined text-primary text-[22px]" style={{ fontVariationSettings: "'FILL' 1" }}>newsmode</span>
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-xs font-semibold uppercase tracking-widest text-on-surface-variant mb-0.5">Total Posts</p>
+                <p className="text-3xl font-black text-on-surface leading-none">{userData.stats.posts}</p>
+              </div>
+              <span className="text-xs font-bold text-green-600 bg-green-50 px-2 py-1 rounded-full flex items-center gap-0.5 shrink-0">
+                <span className="material-symbols-outlined text-[13px]">trending_up</span>+12%
+              </span>
             </div>
-            <div className="mt-md">
-              <p className="font-label-md text-label-md text-on-surface-variant">Total Posts</p>
-              <h3 className="font-display-lg text-display-lg font-black mt-xs">{userData.stats.posts}</h3>
+
+            {/* Followers */}
+            <div className="bg-surface border border-outline-variant rounded-2xl p-lg flex items-center gap-lg hover:shadow-md transition-all group">
+              <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center shrink-0 group-hover:bg-primary/20 transition-colors">
+                <span className="material-symbols-outlined text-primary text-[22px]" style={{ fontVariationSettings: "'FILL' 1" }}>group</span>
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-xs font-semibold uppercase tracking-widest text-on-surface-variant mb-0.5">Followers</p>
+                <p className="text-3xl font-black text-on-surface leading-none">{userData.stats.followers}</p>
+              </div>
+              <span className="text-xs font-bold text-green-600 bg-green-50 px-2 py-1 rounded-full flex items-center gap-0.5 shrink-0">
+                <span className="material-symbols-outlined text-[13px]">trending_up</span>+5%
+              </span>
+            </div>
+
+            {/* Following */}
+            <div className="bg-surface border border-outline-variant rounded-2xl p-lg flex items-center gap-lg hover:shadow-md transition-all group">
+              <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center shrink-0 group-hover:bg-primary/20 transition-colors">
+                <span className="material-symbols-outlined text-primary text-[22px]" style={{ fontVariationSettings: "'FILL' 1" }}>person_add</span>
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-xs font-semibold uppercase tracking-widest text-on-surface-variant mb-0.5">Following</p>
+                <p className="text-3xl font-black text-on-surface leading-none">{userData.stats.following}</p>
+              </div>
+              <span className="text-xs font-bold text-on-surface-variant bg-surface-container px-2 py-1 rounded-full flex items-center gap-0.5 shrink-0">
+                <span className="material-symbols-outlined text-[13px]">horizontal_rule</span>Stable
+              </span>
             </div>
           </div>
-          
-          <div className="bg-surface border border-outline-variant p-lg rounded-xl flex flex-col justify-between hover:border-primary transition-all hover:bg-surface-container-low">
-            <div className="flex items-center justify-between">
-              <span className="material-symbols-outlined text-primary">groups</span>
-              <span className="text-green-600 font-label-md text-label-md flex items-center">+5% <span className="material-symbols-outlined text-[14px]">trending_up</span></span>
+
+          {/* Row 2 – Moderation Metrics */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-lg">
+            {/* Moderation Flags */}
+            <div className="bg-surface border border-outline-variant rounded-2xl p-lg flex items-center gap-lg hover:shadow-md transition-all group">
+              <div className="w-12 h-12 rounded-xl bg-amber-500/10 flex items-center justify-center shrink-0 group-hover:bg-amber-500/20 transition-colors">
+                <span className="material-symbols-outlined text-amber-600 text-[22px]" style={{ fontVariationSettings: "'FILL' 1" }}>flag</span>
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-xs font-semibold uppercase tracking-widest text-on-surface-variant mb-0.5">Moderation Flags</p>
+                <p className="text-3xl font-black text-on-surface leading-none">{userData.stats.moderation_flags}</p>
+              </div>
+              <span className="text-xs font-bold text-amber-700 bg-amber-50 px-2 py-1 rounded-full shrink-0">
+                Active
+              </span>
             </div>
-            <div className="mt-md">
-              <p className="font-label-md text-label-md text-on-surface-variant">Followers</p>
-              <h3 className="font-display-lg text-display-lg font-black mt-xs">{userData.stats.followers}</h3>
+
+            {/* Linked Accounts */}
+            <div className="bg-surface border border-outline-variant rounded-2xl p-lg flex items-center gap-lg hover:shadow-md transition-all group">
+              <div className="w-12 h-12 rounded-xl bg-blue-500/10 flex items-center justify-center shrink-0 group-hover:bg-blue-500/20 transition-colors">
+                <span className="material-symbols-outlined text-blue-600 text-[22px]" style={{ fontVariationSettings: "'FILL' 1" }}>link</span>
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-xs font-semibold uppercase tracking-widest text-on-surface-variant mb-0.5">Linked Accounts</p>
+                <p className="text-3xl font-black text-on-surface leading-none">
+                  {userData.socialAccounts && userData.socialAccounts.length > 0 ? userData.socialAccounts.length : 0}
+                </p>
+              </div>
+              <span className="text-xs font-bold text-blue-700 bg-blue-50 px-2 py-1 rounded-full shrink-0">
+                Connected
+              </span>
+            </div>
+
+            {/* Suspensions */}
+            <div className={`rounded-2xl p-lg flex items-center gap-lg hover:shadow-md transition-all group border ${(userData.suspensionCount || 0) > 0 ? 'bg-error-container/30 border-error/30' : 'bg-surface border-outline-variant'}`}>
+              <div className={`w-12 h-12 rounded-xl flex items-center justify-center shrink-0 transition-colors ${(userData.suspensionCount || 0) > 0 ? 'bg-error/15 group-hover:bg-error/25' : 'bg-surface-container group-hover:bg-surface-container-high'}`}>
+                <span className={`material-symbols-outlined text-[22px] ${(userData.suspensionCount || 0) > 0 ? 'text-error' : 'text-on-surface-variant'}`} style={{ fontVariationSettings: "'FILL' 1" }}>gavel</span>
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-xs font-semibold uppercase tracking-widest text-on-surface-variant mb-0.5">Suspensions</p>
+                <p className={`text-3xl font-black leading-none ${(userData.suspensionCount || 0) > 0 ? 'text-error' : 'text-on-surface'}`}>
+                  {userData.suspensionCount || 0}
+                </p>
+              </div>
+              <span className={`text-xs font-bold px-2 py-1 rounded-full shrink-0 ${(userData.suspensionCount || 0) > 0 ? 'text-error bg-error/10' : 'text-on-surface-variant bg-surface-container'}`}>
+                {(userData.suspensionCount || 0) > 0 ? 'History' : 'Clean'}
+              </span>
             </div>
           </div>
-          
-          <div className="bg-surface border border-outline-variant p-lg rounded-xl flex flex-col justify-between hover:border-primary transition-all hover:bg-surface-container-low">
-            <div className="flex items-center justify-between">
-              <span className="material-symbols-outlined text-primary">person_add</span>
-              <span className="text-on-surface-variant font-label-md text-label-md flex items-center">Stable <span className="material-symbols-outlined text-[14px]">horizontal_rule</span></span>
-            </div>
-            <div className="mt-md">
-              <p className="font-label-md text-label-md text-on-surface-variant">Following</p>
-              <h3 className="font-display-lg text-display-lg font-black mt-xs">{userData.stats.following}</h3>
-            </div>
-          </div>
-          
-          <div className="bg-surface border border-outline-variant p-lg rounded-xl flex flex-col justify-between hover:border-primary transition-all hover:bg-surface-container-low border-l-4 border-l-tertiary">
-            <div className="flex items-center justify-between">
-              <span className="material-symbols-outlined text-tertiary">flag</span>
-              <span className="text-error font-label-md text-label-md flex items-center">-2 <span className="material-symbols-outlined text-[14px]">trending_down</span></span>
-            </div>
-            <div className="mt-md">
-              <p className="font-label-md text-label-md text-on-surface-variant">Moderation Flags</p>
-              <h3 className="font-display-lg text-display-lg font-black mt-xs">{userData.stats.moderation_flags}</h3>
-            </div>
-          </div>
+
         </div>
 
         {/* User Details Section */}
@@ -356,8 +412,8 @@ export default function UserProfile() {
             </div>
             <button onClick={() => setActivityModalOpen(true)} className="text-primary font-label-md text-label-md hover:underline">View All</button>
           </div>
-          <div className="p-lg space-y-lg relative">
-            <div className="absolute left-lg top-[3.5rem] bottom-lg w-[2px] bg-outline-variant ml-[11px]"></div>
+          <div className={`p-lg space-y-lg relative ${realAllActivity.length === 0 ? 'flex flex-col items-center justify-center min-h-[200px]' : ''}`}>
+            {realAllActivity.length > 0 && <div className="absolute left-lg top-[3.5rem] bottom-lg w-[2px] bg-outline-variant ml-[11px]"></div>}
             
             {realAllActivity.length > 0 ? (
               realAllActivity.slice(0, 10).map((activity) => {
@@ -374,49 +430,48 @@ export default function UserProfile() {
                 );
               })
             ) : (
-              <p className="text-body-sm text-on-surface-variant pl-8">No recent activity.</p>
+              <div className="text-center">
+                <span className="material-symbols-outlined text-4xl text-on-surface-variant mb-2">history</span>
+                <p className="text-headline-sm text-on-surface-variant font-medium">No recent activity.</p>
+              </div>
             )}
           </div>
         </div>
 
-        {/* Account Security Section */}
+        {/* Action History Section */}
         <div className="col-span-12 lg:col-span-3 space-y-lg">
-          <div className="bg-surface border border-outline-variant rounded-xl overflow-hidden">
+          <div className={`bg-surface border border-outline-variant rounded-xl overflow-hidden ${(!userData.actionHistory || userData.actionHistory.length === 0) ? 'h-fit pb-4' : ''}`}>
             <div className="px-lg py-md border-b border-outline-variant bg-surface-container-low flex items-center gap-xs">
-              <span className="material-symbols-outlined text-on-surface-variant">security</span>
-              <h4 className="font-headline-sm text-headline-sm">Security</h4>
+              <span className="material-symbols-outlined text-on-surface-variant">assignment_late</span>
+              <h4 className="font-headline-sm text-headline-sm">Action History</h4>
             </div>
-            <div className="p-lg space-y-lg">
+            <div className={`p-lg space-y-lg relative ${(!userData.actionHistory || userData.actionHistory.length === 0) ? 'flex flex-col items-center justify-center min-h-[200px]' : ''}`}>
+              {userData.actionHistory && userData.actionHistory.length > 0 && (
+                <div className="absolute left-lg top-[3.5rem] bottom-lg w-[2px] bg-outline-variant ml-[11px]"></div>
+              )}
               
-              <p className="font-label-md text-label-md text-on-surface-variant uppercase tracking-wider">Linked Accounts</p>
-              <div className="space-y-md">
-                {userData.socialAccounts && userData.socialAccounts.length > 0 ? (
-                  userData.socialAccounts.map((provider, i) => (
-                    <div key={i} className="flex items-center justify-between">
-                      <div className="flex items-center gap-md">
-                        <div className="w-8 h-8 rounded-lg bg-surface-container flex items-center justify-center font-bold text-primary">{provider[0].toUpperCase()}</div>
-                        <span className="font-body-md text-body-md capitalize">{provider}</span>
+              {userData.actionHistory && userData.actionHistory.length > 0 ? (
+                userData.actionHistory.map((action) => {
+                  return (
+                    <div key={action.id} className="flex gap-md relative w-full">
+                      <div className={`w-8 h-8 rounded-full flex items-center justify-center z-10 mt-0.5 shadow-sm ${action.is_severe ? 'bg-error-container text-error ring-2 ring-surface' : 'bg-orange-100 text-orange-600 ring-2 ring-surface'}`}>
+                        <span className="material-symbols-outlined text-[16px]" style={{ fontVariationSettings: "'FILL' 1" }}>{action.is_severe ? 'gavel' : 'warning'}</span>
                       </div>
-                      <span className="material-symbols-outlined text-primary">check_circle</span>
+                      <div className="flex-1 pb-1">
+                        <p className="font-body-md text-body-md font-bold">{action.reason}</p>
+                        <p className="text-sm text-on-surface mb-1">{action.message || 'No additional message provided.'}</p>
+                        <p className="text-xs text-on-surface-variant">{formatDistanceToNow(new Date(action.created_at), { addSuffix: true })}</p>
+                      </div>
                     </div>
-                  ))
-                ) : (
-                  <p className="text-body-sm text-on-surface-variant">No linked accounts</p>
-                )}
-              </div>
+                  );
+                })
+              ) : (
+                <div className="text-center">
+                  <span className="material-symbols-outlined text-4xl text-on-surface-variant mb-2">assignment_late</span>
+                  <p className="text-headline-sm text-on-surface-variant font-medium">No past actions.</p>
+                </div>
+              )}
             </div>
-          </div>
-          
-          {/* Admin Notes/Private */}
-          <div className="bg-tertiary-container text-on-tertiary-fixed p-lg rounded-xl">
-            <div className="flex items-center gap-sm mb-md">
-              <span className="material-symbols-outlined">description</span>
-              <h5 className="font-headline-sm text-headline-sm">Admin Notes</h5>
-            </div>
-            <p className="font-body-sm text-body-sm mb-md">This user is an internal platform tester. Please avoid suspending without notifying the engineering lead first.</p>
-            {role === 'admin' && (
-              <button className="w-full py-sm bg-tertiary text-white rounded-lg font-label-md text-label-md hover:opacity-90 transition-opacity">Edit Notes</button>
-            )}
           </div>
         </div>
 
