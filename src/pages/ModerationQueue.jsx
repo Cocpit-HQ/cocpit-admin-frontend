@@ -3,6 +3,7 @@ import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../AuthContext';
 import ReportRow from '../components/ReportRow';
 import AppealRow from '../components/AppealRow';
+import ReportDetailModal from '../components/ReportDetailModal';
 
 export default function ModerationQueue() {
   const { role, accessToken } = useAuth();
@@ -16,6 +17,10 @@ export default function ModerationQueue() {
   const [filterSeverity, setFilterSeverity] = useState('All');
   const [loading, setLoading] = useState(true);
 
+  // Modal State
+  const [selectedReport, setSelectedReport] = useState(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+
   const fetchReports = async (status, setter) => {
     try {
       const res = await fetch(`/api/admin/reports?status=${status}`, {
@@ -23,7 +28,13 @@ export default function ModerationQueue() {
       });
       if (res.ok) {
         const data = await res.json();
+        console.log(`Fetched ${status} reports:`, data);
         setter(data);
+      } else {
+        console.error(`Failed to fetch ${status} reports:`, res.status, await res.text());
+        if (res.status === 401 || res.status === 403) {
+           alert("Your session has expired or you do not have permission. Please log out and log back in.");
+        }
       }
     } catch (e) {
       console.error(e);
@@ -59,7 +70,7 @@ export default function ModerationQueue() {
   const filteredReports = currentReports.filter(report => {
     const typeMatch = filterType === 'All' || report.type === filterType;
     const reasonMatch = filterReason === 'All' || report.reason === filterReason;
-    const severityMatch = filterSeverity === 'All' || report.severity === filterSeverity;
+    const severityMatch = filterSeverity === 'All' || (report.severity || '') === filterSeverity;
     return typeMatch && reasonMatch && severityMatch;
   });
 
@@ -92,7 +103,53 @@ export default function ModerationQueue() {
     }
   };
 
+  const handleDismissFromModal = async (id) => {
+    await updateReportStatus(id, 'dismissed');
+    setIsModalOpen(false);
+    alert("Report dismissed.");
+  };
+
+  const handleDeleteContent = async (report) => {
+    if (window.confirm("Are you sure you want to delete this content? This action cannot be undone.")) {
+      try {
+        // Assume Content reports refer to posts for MVP
+        const endpoint = report.type === 'Content' ? `/api/admin/posts/${report.postId}` : null;
+        
+        if (!endpoint) {
+          alert(`Deletion not implemented for type: ${report.type}`);
+          return;
+        }
+
+        const res = await fetch(endpoint, {
+          method: 'DELETE',
+          headers: {
+            'Authorization': `Bearer ${accessToken}`,
+            'Content-Type': 'application/json'
+          }
+        });
+        
+        if (res.ok) {
+          // Remove from local state since backend auto-resolves reports
+          if (activeTab === 'Escalations') {
+            setEscalatedReports(escalatedReports.filter(r => r.id !== report.id));
+          } else {
+            setReports(reports.filter(r => r.id !== report.id));
+          }
+          setIsModalOpen(false);
+          alert("Content deleted and associated reports resolved.");
+        } else {
+          const data = await res.json();
+          alert(`Error deleting content: ${data.error}`);
+        }
+      } catch (e) {
+        console.error(e);
+        alert("Failed to delete content.");
+      }
+    }
+  };
+
   const handleReject = async (report) => {
+    // We now have a modal for this, but keeping quick action for escalate
     let penalty = "Review for immediate action.";
     if (role === 'moderator' && report.severity.includes('Tier 3')) {
       penalty = "Tier 3 violation: Escalate to Admin.";
@@ -105,9 +162,8 @@ export default function ModerationQueue() {
       return;
     }
     
-    if (window.confirm(`Action Recommended:\n${penalty}\n\nDo you want to proceed and resolve this report?`)) {
-      await updateReportStatus(report.id, 'resolved');
-    }
+    // For non-Tier 3, just open the modal to review
+    openReportModal(report);
   };
 
   const handleEscalate = async (report) => {
@@ -150,6 +206,11 @@ export default function ModerationQueue() {
     }
   };
 
+  const openReportModal = (report) => {
+    setSelectedReport(report);
+    setIsModalOpen(true);
+  };
+
   if (loading) {
     return <div className="flex justify-center p-10"><span className="material-symbols-outlined animate-spin text-4xl text-primary">progress_activity</span></div>;
   }
@@ -175,6 +236,20 @@ export default function ModerationQueue() {
               <span className="material-symbols-outlined text-[18px]">history</span>
               Review History
             </Link>
+            <button 
+              onClick={() => {
+                setLoading(true);
+                Promise.all([
+                  fetchReports('active', setReports),
+                  fetchReports('escalated', setEscalatedReports),
+                  fetchAppeals()
+                ]).finally(() => setLoading(false));
+              }}
+              className="flex items-center gap-xs font-label-md text-on-surface bg-surface-container-high hover:bg-surface-variant px-md py-sm rounded-lg transition-colors whitespace-nowrap"
+            >
+              <span className="material-symbols-outlined text-[18px]">refresh</span>
+              Refresh
+            </button>
             <div className="flex bg-surface-container-low p-1 rounded-xl border border-outline-variant overflow-x-auto max-w-full w-full sm:w-auto">
             <button 
               onClick={() => setActiveTab('Active Reports')}
@@ -274,7 +349,7 @@ export default function ModerationQueue() {
                     role={role} 
                     activeTab={activeTab}
                     onApprove={handleApprove}
-                    onReject={handleReject}
+                    onReject={() => openReportModal(report)}
                     onEscalate={handleEscalate}
                     onSuspend={handleSuspend}
                   />
@@ -323,6 +398,16 @@ export default function ModerationQueue() {
           </div>
         </div>
       )}
+
+      {/* Report Detail Modal */}
+      <ReportDetailModal 
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        report={selectedReport}
+        role={role}
+        onDeleteContent={handleDeleteContent}
+        onDismissReport={handleDismissFromModal}
+      />
     </div>
   );
 }

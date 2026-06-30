@@ -19,11 +19,11 @@ export default function ReportRow({ report, role, activeTab, onApprove, onReject
   return (
     <tr className="hover:bg-surface-container-low transition-colors group">
       <td className="px-lg py-md align-top">
-        <span className="font-mono-label text-on-surface-variant">#{report.id.split('-')[0]}</span>
+        <span className="font-mono-label text-on-surface-variant">#{String(report.id).split('-')[0]}</span>
         <div className="text-[11px] text-on-surface mt-xs font-semibold">{report.type}</div>
-        <div className={`mt-xs flex items-center gap-xs text-[10px] font-bold uppercase ${getSeverityStyle(report.severity)}`}>
-          <span className={`w-1.5 h-1.5 rounded-full ${report.severity.includes('Tier 3') ? 'animate-pulse' : ''} ${getSeverityBg(report.severity)}`}></span>
-          {report.severity}
+        <div className={`mt-xs flex items-center gap-xs text-[10px] font-bold uppercase ${getSeverityStyle(report.severity || '')}`}>
+          <span className={`w-1.5 h-1.5 rounded-full ${(report.severity || '').includes('Tier 3') ? 'animate-pulse' : ''} ${getSeverityBg(report.severity || '')}`}></span>
+          {report.severity || 'Unknown'}
         </div>
       </td>
       <td className="px-lg py-md max-w-[448px]">
@@ -34,7 +34,7 @@ export default function ReportRow({ report, role, activeTab, onApprove, onReject
             </div>
           )}
           <div className="flex flex-col gap-xs">
-            <p className={`font-body-sm text-on-surface line-clamp-3 leading-tight ${report.severity.includes('Tier 3') ? 'italic' : ''}`}>
+            <p className={`font-body-sm text-on-surface line-clamp-3 leading-tight ${(report.severity || '').includes('Tier 3') ? 'italic' : ''}`}>
               {report.type === 'Account' ? (
                 <Link to="/profile" state={{ from: '/moderation', label: 'Moderation Queue' }} className="hover:underline text-primary">{report.contentPreview}</Link>
               ) : report.type === 'Organization' ? (
@@ -74,15 +74,15 @@ export default function ReportRow({ report, role, activeTab, onApprove, onReject
           <button onClick={() => onApprove(report.id)} className="p-sm text-green-600 hover:bg-green-50 rounded-lg transition-all active:scale-90" title="Resolve Report (Dismiss)">
             <span className="material-symbols-outlined">check_circle</span>
           </button>
-          <button onClick={() => onReject(report)} className="p-sm text-orange-500 hover:bg-orange-50 rounded-lg transition-all active:scale-90" title="Action Content (Resolve)">
-            <span className="material-symbols-outlined">do_not_disturb_on</span>
+          <button onClick={() => onReject(report)} className="p-sm text-orange-500 hover:bg-orange-50 rounded-lg transition-all active:scale-90" title="Review Report Details">
+            <span className="material-symbols-outlined">visibility</span>
           </button>
           {role === 'moderator' && activeTab === 'Active Reports' && (
             <button onClick={() => onEscalate(report)} className="p-sm text-blue-600 hover:bg-blue-50 rounded-lg transition-all active:scale-90" title="Escalate to Admin">
               <span className="material-symbols-outlined">publish</span>
             </button>
           )}
-          {(!report.severity.includes('Tier 3') || role === 'admin') && (
+          {(!(report.severity || '').includes('Tier 3') || role === 'admin') && (
             <button onClick={() => onSuspend(report)} className="p-sm text-error hover:bg-error-container rounded-lg transition-all active:scale-90" title="Suspend User">
               <span className="material-symbols-outlined">person_off</span>
             </button>

@@ -5,7 +5,7 @@ export default function AppealRow({ appeal, onAction }) {
   return (
     <tr className="hover:bg-surface-container-low transition-colors group">
       <td className="px-lg py-md align-top">
-        <span className="font-mono-label text-on-surface-variant">#{appeal.id.split('-')[0]}</span>
+        <span className="font-mono-label text-on-surface-variant">#{String(appeal.id).split('-')[0]}</span>
         <div className="text-[11px] text-on-surface mt-xs font-semibold">{new Date(appeal.appealTime).toLocaleDateString()}</div>
       </td>
       <td className="px-lg py-md align-top max-w-[200px]">
