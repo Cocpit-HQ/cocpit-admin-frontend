@@ -135,8 +135,30 @@ export default function UserProfile() {
         return false;
       });
 
-  const handleSendWarning = () => {
-    alert(`Warning sent to Omar Al-Fayed for ${warningReason}`);
+  const handleSendWarning = async () => {
+    try {
+      const isSevere = ['Targeted Harassment', 'Hate Speech', 'Fraud'].includes(warningReason);
+      const res = await fetch(`/api/admin/users/${userData.id}/warn`, {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ reason: warningReason, message: warningMessage, isSevere })
+      });
+      if (res.ok) {
+        const data = await res.json();
+        if (data.autoSuspended) {
+          setUserData({ ...userData, status: 'Suspended', stats: { ...userData.stats, moderation_flags: data.moderation_flags } });
+          alert(data.message);
+        } else {
+          setUserData({ ...userData, stats: { ...userData.stats, moderation_flags: data.moderation_flags } });
+          alert(`Warning sent to ${userData.name} for ${warningReason}`);
+        }
+      } else {
+        alert('Failed to send warning.');
+      }
+    } catch (e) {
+      console.error(e);
+      alert('Error sending warning.');
+    }
     setWarningModalOpen(false);
     setWarningMessage('');
   };
@@ -145,7 +167,8 @@ export default function UserProfile() {
     try {
       await fetch(`/api/admin/users/${userData.id}/suspend`, {
         method: 'POST',
-        headers: { 'Authorization': `Bearer ${accessToken}`, 'Content-Type': 'application/json' }
+        headers: { 'Authorization': `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ duration: suspendDuration })
       });
       setUserData({ ...userData, status: 'Suspended' });
       alert(`${userData.name} has been suspended.`);
