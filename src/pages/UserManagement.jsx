@@ -345,7 +345,14 @@ export default function UserManagement() {
             </thead>
             <tbody className="divide-y divide-outline-variant">
               {users.map(user => (
-                <tr key={user.id} className="data-row hover:bg-surface-container-low transition-colors group">
+                <tr 
+                  key={user.id} 
+                  className="data-row hover:bg-surface-container-low transition-colors group cursor-pointer"
+                  onClick={(e) => {
+                    if (e.target.closest('button, input')) return;
+                    navigate(`/profile/${user.id}`);
+                  }}
+                >
                   {role !== 'developer' && (
                     <td className="px-lg py-md">
                       <input
