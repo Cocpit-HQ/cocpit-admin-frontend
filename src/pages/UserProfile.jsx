@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useNavigate, useLocation, useParams } from 'react-router-dom';
 import { format, formatDistanceToNow } from 'date-fns';
 import { useAuth } from '../AuthContext';
+import DangerModal from '../components/DangerModal';
 
 const baseActivity = [
   { id: 1, text: 'posted a new photo in Urban Photography', time: '12 minutes ago', icon: 'photo', color: 'bg-primary text-white ring-0', type: 'post' },
@@ -41,9 +42,7 @@ export default function UserProfile() {
   const [activityFilter, setActivityFilter] = useState('All');
   const [visibleCount, setVisibleCount] = useState(5);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
-  const [editModalOpen, setEditModalOpen] = useState(false);
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
-  const [editForm, setEditForm] = useState({ name: '', phone: '', role: '', location: '' });
   React.useEffect(() => {
     if (!id || !accessToken) return;
     const fetchUser = async () => {
@@ -195,26 +194,6 @@ export default function UserProfile() {
     }
   };
 
-  const handleEditUser = async () => {
-    try {
-      const res = await fetch(`/api/admin/users/${userData.id}`, {
-        method: 'PATCH',
-        headers: { 'Authorization': `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
-        body: JSON.stringify(editForm)
-      });
-      if (res.ok) {
-        setUserData({ ...userData, name: editForm.name || userData.name, role: editForm.role || userData.role, phone: editForm.phone || userData.phone, location: editForm.location || userData.location });
-        alert('User profile updated successfully.');
-      } else {
-        alert('Failed to update user profile.');
-      }
-    } catch (e) {
-      console.error(e);
-      alert('Error updating user.');
-    }
-    setEditModalOpen(false);
-  };
-
   const handleDeleteUser = async () => {
     try {
       const res = await fetch(`/api/admin/users/${userData.id}`, {
@@ -298,6 +277,13 @@ export default function UserProfile() {
                   Suspend User
                 </button>
               )}
+              <button 
+                onClick={() => setDeleteModalOpen(true)}
+                className="flex items-center gap-xs border border-error text-error font-label-md text-label-md px-lg py-md rounded-xl hover:bg-error-container hover:border-transparent transition-all active:scale-95"
+              >
+                <span className="material-symbols-outlined text-[20px]">delete_forever</span>
+                Delete Account
+              </button>
             </>
           )}
         </div>
@@ -739,102 +725,15 @@ export default function UserProfile() {
           </div>
         </div>
       )}
-      {/* Edit Profile Modal */}
-      {editModalOpen && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 animate-in fade-in duration-200">
-          <div className="bg-surface border border-outline-variant w-[450px] max-w-[90vw] rounded-xl shadow-xl p-6 animate-in zoom-in-95 duration-200">
-            <div className="flex justify-between items-center mb-4">
-              <h3 className="text-lg font-semibold text-on-surface flex items-center gap-2">
-                <span className="material-symbols-outlined text-primary">edit</span>
-                Edit Profile
-              </h3>
-              <button onClick={() => setEditModalOpen(false)} className="material-symbols-outlined text-on-surface-variant hover:text-on-surface transition-colors">close</button>
-            </div>
-            
-            <div className="flex flex-col gap-4 mb-6">
-              <div>
-                <label className="block text-[11px] font-mono-label text-on-surface-variant mb-xs ml-1">FULL NAME</label>
-                <input
-                  type="text"
-                  value={editForm.name}
-                  onChange={(e) => setEditForm({...editForm, name: e.target.value})}
-                  className="w-full bg-surface border border-outline-variant rounded-lg px-md py-2 text-body-sm text-on-surface focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/20"
-                />
-              </div>
-              <div>
-                <label className="block text-[11px] font-mono-label text-on-surface-variant mb-xs ml-1">PHONE NUMBER</label>
-                <input
-                  type="text"
-                  value={editForm.phone}
-                  onChange={(e) => setEditForm({...editForm, phone: e.target.value})}
-                  className="w-full bg-surface border border-outline-variant rounded-lg px-md py-2 text-body-sm text-on-surface focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/20"
-                />
-              </div>
-              <div>
-                <label className="block text-[11px] font-mono-label text-on-surface-variant mb-xs ml-1">LOCATION</label>
-                <input
-                  type="text"
-                  value={editForm.location}
-                  onChange={(e) => setEditForm({...editForm, location: e.target.value})}
-                  className="w-full bg-surface border border-outline-variant rounded-lg px-md py-2 text-body-sm text-on-surface focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/20"
-                />
-              </div>
-              <div>
-                <label className="block text-[11px] font-mono-label text-on-surface-variant mb-xs ml-1">ROLE</label>
-                <select
-                  value={editForm.role}
-                  onChange={(e) => setEditForm({...editForm, role: e.target.value})}
-                  className="w-full bg-surface border border-outline-variant rounded-lg px-md py-2 text-body-sm text-on-surface focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/20"
-                >
-                  <option value="user">User</option>
-                  <option value="moderator">Moderator</option>
-                  <option value="admin">Admin</option>
-                </select>
-              </div>
-            </div>
 
-            <div className="flex justify-end gap-3">
-              <button onClick={() => setEditModalOpen(false)} className="px-4 py-2 rounded-lg text-sm font-medium hover:bg-surface-container transition-colors">Cancel</button>
-              <button
-                onClick={handleEditUser}
-                className="bg-primary text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-primary/90 transition-colors shadow-sm active:scale-95"
-              >
-                Save Changes
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Delete Confirmation Modal (Danger Zone) */}
-      {deleteModalOpen && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 animate-in fade-in duration-200">
-          <div className="bg-surface border border-outline-variant w-[450px] max-w-[90vw] rounded-xl shadow-xl p-6 animate-in zoom-in-95 duration-200">
-            <div className="flex justify-between items-center mb-4">
-              <h3 className="text-lg font-semibold text-error flex items-center gap-2">
-                <span className="material-symbols-outlined text-error">warning</span>
-                Delete Account
-              </h3>
-              <button onClick={() => setDeleteModalOpen(false)} className="material-symbols-outlined text-on-surface-variant hover:text-on-surface transition-colors">close</button>
-            </div>
-
-            <p className="text-sm text-on-surface-variant mb-6">
-              Are you sure you want to permanently delete <strong>{userData.name}</strong>'s account? 
-              This will softly delete the user from the database. This action cannot be easily undone.
-            </p>
-
-            <div className="flex justify-end gap-3">
-              <button onClick={() => setDeleteModalOpen(false)} className="px-4 py-2 rounded-lg text-sm font-medium hover:bg-surface-container transition-colors">Cancel</button>
-              <button
-                onClick={handleDeleteUser}
-                className="bg-error text-on-error px-4 py-2 rounded-lg text-sm font-medium hover:bg-error/90 transition-colors shadow-sm active:scale-95"
-              >
-                Permanently Delete
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      <DangerModal
+        isOpen={deleteModalOpen}
+        onClose={() => setDeleteModalOpen(false)}
+        onConfirm={handleDeleteUser}
+        title="Delete Account"
+        message={`Are you sure you want to permanently delete ${userData.name}'s account? This will softly delete the user from the database. This action cannot be easily undone.`}
+        actionText="Permanently Delete"
+      />
     </div>
     );
   } catch (err) {

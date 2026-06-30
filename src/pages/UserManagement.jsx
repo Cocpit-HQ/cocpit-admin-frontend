@@ -4,7 +4,7 @@ import SearchInput from '../components/SearchInput';
 import FilterDropdown from '../components/FilterDropdown';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../AuthContext';
-
+import DangerModal from '../components/DangerModal';
 
 
 export default function UserManagement() {
@@ -66,6 +66,8 @@ export default function UserManagement() {
 
   const [suspendConfirmModalOpen, setSuspendConfirmModalOpen] = useState(false);
   const [userToSuspend, setUserToSuspend] = useState(null);
+  const [deleteModalOpen, setDeleteModalOpen] = useState(false);
+  const [userToDelete, setUserToDelete] = useState(null);
 
 
   const navigate = useNavigate();
@@ -114,6 +116,27 @@ export default function UserManagement() {
       } catch (e) {
         console.error(e);
       }
+    }
+  };
+
+  const handleDelete = async () => {
+    if (!userToDelete) return;
+    try {
+      const res = await fetch(`/api/admin/users/${userToDelete.id}`, {
+        method: 'DELETE',
+        headers: { 'Authorization': `Bearer ${accessToken}` }
+      });
+      if (res.ok) {
+        setUsers(users.map(u => u.id === userToDelete.id ? { ...u, status: 'Deleted' } : u));
+        alert(`Successfully deleted ${userToDelete.name}.`);
+        setUserToDelete(null);
+        setDeleteModalOpen(false);
+      } else {
+        alert('Failed to delete user.');
+      }
+    } catch (e) {
+      console.error(e);
+      alert('Error deleting user.');
     }
   };
 
@@ -412,6 +435,13 @@ export default function UserManagement() {
                               <span className="material-symbols-outlined text-[20px]">gavel</span>
                             </button>
                           )}
+                          <button
+                            onClick={(e) => { e.stopPropagation(); setUserToDelete(user); setDeleteModalOpen(true); }}
+                            className="p-xs text-outline hover:text-error transition-colors hover:bg-error-container/50 rounded-lg"
+                            title="Delete User"
+                          >
+                            <span className="material-symbols-outlined text-[20px]">delete_forever</span>
+                          </button>
                         </>
                       )}
                       <button onClick={() => navigate(`/profile/${user.id}`)} className="p-xs text-outline hover:text-primary transition-colors hover:bg-surface-container rounded-lg" title="View Profile">
@@ -599,6 +629,15 @@ export default function UserManagement() {
           </div>
         </div>
       )}
+
+      <DangerModal
+        isOpen={deleteModalOpen}
+        onClose={() => { setDeleteModalOpen(false); setUserToDelete(null); }}
+        onConfirm={handleDelete}
+        title="Delete Account"
+        message={userToDelete ? `Are you sure you want to permanently delete ${userToDelete.name}'s account? This will softly delete the user from the database. This action cannot be easily undone.` : ''}
+        actionText="Permanently Delete"
+      />
     </div>
   );
 }
