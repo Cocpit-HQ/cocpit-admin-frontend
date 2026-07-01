@@ -16,14 +16,16 @@ const getSeverityBg = (severity) => {
 };
 
 export default function ReportRow({ report, role, activeTab, onApprove, onReject, onEscalate, onSuspend }) {
+  const { highestSeverity, reportCount, uniqueReporters, uniqueReasons } = report;
+
   return (
     <tr className="hover:bg-surface-container-low transition-colors group">
       <td className="px-lg py-md align-top">
         <span className="font-mono-label text-on-surface-variant">#{String(report.id).split('-')[0]}</span>
         <div className="text-[11px] text-on-surface mt-xs font-semibold">{report.type}</div>
-        <div className={`mt-xs flex items-center gap-xs text-[10px] font-bold uppercase ${getSeverityStyle(report.severity || '')}`}>
-          <span className={`w-1.5 h-1.5 rounded-full ${(report.severity || '').includes('Tier 3') ? 'animate-pulse' : ''} ${getSeverityBg(report.severity || '')}`}></span>
-          {report.severity || 'Unknown'}
+        <div className={`mt-xs flex items-center gap-xs text-[10px] font-bold uppercase ${getSeverityStyle(highestSeverity)}`}>
+          <span className={`w-1.5 h-1.5 rounded-full ${highestSeverity.includes('Tier 3') ? 'animate-pulse' : ''} ${getSeverityBg(highestSeverity)}`}></span>
+          {highestSeverity}
         </div>
       </td>
       <td className="px-lg py-md max-w-[448px]">
@@ -34,9 +36,9 @@ export default function ReportRow({ report, role, activeTab, onApprove, onReject
             </div>
           )}
           <div className="flex flex-col gap-xs">
-            <p className={`font-body-sm text-on-surface line-clamp-3 leading-tight ${(report.severity || '').includes('Tier 3') ? 'italic' : ''}`}>
+            <p className={`font-body-sm text-on-surface line-clamp-3 leading-tight ${highestSeverity.includes('Tier 3') ? 'italic' : ''}`}>
               {report.type === 'Account' ? (
-                <Link to="/profile" state={{ from: '/moderation', label: 'Moderation Queue' }} className="hover:underline text-primary">{report.contentPreview}</Link>
+                <Link to={`/profile/${report.postId}`} state={{ from: '/moderation', label: 'Moderation Queue' }} className="hover:underline text-primary">{report.contentPreview}</Link>
               ) : report.type === 'Organization' ? (
                 <Link to="/org-profile" state={{ from: '/moderation', label: 'Moderation Queue' }} className="hover:underline text-primary">{report.contentPreview}</Link>
               ) : (
@@ -50,28 +52,29 @@ export default function ReportRow({ report, role, activeTab, onApprove, onReject
         </div>
       </td>
       <td className="px-lg py-md align-top">
-        <span className={`inline-flex items-center px-sm py-0.5 rounded-full text-[12px] font-medium ${
-          report.reason === 'Hate Speech' ? 'bg-red-100 text-red-700' :
-          report.reason === 'Spam' ? 'bg-secondary-container text-on-secondary-container' :
-          'bg-tertiary-fixed text-on-tertiary-fixed-variant'
-        }`}>
-          {report.reason}
-        </span>
+        <div className="flex flex-col gap-1 items-start">
+          <span className="inline-flex items-center px-sm py-0.5 rounded-full text-[12px] font-medium bg-error-container text-error">
+            {reportCount} {reportCount === 1 ? 'Report' : 'Reports'}
+          </span>
+          <span className="text-[11px] text-on-surface-variant line-clamp-2">
+            {uniqueReasons.join(', ')}
+          </span>
+        </div>
       </td>
       <td className="px-lg py-md align-top">
         <div className="flex items-center gap-sm">
           <div className="w-6 h-6 rounded-full bg-surface-variant flex items-center justify-center text-[10px] font-bold overflow-hidden border border-outline-variant">
-            {report.reportedBy === '@system_monitor' ? 'SM' : <img src={`https://ui-avatars.com/api/?name=${encodeURIComponent(report.reportedBy || 'Unknown')}&background=e2e7ff`} alt="User" />}
+            <span className="material-symbols-outlined text-[16px] text-on-surface-variant">group</span>
           </div>
           <div>
-            <Link to="/profile" state={{ from: '/moderation', label: 'Moderation Queue' }} className="font-body-sm text-primary font-medium hover:underline">{report.reportedBy || 'Unknown'}</Link>
-            <p className="text-[11px] text-on-surface-variant" title="Trust score of the user who reported this">Reporter Trust: {report.repScore}</p>
+            <span className="font-body-sm text-on-surface font-medium">{uniqueReporters} {uniqueReporters === 1 ? 'User' : 'Users'}</span>
+            <p className="text-[11px] text-on-surface-variant">Grouped by Content</p>
           </div>
         </div>
       </td>
       <td className="px-lg py-md align-top text-right">
         <div className="flex justify-end gap-sm opacity-0 group-hover:opacity-100 transition-opacity">
-          <button onClick={() => onApprove(report.id)} className="p-sm text-green-600 hover:bg-green-50 rounded-lg transition-all active:scale-90" title="Resolve Report (Dismiss)">
+          <button onClick={() => onApprove(report.id)} className="p-sm text-green-600 hover:bg-green-50 rounded-lg transition-all active:scale-90" title="Resolve Group (Dismiss All)">
             <span className="material-symbols-outlined">check_circle</span>
           </button>
           <button onClick={() => onReject(report)} className="p-sm text-orange-500 hover:bg-orange-50 rounded-lg transition-all active:scale-90" title="Review Report Details">
@@ -82,7 +85,7 @@ export default function ReportRow({ report, role, activeTab, onApprove, onReject
               <span className="material-symbols-outlined">publish</span>
             </button>
           )}
-          {(!(report.severity || '').includes('Tier 3') || role === 'admin') && (
+          {(!highestSeverity.includes('Tier 3') || role === 'admin') && (
             <button onClick={() => onSuspend(report)} className="p-sm text-error hover:bg-error-container rounded-lg transition-all active:scale-90" title="Suspend User">
               <span className="material-symbols-outlined">person_off</span>
             </button>

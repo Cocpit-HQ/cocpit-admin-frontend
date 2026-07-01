@@ -392,12 +392,12 @@ export default function UserProfile() {
         </div>
 
         {/* User Details Section */}
-        <div className="col-span-12 lg:col-span-4 bg-surface border border-outline-variant rounded-xl overflow-hidden">
-          <div className="px-lg py-md border-b border-outline-variant bg-surface-container-low flex items-center gap-xs">
+        <div className="col-span-12 lg:col-span-4 bg-surface border border-outline-variant rounded-xl overflow-hidden flex flex-col lg:h-[650px]">
+          <div className="px-lg py-md border-b border-outline-variant bg-surface-container-low flex items-center gap-xs shrink-0">
             <span className="material-symbols-outlined text-on-surface-variant">info</span>
             <h4 className="font-headline-sm text-headline-sm">User Details</h4>
           </div>
-          <div className="p-lg space-y-md">
+          <div className="p-lg space-y-md flex-1 overflow-y-auto">
             <div className="flex flex-col gap-xs">
               <p className="font-label-md text-label-md text-on-surface-variant">Full Name</p>
               <p className="font-body-md text-body-md font-semibold">{userData.name}</p>
@@ -455,15 +455,15 @@ export default function UserProfile() {
         </div>
 
         {/* Activity Feed */}
-        <div className="col-span-12 lg:col-span-5 bg-surface border border-outline-variant rounded-xl overflow-hidden">
-          <div className="px-lg py-md border-b border-outline-variant bg-surface-container-low flex items-center justify-between">
+        <div className="col-span-12 lg:col-span-5 bg-surface border border-outline-variant rounded-xl overflow-hidden flex flex-col lg:h-[650px]">
+          <div className="px-lg py-md border-b border-outline-variant bg-surface-container-low flex items-center justify-between shrink-0">
             <div className="flex items-center gap-xs">
               <span className="material-symbols-outlined text-on-surface-variant">history</span>
               <h4 className="font-headline-sm text-headline-sm">Activity Feed</h4>
             </div>
             <button onClick={() => setActivityModalOpen(true)} className="text-primary font-label-md text-label-md hover:underline">View All</button>
           </div>
-          <div className={`p-lg space-y-lg relative ${realAllActivity.length === 0 ? 'flex flex-col items-center justify-center min-h-[200px]' : ''}`}>
+          <div className={`p-lg space-y-lg relative flex-1 overflow-y-auto ${realAllActivity.length === 0 ? 'flex flex-col items-center justify-center' : ''}`}>
             {realAllActivity.length > 0 && <div className="absolute left-lg top-[3.5rem] bottom-lg w-[2px] bg-outline-variant ml-[11px]"></div>}
             
             {realAllActivity.length > 0 ? (
@@ -490,13 +490,12 @@ export default function UserProfile() {
         </div>
 
         {/* Action History Section */}
-        <div className="col-span-12 lg:col-span-3 space-y-lg">
-          <div className={`bg-surface border border-outline-variant rounded-xl overflow-hidden ${(!userData.actionHistory || userData.actionHistory.length === 0) ? 'h-fit pb-4' : ''}`}>
-            <div className="px-lg py-md border-b border-outline-variant bg-surface-container-low flex items-center gap-xs">
-              <span className="material-symbols-outlined text-on-surface-variant">assignment_late</span>
-              <h4 className="font-headline-sm text-headline-sm">Action History</h4>
-            </div>
-            <div className={`p-lg space-y-lg relative ${(!userData.actionHistory || userData.actionHistory.length === 0) ? 'flex flex-col items-center justify-center min-h-[200px]' : ''}`}>
+        <div className="col-span-12 lg:col-span-3 bg-surface border border-outline-variant rounded-xl overflow-hidden flex flex-col lg:h-[650px]">
+          <div className="px-lg py-md border-b border-outline-variant bg-surface-container-low flex items-center gap-xs shrink-0">
+            <span className="material-symbols-outlined text-on-surface-variant">assignment_late</span>
+            <h4 className="font-headline-sm text-headline-sm">Action History</h4>
+          </div>
+          <div className={`p-lg space-y-lg relative flex-1 overflow-y-auto ${(!userData.actionHistory || userData.actionHistory.length === 0) ? 'flex flex-col items-center justify-center' : ''}`}>
               {userData.actionHistory && userData.actionHistory.length > 0 && (
                 <div className="absolute left-lg top-[3.5rem] bottom-lg w-[2px] bg-outline-variant ml-[11px]"></div>
               )}
@@ -523,7 +522,6 @@ export default function UserProfile() {
                 </div>
               )}
             </div>
-          </div>
         </div>
 
       </div>
