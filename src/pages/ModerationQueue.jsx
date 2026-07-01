@@ -16,20 +16,37 @@ export default function ModerationQueue() {
   const [filterReason, setFilterReason] = useState('All');
   const [filterSeverity, setFilterSeverity] = useState('All');
   const [loading, setLoading] = useState(true);
+  
+  const [reportReasons, setReportReasons] = useState([]);
+
+  // Pagination State
+  const [activePage, setActivePage] = useState(1);
+  const [activeTotalPages, setActiveTotalPages] = useState(1);
+  const [escalatedPage, setEscalatedPage] = useState(1);
+  const [escalatedTotalPages, setEscalatedTotalPages] = useState(1);
 
   // Modal State
   const [selectedReport, setSelectedReport] = useState(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
 
-  const fetchReports = async (status, setter) => {
+  const fetchReports = async (status, setter, setTotalPages, page, type = 'All', reason = 'All', severity = 'All') => {
     try {
-      const res = await fetch(`/api/admin/reports?status=${status}`, {
+      const queryParams = new URLSearchParams({
+        status,
+        page,
+        limit: 10,
+        type,
+        reason,
+        severity
+      });
+      const res = await fetch(`/api/admin/reports?${queryParams.toString()}`, {
         headers: { 'Authorization': `Bearer ${accessToken}` }
       });
       if (res.ok) {
         const data = await res.json();
         console.log(`Fetched ${status} reports:`, data);
-        setter(data);
+        setter(data.reports || []);
+        if (setTotalPages) setTotalPages(data.totalPages || 1);
       } else {
         console.error(`Failed to fetch ${status} reports:`, res.status, await res.text());
         if (res.status === 401 || res.status === 403) {
@@ -58,21 +75,29 @@ export default function ModerationQueue() {
   useEffect(() => {
     if (accessToken) {
       setLoading(true);
+      
+      const fetchReasons = async () => {
+        try {
+          const res = await fetch('/api/admin/reports/reasons', { headers: { 'Authorization': `Bearer ${accessToken}` } });
+          if (res.ok) {
+            const data = await res.json();
+            setReportReasons(data); // store the full array of {code, label}
+          }
+        } catch (e) {
+          console.error(e);
+        }
+      };
+
       Promise.all([
-        fetchReports('active', setReports),
-        fetchReports('escalated', setEscalatedReports),
-        fetchAppeals()
+        fetchReports('active', setReports, setActiveTotalPages, activePage, filterType, filterReason, filterSeverity),
+        fetchReports('escalated', setEscalatedReports, setEscalatedTotalPages, escalatedPage, filterType, filterReason, filterSeverity),
+        fetchAppeals(),
+        fetchReasons()
       ]).finally(() => setLoading(false));
     }
-  }, [accessToken]);
+  }, [accessToken, activePage, escalatedPage, filterType, filterReason, filterSeverity]);
 
-  const currentReports = activeTab === 'Escalations' ? escalatedReports : reports;
-  const filteredReports = currentReports.filter(report => {
-    const typeMatch = filterType === 'All' || report.type === filterType;
-    const reasonMatch = filterReason === 'All' || report.reason === filterReason;
-    const severityMatch = filterSeverity === 'All' || (report.severity || '') === filterSeverity;
-    return typeMatch && reasonMatch && severityMatch;
-  });
+  const filteredReports = activeTab === 'Escalations' ? escalatedReports : reports;
 
   const updateReportStatus = async (id, status) => {
     try {
@@ -240,8 +265,8 @@ export default function ModerationQueue() {
               onClick={() => {
                 setLoading(true);
                 Promise.all([
-                  fetchReports('active', setReports),
-                  fetchReports('escalated', setEscalatedReports),
+                  fetchReports('active', setReports, setActiveTotalPages, activePage, filterType, filterReason, filterSeverity),
+                  fetchReports('escalated', setEscalatedReports, setEscalatedTotalPages, escalatedPage, filterType, filterReason, filterSeverity),
                   fetchAppeals()
                 ]).finally(() => setLoading(false));
               }}
@@ -288,7 +313,7 @@ export default function ModerationQueue() {
             </div>
             <select
               value={filterType}
-              onChange={(e) => setFilterType(e.target.value)}
+              onChange={(e) => { setActivePage(1); setEscalatedPage(1); setFilterType(e.target.value); }}
               className="bg-surface-container-lowest border border-outline-variant rounded-lg font-body-sm text-on-surface px-md py-sm focus:ring-primary focus:outline-none"
             >
               <option value="All">Type: All</option>
@@ -298,19 +323,17 @@ export default function ModerationQueue() {
             </select>
             <select
               value={filterReason}
-              onChange={(e) => setFilterReason(e.target.value)}
+              onChange={(e) => { setActivePage(1); setEscalatedPage(1); setFilterReason(e.target.value); }}
               className="bg-surface-container-lowest border border-outline-variant rounded-lg font-body-sm text-on-surface px-md py-sm focus:ring-primary focus:outline-none"
             >
               <option value="All">Reason: All</option>
-              <option value="Spam">Spam</option>
-              <option value="Harassment">Harassment</option>
-              <option value="Hate Speech">Hate Speech</option>
-              <option value="Misinformation">Misinformation</option>
-              <option value="External Links">External Links</option>
+              {reportReasons.map((r) => (
+                <option key={r.code} value={r.label}>{r.code}</option>
+              ))}
             </select>
             <select
               value={filterSeverity}
-              onChange={(e) => setFilterSeverity(e.target.value)}
+              onChange={(e) => { setActivePage(1); setEscalatedPage(1); setFilterSeverity(e.target.value); }}
               className="bg-surface-container-lowest border border-outline-variant rounded-lg font-body-sm text-on-surface px-md py-sm focus:ring-primary focus:outline-none"
             >
               <option value="All">Tier: All</option>
@@ -320,7 +343,7 @@ export default function ModerationQueue() {
             </select>
             {(filterType !== 'All' || filterReason !== 'All' || filterSeverity !== 'All') && (
               <button
-                onClick={() => { setFilterType('All'); setFilterReason('All'); setFilterSeverity('All'); }}
+                onClick={() => { setActivePage(1); setEscalatedPage(1); setFilterType('All'); setFilterReason('All'); setFilterSeverity('All'); }}
                 className="text-primary font-label-md hover:underline bg-transparent border-none cursor-pointer px-sm py-xs"
               >
                 Clear Filters
@@ -363,6 +386,28 @@ export default function ModerationQueue() {
                 )}
               </tbody>
             </table>
+          </div>
+          {/* Pagination Controls */}
+          <div className="flex items-center justify-between px-lg py-md border-t border-outline-variant bg-surface-container">
+            <span className="font-body-sm text-on-surface-variant">
+              Page {activeTab === 'Escalations' ? escalatedPage : activePage} of {activeTab === 'Escalations' ? escalatedTotalPages : activeTotalPages}
+            </span>
+            <div className="flex gap-sm">
+              <button 
+                disabled={activeTab === 'Escalations' ? escalatedPage === 1 : activePage === 1}
+                onClick={() => activeTab === 'Escalations' ? setEscalatedPage(p => Math.max(1, p - 1)) : setActivePage(p => Math.max(1, p - 1))}
+                className="px-md py-xs font-label-md bg-surface border border-outline-variant rounded hover:bg-surface-variant disabled:opacity-50 transition-opacity"
+              >
+                Previous
+              </button>
+              <button 
+                disabled={activeTab === 'Escalations' ? escalatedPage >= escalatedTotalPages : activePage >= activeTotalPages}
+                onClick={() => activeTab === 'Escalations' ? setEscalatedPage(p => Math.min(escalatedTotalPages, p + 1)) : setActivePage(p => Math.min(activeTotalPages, p + 1))}
+                className="px-md py-xs font-label-md bg-surface border border-outline-variant rounded hover:bg-surface-variant disabled:opacity-50 transition-opacity"
+              >
+                Next
+              </button>
+            </div>
           </div>
         </div>
         </>
