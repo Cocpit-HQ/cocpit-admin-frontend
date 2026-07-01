@@ -21,6 +21,26 @@ export default function UserManagement() {
   const [roleFilter, setRoleFilter] = useState('All');
   const [statusFilter, setStatusFilter] = useState('All');
   const [searchQuery, setSearchQuery] = useState('');
+  
+  const [availableRoles, setAvailableRoles] = useState([]);
+
+  useEffect(() => {
+    const fetchRoles = async () => {
+      if (!accessToken) return;
+      try {
+        const response = await fetch('/api/admin/users/roles', {
+          headers: { 'Authorization': `Bearer ${accessToken}` }
+        });
+        if (response.ok) {
+          const roles = await response.json();
+          setAvailableRoles(roles);
+        }
+      } catch (err) {
+        console.error('Failed to fetch roles:', err);
+      }
+    };
+    fetchRoles();
+  }, [accessToken]);
 
   useEffect(() => {
     const fetchUsers = async () => {
@@ -31,7 +51,8 @@ export default function UserManagement() {
           page: currentPage,
           limit: 8,
           search: searchQuery,
-          status: statusFilter
+          status: statusFilter,
+          role: roleFilter
         });
         
         const response = await fetch(`/api/admin/users?${queryParams}`, {
@@ -53,7 +74,7 @@ export default function UserManagement() {
       }
     };
     fetchUsers();
-  }, [accessToken, currentPage, searchQuery, statusFilter]);
+  }, [accessToken, currentPage, searchQuery, statusFilter, roleFilter]);
   const [warningModalOpen, setWarningModalOpen] = useState(false);
   const [userToWarn, setUserToWarn] = useState(null);
   const [warningReason, setWarningReason] = useState('Inappropriate Behavior');
@@ -288,6 +309,16 @@ export default function UserManagement() {
           </div>
 
           <FilterDropdown
+            label="Role"
+            value={roleFilter}
+            options={[
+              { label: 'Any', value: 'All' },
+              ...availableRoles.map(r => ({ label: r, value: r }))
+            ]}
+            onChange={(val) => { setRoleFilter(val); setCurrentPage(1); }}
+          />
+
+          <FilterDropdown
             label="Status"
             value={statusFilter}
             options={[
@@ -302,7 +333,7 @@ export default function UserManagement() {
 
         <div className="flex items-center gap-md">
           <button
-            onClick={() => { setStatusFilter('All'); setSearchQuery(''); }}
+            onClick={() => { setStatusFilter('All'); setRoleFilter('All'); setSearchQuery(''); }}
             className="text-primary font-label-md hover:underline shrink-0"
           >
             Clear all filters
@@ -388,9 +419,15 @@ export default function UserManagement() {
                   )}
                   <td className="px-lg py-md">
                     <div className="flex items-center gap-md">
-                      <div className="w-10 h-10 rounded-full flex items-center justify-center bg-surface-variant text-on-surface-variant font-semibold text-body-sm flex-shrink-0">
-                        {user.initials}
-                      </div>
+                      {user.avatar ? (
+                        <div className="w-10 h-10 rounded-full flex items-center justify-center overflow-hidden flex-shrink-0 bg-surface-variant border border-outline-variant">
+                          <img src={user.avatar} alt="Avatar" className="w-full h-full object-cover" />
+                        </div>
+                      ) : (
+                        <div className="w-10 h-10 rounded-full flex items-center justify-center bg-surface-variant text-on-surface-variant font-semibold text-body-sm flex-shrink-0">
+                          {user.initials}
+                        </div>
+                      )}
                       <div className="flex flex-col">
                         <span className="font-semibold text-on-surface">{user.name}</span>
                         <span className="text-body-sm text-outline">{user.email}</span>
