@@ -137,8 +137,14 @@ export default function ModerationQueue() {
   const handleDeleteContent = async (report) => {
     if (window.confirm("Are you sure you want to delete this content? This action cannot be undone.")) {
       try {
-        // Assume Content reports refer to posts for MVP
-        const endpoint = report.type === 'Content' ? `/api/admin/posts/${report.postId}` : null;
+        let endpoint = null;
+        const rawType = report.rawType?.toUpperCase();
+        
+        if (rawType === 'COMMENT') {
+          endpoint = `/api/admin/comments/${report.postId}`;
+        } else if (rawType === 'POST' || report.type === 'Content') {
+          endpoint = `/api/admin/posts/${report.postId}`;
+        }
         
         if (!endpoint) {
           alert(`Deletion not implemented for type: ${report.type}`);
