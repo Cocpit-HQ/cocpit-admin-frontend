@@ -26,10 +26,10 @@ export const Modal = ({
   if (!isOpen) return null;
 
   const sizeClasses = {
-    sm: 'max-w-md',
-    md: 'max-w-xl',
-    lg: 'max-w-3xl',
-    xl: 'max-w-5xl',
+    sm: 'w-[450px] max-w-[90vw]',
+    md: 'w-[600px] max-w-[90vw]',
+    lg: 'w-[800px] max-w-[90vw]',
+    xl: 'w-[1000px] max-w-[90vw]',
   };
 
   return (
@@ -42,7 +42,7 @@ export const Modal = ({
 
       {/* Modal Card */}
       <div
-        className={`relative w-full rounded-2xl bg-surface border border-outline/10 text-on-surface shadow-2xl transition-all transform animate-zoom-in ${sizeClasses[size] || sizeClasses.md}`}
+        className={`relative rounded-2xl bg-surface border border-outline/10 text-on-surface shadow-2xl transition-all transform animate-zoom-in ${sizeClasses[size] || sizeClasses.md}`}
         role="dialog"
         aria-modal="true"
       >

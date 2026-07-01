@@ -5,6 +5,7 @@ import FilterDropdown from '../components/FilterDropdown';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../AuthContext';
 import DangerModal from '../components/DangerModal';
+import WarningModal from '../components/WarningModal';
 
 
 export default function UserManagement() {
@@ -77,8 +78,6 @@ export default function UserManagement() {
   }, [accessToken, currentPage, searchQuery, statusFilter, roleFilter]);
   const [warningModalOpen, setWarningModalOpen] = useState(false);
   const [userToWarn, setUserToWarn] = useState(null);
-  const [warningReason, setWarningReason] = useState('Inappropriate Behavior');
-  const [warningMessage, setWarningMessage] = useState('');
   const [isSevereWarning, setIsSevereWarning] = useState(false);
 
   const [bulkEmailModalOpen, setBulkEmailModalOpen] = useState(false);
@@ -196,20 +195,20 @@ export default function UserManagement() {
     setIsSevereWarning(false);
   };
 
-  const handleSendWarning = async () => {
+  const handleSendWarning = async ({ reason, message, isSevere }) => {
     if (!userToWarn) return;
     try {
       const response = await fetch(`/api/admin/users/${userToWarn.id}/warn`, {
         method: 'POST',
         headers: { 'Authorization': `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ reason: warningReason, message: warningMessage, isSevere: isSevereWarning })
+        body: JSON.stringify({ reason, message, isSevere })
       });
       const data = await response.json();
       if (data.autoSuspended) {
         alert(`${userToWarn.name} has been warned and AUTOMATICALLY SUSPENDED due to exceeding 7 moderation flags.`);
         setUsers(users.map(u => u.id === userToWarn.id ? { ...u, status: 'Suspended' } : u));
       } else {
-        if (isSevereWarning) {
+        if (isSevere) {
           alert(`Severe warning sent to ${userToWarn.name}. Their moderation flag was incremented (Total: ${data.moderation_flags}).`);
         } else {
           alert(`Warning sent to ${userToWarn.name}. No moderation flags were added.`);
@@ -220,7 +219,6 @@ export default function UserManagement() {
     }
     setWarningModalOpen(false);
     setUserToWarn(null);
-    setWarningMessage('');
   };
 
   const toggleUser = (id) => {
@@ -501,72 +499,12 @@ export default function UserManagement() {
       />
 
       {/* Warning Modal */}
-      {warningModalOpen && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 animate-in fade-in duration-200">
-          <div className="bg-surface border border-outline-variant w-[450px] max-w-[90vw] rounded-xl shadow-xl p-6 animate-in zoom-in-95 duration-200">
-            <div className="flex justify-between items-center mb-4">
-              <h3 className="text-lg font-semibold text-on-surface flex items-center gap-2">
-                <span className="material-symbols-outlined text-red-500">warning</span>
-                Send Warning
-              </h3>
-              <button onClick={() => setWarningModalOpen(false)} className="material-symbols-outlined text-on-surface-variant hover:text-on-surface transition-colors">close</button>
-            </div>
-
-            <p className="text-sm text-on-surface-variant mb-6">
-              You are sending an official warning to <strong>{userToWarn?.name}</strong>. They will receive this warning on the home page.
-            </p>
-
-            <div className="flex flex-col gap-4 mb-6">
-              <div>
-                <label className="block text-[11px] font-mono-label text-on-surface-variant mb-xs ml-1">REASON</label>
-                <select
-                  value={warningReason}
-                  onChange={(e) => setWarningReason(e.target.value)}
-                  className="w-full bg-surface border border-outline-variant rounded-lg px-md py-2 text-body-sm text-on-surface focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/20"
-                >
-                  <option>Inappropriate Behavior</option>
-                  <option>Spam / Self-Promotion</option>
-                  <option>Harassment</option>
-                  <option>Platform Manipulation</option>
-                </select>
-              </div>
-
-              <div>
-                <label className="block text-[11px] font-mono-label text-on-surface-variant mb-xs ml-1">ADDITIONAL MESSAGE (OPTIONAL)</label>
-                <textarea
-                  value={warningMessage}
-                  onChange={(e) => setWarningMessage(e.target.value)}
-                  placeholder="Provide any specific context or links to offending content..."
-                  className="w-full bg-surface border border-outline-variant rounded-lg px-md py-2 text-body-sm text-on-surface focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/20 resize-none h-24"
-                ></textarea>
-              </div>
-
-              <div className="flex items-center gap-2">
-                <input
-                  type="checkbox"
-                  id="severeWarning"
-                  checked={isSevereWarning}
-                  onChange={(e) => setIsSevereWarning(e.target.checked)}
-                  className="rounded border-outline-variant text-orange-500 focus:ring-orange-500 h-4 w-4"
-                />
-                <label htmlFor="severeWarning" className="text-sm font-medium text-on-surface">
-                  Severe Warning (Increments Moderation Flags)
-                </label>
-              </div>
-            </div>
-
-            <div className="flex justify-end gap-3">
-              <button onClick={() => setWarningModalOpen(false)} className="px-4 py-2 rounded-lg text-sm font-medium hover:bg-surface-container transition-colors">Cancel</button>
-              <button
-                onClick={handleSendWarning}
-                className="bg-orange-500 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-orange-600 transition-colors shadow-sm active:scale-95"
-              >
-                Send Warning
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      <WarningModal
+        isOpen={warningModalOpen}
+        onClose={() => setWarningModalOpen(false)}
+        userName={userToWarn?.name}
+        onSend={handleSendWarning}
+      />
 
       {/* Bulk Email Modal */}
       {bulkEmailModalOpen && (

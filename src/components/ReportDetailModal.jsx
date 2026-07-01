@@ -3,11 +3,12 @@ import { Link } from 'react-router-dom';
 import Modal from './Modal';
 import Button from './Button';
 
-export default function ReportDetailModal({ isOpen, onClose, report, onDeleteContent, onDismissReport, onDismissIndividual, role }) {
+export default function ReportDetailModal({ isOpen, onClose, report, onDeleteContent, onDismissReport, onDismissIndividual, onWarnUser, role }) {
   if (!report) return null;
 
   const isTier3 = report.highestSeverity?.includes('Tier 3');
   const reportIds = report.reports?.map(r => r.id) || [];
+  const targetUserId = report.reports?.[0]?.targetUserId || report.targetUserId;
 
   const footer = (
     <div className="w-full flex flex-col gap-3">
@@ -20,14 +21,22 @@ export default function ReportDetailModal({ isOpen, onClose, report, onDeleteCon
       <div className="flex gap-3 w-full">
         <button 
           onClick={() => onDismissReport(reportIds)} 
-          className="flex-1 bg-[#2b07b3] hover:bg-[#1a0470] text-white font-bold py-2.5 rounded-xl transition-colors shadow-md"
+          className="flex-1 bg-[#2b07b3] hover:bg-[#1a0470] text-white font-bold py-2.5 rounded-xl transition-colors shadow-md text-xs sm:text-sm"
         >
           Dismiss All<br/>Reports
         </button>
+        {targetUserId && (
+          <button 
+            onClick={() => onWarnUser(report)} 
+            className="flex-1 bg-orange-500 hover:bg-orange-600 text-white font-bold py-2.5 rounded-xl transition-colors shadow-md text-xs sm:text-sm"
+          >
+            Warn User
+          </button>
+        )}
         {(!isTier3 || role === 'admin') && (
           <button 
             onClick={() => onDeleteContent(report)} 
-            className="flex-1 bg-[#c00000] hover:bg-[#8a0000] text-white font-bold py-2.5 rounded-xl transition-colors shadow-md"
+            className="flex-1 bg-[#c00000] hover:bg-[#8a0000] text-white font-bold py-2.5 rounded-xl transition-colors shadow-md text-xs sm:text-sm"
           >
             Delete {report.type}
           </button>

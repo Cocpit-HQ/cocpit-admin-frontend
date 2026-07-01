@@ -1,5 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Radar, RadarChart, PolarGrid, PolarAngleAxis, Tooltip, ResponsiveContainer } from 'recharts';
+import { useAuth } from '../../AuthContext';
+import JobVerificationQueue from './JobVerificationQueue';
 
 // --- Mock Data for Widgets ---
 const activeJobs = [
@@ -36,10 +38,91 @@ const trendingJobs = [
 ];
 
 export default function ActiveJobsBreakdown() {
+  const { accessToken } = useAuth();
+  const [mainTab, setMainTab] = useState('Overview');
   const [activeTab, setActiveTab] = useState('audit');
+  const [liveJobsList, setLiveJobsList] = useState([]);
+  const [loadingLive, setLoadingLive] = useState(true);
+  
+  const [atsPipeline, setAtsPipeline] = useState(atsPipelineData);
+  const [auditLog, setAuditLog] = useState(versionControlLog);
+  const [skillsMatrix, setSkillsMatrix] = useState(topSkills);
+  const [trendingJobsList, setTrendingJobsList] = useState(trendingJobs);
+
+  useEffect(() => {
+    const fetchLiveJobs = async () => {
+      if (!accessToken) return;
+      try {
+        const res = await fetch('/api/admin/jobs?moderation_status=APPROVED&limit=10', {
+          headers: { 'Authorization': `Bearer ${accessToken}` }
+        });
+        if (res.ok) {
+          const data = await res.json();
+          setLiveJobsList(data.jobs || []);
+        }
+      } catch (err) {
+        console.error('Error fetching live jobs:', err);
+      } finally {
+        setLoadingLive(false);
+      }
+    };
+
+    const fetchJobsMetrics = async () => {
+      if (!accessToken) return;
+      try {
+        const res = await fetch('/api/admin/dashboard/jobs-metrics', {
+          headers: { 'Authorization': `Bearer ${accessToken}` }
+        });
+        if (res.ok) {
+          const data = await res.json();
+          if (data.atsPipeline) setAtsPipeline(data.atsPipeline);
+          
+          const combinedLogs = [];
+          if (data.auditTrail) combinedLogs.push(...data.auditTrail);
+          if (data.flags) combinedLogs.push(...data.flags);
+          
+          if (combinedLogs.length > 0) {
+            setAuditLog(combinedLogs);
+          }
+          
+          if (data.topSkills && data.topSkills.length > 0) setSkillsMatrix(data.topSkills);
+          if (data.trendingJobs) setTrendingJobsList(data.trendingJobs);
+        }
+      } catch (err) {
+        console.error('Error fetching jobs metrics:', err);
+      }
+    };
+
+    fetchLiveJobs();
+    fetchJobsMetrics();
+  }, [accessToken]);
 
   return (
-    <div className="flex flex-col gap-6">
+    <div className="flex flex-col gap-6 h-full">
+      {/* Main Tabs */}
+      <div className="flex gap-4 border-b border-gray-200 mb-2 shrink-0">
+        <button
+          onClick={() => setMainTab('Overview')}
+          className={`pb-3 font-semibold text-sm transition-colors relative ${mainTab === 'Overview' ? 'text-blue-600' : 'text-gray-500 hover:text-gray-700'}`}
+        >
+          Overview
+          {mainTab === 'Overview' && <div className="absolute bottom-0 left-0 w-full h-0.5 bg-blue-600 rounded-t-full"></div>}
+        </button>
+        <button
+          onClick={() => setMainTab('Job Verification')}
+          className={`pb-3 font-semibold text-sm transition-colors relative ${mainTab === 'Job Verification' ? 'text-blue-600' : 'text-gray-500 hover:text-gray-700'}`}
+        >
+          Job Verification
+          {mainTab === 'Job Verification' && <div className="absolute bottom-0 left-0 w-full h-0.5 bg-blue-600 rounded-t-full"></div>}
+        </button>
+      </div>
+
+      {mainTab === 'Job Verification' ? (
+        <div className="flex-1 min-h-0">
+          <JobVerificationQueue />
+        </div>
+      ) : (
+        <>
       {/* Top Row: Listings & ATS Pipeline */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         
@@ -57,25 +140,47 @@ export default function ActiveJobsBreakdown() {
           </div>
           
           <div className="space-y-4 max-h-[300px] overflow-y-auto pr-2 custom-scrollbar">
-            {activeJobs.map((job) => (
-              <div key={job.id} className="p-4 border border-gray-100 rounded-2xl hover:border-blue-200 hover:bg-blue-50/30 transition-all cursor-pointer">
-                <div className="flex justify-between items-start mb-2">
-                  <h4 className="font-bold text-gray-900">{job.title}</h4>
-                  {job.status === 'Actively Hiring' && (
-                    <span className="flex h-3 w-3 relative">
-                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-                      <span className="relative inline-flex rounded-full h-3 w-3 bg-emerald-500"></span>
-                    </span>
-                  )}
-                </div>
-                <div className="flex gap-2 flex-wrap mb-3">
-                  <span className="text-xs font-semibold bg-gray-100 text-gray-600 px-2 py-1 rounded-md">{job.company}</span>
-                  <span className="text-xs font-semibold bg-indigo-50 text-indigo-700 px-2 py-1 rounded-md">{job.salary}</span>
-                  <span className="text-xs font-semibold bg-purple-50 text-purple-700 px-2 py-1 rounded-md">{job.mode}</span>
-                  {job.easyApply && <span className="text-xs font-bold bg-amber-50 text-amber-600 px-2 py-1 rounded-md border border-amber-200">Easy Apply</span>}
-                </div>
+            {loadingLive ? (
+              <div className="flex justify-center p-8">
+                <span className="material-symbols-outlined animate-spin text-2xl text-blue-600">progress_activity</span>
               </div>
-            ))}
+            ) : liveJobsList.length === 0 ? (
+              <p className="text-center p-8 text-gray-400 text-sm">No active jobs found in database</p>
+            ) : (
+              liveJobsList.map((job) => {
+                const formatSalaryLocal = () => {
+                  if (job.salary_visibility === 'PRIVATE' || job.salary_visibility === 'HIDDEN') {
+                    return 'Confidential';
+                  }
+                  if (job.salary_min !== null && job.salary_min !== undefined) {
+                    const min = job.salary_min.toLocaleString();
+                    const max = job.salary_max ? job.salary_max.toLocaleString() : null;
+                    return `${job.salary_currency || 'USD'} ${min}${max ? ` - ${max}` : ''}`;
+                  }
+                  return 'Competitive';
+                };
+
+                return (
+                  <div key={job.job_id} className="p-4 border border-gray-100 rounded-2xl hover:border-blue-200 hover:bg-blue-50/30 transition-all cursor-pointer">
+                    <div className="flex justify-between items-start mb-2">
+                      <h4 className="font-bold text-gray-900 truncate pr-2">{job.title}</h4>
+                      {job.actively_hiring && (
+                        <span className="flex h-3 w-3 relative shrink-0">
+                          <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                          <span className="relative inline-flex rounded-full h-3 w-3 bg-emerald-500"></span>
+                        </span>
+                      )}
+                    </div>
+                    <div className="flex gap-2 flex-wrap mb-1">
+                      <span className="text-xs font-semibold bg-gray-100 text-gray-600 px-2 py-1 rounded-md">{job.company_name}</span>
+                      <span className="text-xs font-semibold bg-indigo-50 text-indigo-700 px-2 py-1 rounded-md">{formatSalaryLocal()}</span>
+                      <span className="text-xs font-semibold bg-purple-50 text-purple-700 px-2 py-1 rounded-md">{job.work_mode || 'Remote'}</span>
+                      {job.easy_apply && <span className="text-xs font-bold bg-amber-50 text-amber-600 px-2 py-1 rounded-md border border-amber-200">Easy Apply</span>}
+                    </div>
+                  </div>
+                );
+              })
+            )}
           </div>
         </div>
 
@@ -91,7 +196,7 @@ export default function ActiveJobsBreakdown() {
             {/* Connecting Vertical Line */}
             <div className="absolute left-[33px] top-6 bottom-6 w-0.5 bg-gray-100 z-0"></div>
             
-            {atsPipelineData.map((stage, idx) => (
+            {atsPipeline.map((stage, idx) => (
               <div key={idx} className="flex items-center gap-4 relative z-10 group cursor-pointer">
                 <div className={`w-14 h-14 rounded-2xl flex items-center justify-center shrink-0 border-2 bg-white shadow-sm transition-transform group-hover:scale-110 ${stage.border} ${stage.color}`}>
                   <span className="material-symbols-outlined text-[28px]">{stage.icon}</span>
@@ -128,7 +233,7 @@ export default function ActiveJobsBreakdown() {
           </div>
           
           <div className="space-y-4">
-            {versionControlLog.filter(log => activeTab === 'audit' || log.type === 'flag').map((log) => (
+            {auditLog.filter(log => activeTab === 'audit' ? log.type !== 'flag' : log.type === 'flag').map((log) => (
               <div key={log.id} className="flex gap-4 p-4 rounded-2xl bg-gray-50/50 border border-gray-100 hover:border-gray-200 transition-colors group">
                 <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${log.type === 'flag' ? 'bg-red-100 text-red-600' : 'bg-blue-100 text-blue-600'}`}>
                   <span className="material-symbols-outlined">{log.type === 'flag' ? 'flag' : 'history'}</span>
@@ -155,7 +260,7 @@ export default function ActiveJobsBreakdown() {
           
           <div className="flex-1 flex flex-col justify-center items-center relative min-h-[250px]">
             <ResponsiveContainer width="100%" height={260}>
-              <RadarChart cx="50%" cy="50%" outerRadius="75%" data={topSkills}>
+              <RadarChart cx="50%" cy="50%" outerRadius="75%" data={skillsMatrix}>
                 <PolarGrid stroke="#f3f4f6" />
                 <PolarAngleAxis dataKey="name" tick={{ fill: '#374151', fontSize: 13, fontWeight: 700 }} />
                 <Tooltip 
@@ -186,7 +291,7 @@ export default function ActiveJobsBreakdown() {
         </div>
         
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          {trendingJobs.map((job, idx) => (
+          {trendingJobsList.map((job, idx) => (
             <div key={idx} className="p-5 rounded-2xl bg-gradient-to-br from-amber-50/50 to-orange-50/30 border border-amber-100 hover:shadow-md transition-shadow">
               <h4 className="font-bold text-gray-900 text-lg mb-4">{job.title}</h4>
               <div className="flex justify-between items-end">
@@ -200,7 +305,8 @@ export default function ActiveJobsBreakdown() {
           ))}
         </div>
       </div>
-
+        </>
+      )}
     </div>
   );
 }

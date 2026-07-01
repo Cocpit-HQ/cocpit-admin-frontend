@@ -4,6 +4,7 @@ import { useAuth } from '../AuthContext';
 import ReportRow from '../components/ReportRow';
 import AppealRow from '../components/AppealRow';
 import ReportDetailModal from '../components/ReportDetailModal';
+import WarningModal from '../components/WarningModal';
 
 export default function ModerationQueue() {
   const { role, accessToken } = useAuth();
@@ -28,6 +29,9 @@ export default function ModerationQueue() {
   // Modal State
   const [selectedReport, setSelectedReport] = useState(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [warningModalOpen, setWarningModalOpen] = useState(false);
+  const [userToWarn, setUserToWarn] = useState(null);
+  const [warningReportGroup, setWarningReportGroup] = useState(null);
 
   const fetchReports = async (status, setter, setTotalPages, page, type = 'All', reason = 'All', severity = 'All') => {
     try {
@@ -114,6 +118,8 @@ export default function ModerationQueue() {
           postTime: report.postTime,
           image: report.image,
           offenses: report.offenses,
+          targetUserId: report.targetUserId,
+          targetUserName: report.targetUserName,
           reports: [],
         };
       }
@@ -297,6 +303,60 @@ export default function ModerationQueue() {
   const openReportModal = (report) => {
     setSelectedReport(report);
     setIsModalOpen(true);
+  };
+
+  const handleOpenWarnModal = (groupedReport) => {
+    const authorId = groupedReport.reports?.[0]?.targetUserId || groupedReport.targetUserId;
+    const authorName = groupedReport.reports?.[0]?.targetUserName || groupedReport.targetUserName;
+    if (!authorId) {
+      alert("Unable to identify the author of this content.");
+      return;
+    }
+    setUserToWarn({ id: authorId, name: authorName });
+    setWarningReportGroup(groupedReport);
+    setWarningModalOpen(true);
+  };
+
+  const handleSendWarning = async ({ reason, message, isSevere }) => {
+    if (!userToWarn || !warningReportGroup) return;
+    try {
+      const response = await fetch(`/api/admin/users/${userToWarn.id}/warn`, {
+        method: 'POST',
+        headers: { 
+          'Authorization': `Bearer ${accessToken}`, 
+          'Content-Type': 'application/json' 
+        },
+        body: JSON.stringify({ reason, message, isSevere })
+      });
+      const data = await response.json();
+      
+      let autoSuspended = data.autoSuspended;
+      let alertMsg = "";
+      if (autoSuspended) {
+        alertMsg = `${userToWarn.name} has been warned and AUTOMATICALLY SUSPENDED due to exceeding 7 moderation flags.`;
+      } else {
+        if (isSevere) {
+          alertMsg = `Severe warning sent to ${userToWarn.name}. Their moderation flag was incremented (Total: ${data.moderation_flags}).`;
+        } else {
+          alertMsg = `Warning sent to ${userToWarn.name}. No moderation flags were added.`;
+        }
+      }
+      
+      // Auto-resolve all reports in this group
+      const reportIds = warningReportGroup.reports.map(r => r.id);
+      await updateReportStatusBulk(reportIds, 'resolved');
+      
+      alert(alertMsg + "\n\nAssociated reports have been resolved.");
+      
+      setIsModalOpen(false); // Close the detail modal
+    } catch (e) {
+      console.error(e);
+      alert("Failed to send warning.");
+    } finally {
+      setWarningModalOpen(false);
+      setUserToWarn(null);
+      setWarningReportGroup(null);
+    }
   };
 
   if (loading) {
@@ -516,6 +576,15 @@ export default function ModerationQueue() {
         onDeleteContent={handleDeleteContent}
         onDismissReport={handleDismissFromModal}
         onDismissIndividual={handleDismissIndividual}
+        onWarnUser={handleOpenWarnModal}
+      />
+
+      {/* Warning Modal */}
+      <WarningModal
+        isOpen={warningModalOpen}
+        onClose={() => setWarningModalOpen(false)}
+        userName={userToWarn?.name}
+        onSend={handleSendWarning}
       />
     </div>
   );
