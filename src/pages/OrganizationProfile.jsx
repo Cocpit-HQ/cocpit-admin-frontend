@@ -162,9 +162,19 @@ export default function OrganizationProfile() {
              <span className="material-symbols-outlined text-[80px] text-blue-400">all_inclusive</span>
           </div>
           
-          {/* More options button */}
-          <div className="absolute right-6 top-6">
-            <button className="material-symbols-outlined text-slate-700 hover:text-slate-900 transition-colors text-[28px]">more_vert</button>
+          {/* Action buttons */}
+          <div className="absolute right-6 top-6 flex gap-3">
+            <button className="flex items-center gap-2 bg-transparent text-slate-700 hover:bg-slate-50 px-4 py-2 rounded-lg font-medium text-[13px] transition-colors border border-slate-300">
+              <span className="material-symbols-outlined text-[16px]">notifications</span>
+              Warn Organization
+            </button>
+            <button 
+              onClick={() => setSuspendModalOpen(true)}
+              className="flex items-center gap-2 bg-transparent text-[#b91c1c] hover:bg-red-50 px-4 py-2 rounded-lg font-medium text-[13px] transition-colors border border-[#b91c1c]"
+            >
+              <span className="material-symbols-outlined text-[16px]">gavel</span>
+              Suspend Organization
+            </button>
           </div>
 
           {/* Profile Info */}
