@@ -105,34 +105,93 @@ export default function Organizations() {
       </div>
 
       {/* Stat Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-md mb-xl">
-        <div className="bg-indigo-50 border border-indigo-100 p-md rounded-xl flex items-center gap-md">
-          <div className="w-10 h-10 rounded-lg bg-indigo-100 flex items-center justify-center">
-            <span className="material-symbols-outlined text-indigo-600">apartment</span>
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-md mb-xl">
+        {/* Total Organizations */}
+        <div className="bg-surface border-y border-r border-outline-variant border-l-4 border-l-indigo-600 shadow-sm rounded-lg p-md flex justify-between items-start">
+          <div className="flex flex-col">
+            <h4 className="text-[13px] font-semibold text-on-surface-variant mb-2">Total Organizations</h4>
+            <div className="flex items-baseline gap-2 mb-1">
+              <span className="text-3xl font-bold text-on-surface">2,842</span>
+              <span className="text-[12px] font-bold text-green-600 flex items-center">
+                <span className="material-symbols-outlined text-[14px]">trending_up</span>+12%
+              </span>
+            </div>
+            <p className="text-[12px] italic text-on-surface-variant/70">Since last month</p>
           </div>
-          <div>
-            <p className="text-[11px] font-semibold text-on-surface-variant uppercase tracking-wider">Total Organizations</p>
-            <h3 className="text-xl font-bold text-on-surface">{mockOrganizations.length}</h3>
+          <div className="w-10 h-10 rounded-lg bg-indigo-50 flex items-center justify-center shrink-0">
+            <span className="material-symbols-outlined text-indigo-600">domain</span>
           </div>
         </div>
 
-        <div className="bg-green-50 border border-green-100 p-md rounded-xl flex items-center gap-md">
-          <div className="w-10 h-10 rounded-lg bg-green-100 flex items-center justify-center">
+        {/* Pending Verification */}
+        <div className="bg-surface border-y border-r border-outline-variant border-l-4 border-l-indigo-600 shadow-sm rounded-lg p-md flex justify-between items-start">
+          <div className="flex flex-col">
+            <h4 className="text-[13px] font-semibold text-on-surface-variant mb-2">Pending Verification</h4>
+            <div className="flex items-baseline gap-2 mb-1">
+              <span className="text-3xl font-bold text-on-surface">42</span>
+              <span className="text-[10px] font-bold text-orange-700 bg-orange-100 px-2 py-0.5 rounded-full uppercase">Urgent</span>
+            </div>
+            <p className="text-[12px] italic text-on-surface-variant/70">Requires manual review</p>
+          </div>
+          <div className="w-10 h-10 rounded-lg bg-orange-50 flex items-center justify-center shrink-0">
+            <span className="material-symbols-outlined text-orange-600">assignment_late</span>
+          </div>
+        </div>
+
+        {/* Incomplete Onboarding */}
+        <div className="bg-surface border-y border-r border-outline-variant border-l-4 border-l-indigo-600 shadow-sm rounded-lg p-md flex justify-between items-start">
+          <div className="flex flex-col">
+            <h4 className="text-[13px] font-semibold text-on-surface-variant mb-2">Incomplete Onboarding</h4>
+            <div className="flex items-baseline gap-2 mb-1">
+              <span className="text-3xl font-bold text-on-surface">156</span>
+            </div>
+            <p className="text-[12px] italic text-on-surface-variant/70">Dropped off in Stage 2</p>
+          </div>
+          <div className="w-10 h-10 rounded-lg bg-indigo-50 flex items-center justify-center shrink-0">
+            <span className="material-symbols-outlined text-indigo-600">app_registration</span>
+          </div>
+        </div>
+
+        {/* Avg. Verification Time */}
+        <div className="bg-surface border-y border-r border-outline-variant border-l-4 border-l-indigo-600 shadow-sm rounded-lg p-md flex justify-between items-start">
+          <div className="flex flex-col">
+            <h4 className="text-[13px] font-semibold text-on-surface-variant mb-2">Avg. Verification Time</h4>
+            <div className="flex items-baseline gap-2 mb-1">
+              <span className="text-3xl font-bold text-on-surface">1.2</span>
+              <span className="text-sm font-medium text-on-surface-variant">days</span>
+            </div>
+            <p className="text-[12px] italic text-on-surface-variant/70">-0.3 from previous week</p>
+          </div>
+          <div className="w-10 h-10 rounded-lg bg-indigo-50 flex items-center justify-center shrink-0">
+            <span className="material-symbols-outlined text-indigo-600">timer</span>
+          </div>
+        </div>
+
+        {/* Active Organizations */}
+        <div className="bg-surface border-y border-r border-outline-variant border-l-4 border-l-indigo-600 shadow-sm rounded-lg p-md flex justify-between items-start">
+          <div className="flex flex-col">
+            <h4 className="text-[13px] font-semibold text-on-surface-variant mb-2">Active Organizations</h4>
+            <div className="flex items-baseline gap-2 mb-1">
+              <span className="text-3xl font-bold text-on-surface">{mockOrganizations.filter(o => o.status === 'Active').length}</span>
+            </div>
+            <p className="text-[12px] italic text-on-surface-variant/70">Currently registered & active</p>
+          </div>
+          <div className="w-10 h-10 rounded-lg bg-green-50 flex items-center justify-center shrink-0">
             <span className="material-symbols-outlined text-green-600">check_circle</span>
           </div>
-          <div>
-            <p className="text-[11px] font-semibold text-on-surface-variant uppercase tracking-wider">Active Organizations</p>
-            <h3 className="text-xl font-bold text-on-surface">{mockOrganizations.filter(o => o.status === 'Active').length}</h3>
-          </div>
         </div>
 
-        <div className="bg-orange-50 border border-orange-100 p-md rounded-xl flex items-center gap-md">
-          <div className="w-10 h-10 rounded-lg bg-orange-100 flex items-center justify-center">
-            <span className="material-symbols-outlined text-orange-600">gavel</span>
+        {/* Suspended Organizations */}
+        <div className="bg-surface border-y border-r border-outline-variant border-l-4 border-l-indigo-600 shadow-sm rounded-lg p-md flex justify-between items-start">
+          <div className="flex flex-col">
+            <h4 className="text-[13px] font-semibold text-on-surface-variant mb-2">Suspended</h4>
+            <div className="flex items-baseline gap-2 mb-1">
+              <span className="text-3xl font-bold text-on-surface">{mockOrganizations.filter(o => o.status === 'Suspended').length}</span>
+            </div>
+            <p className="text-[12px] italic text-on-surface-variant/70">Action required</p>
           </div>
-          <div>
-            <p className="text-[11px] font-semibold text-on-surface-variant uppercase tracking-wider">Suspended</p>
-            <h3 className="text-xl font-bold text-on-surface">{mockOrganizations.filter(o => o.status === 'Suspended').length}</h3>
+          <div className="w-10 h-10 rounded-lg bg-red-50 flex items-center justify-center shrink-0">
+            <span className="material-symbols-outlined text-red-600">gavel</span>
           </div>
         </div>
       </div>
@@ -281,13 +340,22 @@ export default function Organizations() {
                   <td className="p-lg text-right">
                     <div className="flex justify-end gap-sm opacity-0 group-hover:opacity-100 transition-opacity">
                       {role !== 'developer' && (
-                        <button
-                          onClick={() => { setOrgToWarn(org); setWarningModalOpen(true); }}
-                          className="w-10 h-10 flex items-center justify-center rounded-lg hover:bg-orange-50 text-outline hover:text-orange-500 transition-colors"
-                          title="Send Warning"
-                        >
-                          <span className="material-symbols-outlined">warning</span>
-                        </button>
+                        <>
+                          <button
+                            onClick={() => { setOrgToWarn(org); setWarningModalOpen(true); }}
+                            className="w-10 h-10 flex items-center justify-center rounded-lg hover:bg-orange-50 text-outline hover:text-orange-500 transition-colors"
+                            title="Send Warning"
+                          >
+                            <span className="material-symbols-outlined">warning</span>
+                          </button>
+                          <button
+                            onClick={() => { setSelectedOrgs(new Set([org.id])); setRestrictConfirmModalOpen(true); }}
+                            className="w-10 h-10 flex items-center justify-center rounded-lg hover:bg-red-50 text-outline hover:text-red-500 transition-colors"
+                            title="Suspend Organization"
+                          >
+                            <span className="material-symbols-outlined">block</span>
+                          </button>
+                        </>
                       )}
                       <button onClick={() => navigate('/org-profile')} className="w-10 h-10 flex items-center justify-center rounded-lg hover:bg-surface-container text-outline hover:text-primary transition-colors" title="View Profile">
                         <span className="material-symbols-outlined">visibility</span>
