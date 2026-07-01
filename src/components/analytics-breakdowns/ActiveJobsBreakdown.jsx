@@ -1,7 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { Radar, RadarChart, PolarGrid, PolarAngleAxis, Tooltip, ResponsiveContainer } from 'recharts';
 import { useAuth } from '../../AuthContext';
+import { useNavigate } from 'react-router-dom';
 import JobVerificationQueue from './JobVerificationQueue';
+import Modal from '../Modal';
+import JobDetailCard from '../JobDetailCard';
 
 // --- Mock Data for Widgets ---
 const activeJobs = [
@@ -39,10 +42,34 @@ const trendingJobs = [
 
 export default function ActiveJobsBreakdown() {
   const { accessToken } = useAuth();
+  const navigate = useNavigate();
   const [mainTab, setMainTab] = useState('Overview');
   const [activeTab, setActiveTab] = useState('audit');
   const [liveJobsList, setLiveJobsList] = useState([]);
   const [loadingLive, setLoadingLive] = useState(true);
+  
+  const [selectedLiveJob, setSelectedLiveJob] = useState(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [loadingJobDetails, setLoadingJobDetails] = useState(false);
+
+  const handleJobClick = async (jobId) => {
+    if (!jobId) return;
+    setLoadingJobDetails(true);
+    setIsModalOpen(true);
+    try {
+      const res = await fetch(`/api/admin/jobs/${jobId}`, {
+        headers: { 'Authorization': `Bearer ${accessToken}` }
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setSelectedLiveJob(data);
+      }
+    } catch (err) {
+      console.error('Error fetching job details:', err);
+    } finally {
+      setLoadingJobDetails(false);
+    }
+  };
   
   const [atsPipeline, setAtsPipeline] = useState(atsPipelineData);
   const [auditLog, setAuditLog] = useState(versionControlLog);
@@ -161,7 +188,7 @@ export default function ActiveJobsBreakdown() {
                 };
 
                 return (
-                  <div key={job.job_id} className="p-4 border border-gray-100 rounded-2xl hover:border-blue-200 hover:bg-blue-50/30 transition-all cursor-pointer">
+                  <div key={job.job_id} onClick={() => handleJobClick(job.job_id)} className="p-4 border border-gray-100 rounded-2xl hover:border-blue-200 hover:bg-blue-50/30 transition-all cursor-pointer">
                     <div className="flex justify-between items-start mb-2">
                       <h4 className="font-bold text-gray-900 truncate pr-2">{job.title}</h4>
                       {job.actively_hiring && (
@@ -172,7 +199,17 @@ export default function ActiveJobsBreakdown() {
                       )}
                     </div>
                     <div className="flex gap-2 flex-wrap mb-1">
-                      <span className="text-xs font-semibold bg-gray-100 text-gray-600 px-2 py-1 rounded-md">{job.company_name}</span>
+                      <span 
+                        onClick={(e) => { 
+                          if (job.recruiter_id) {
+                            e.stopPropagation(); 
+                            navigate('/profile/' + job.recruiter_id); 
+                          }
+                        }}
+                        className="text-xs font-semibold bg-gray-100 text-gray-600 px-2 py-1 rounded-md hover:bg-gray-200 hover:text-blue-600 cursor-pointer transition-colors"
+                      >
+                        {job.recruiter_name || job.company_name}
+                      </span>
                       <span className="text-xs font-semibold bg-indigo-50 text-indigo-700 px-2 py-1 rounded-md">{formatSalaryLocal()}</span>
                       <span className="text-xs font-semibold bg-purple-50 text-purple-700 px-2 py-1 rounded-md">{job.work_mode || 'Remote'}</span>
                       {job.easy_apply && <span className="text-xs font-bold bg-amber-50 text-amber-600 px-2 py-1 rounded-md border border-amber-200">Easy Apply</span>}
@@ -234,7 +271,11 @@ export default function ActiveJobsBreakdown() {
           
           <div className="space-y-4">
             {auditLog.filter(log => activeTab === 'audit' ? log.type !== 'flag' : log.type === 'flag').map((log) => (
-              <div key={log.id} className="flex gap-4 p-4 rounded-2xl bg-gray-50/50 border border-gray-100 hover:border-gray-200 transition-colors group">
+              <div 
+                key={log.id} 
+                onClick={() => handleJobClick(log.jobId)}
+                className="flex gap-4 p-4 rounded-2xl bg-gray-50/50 border border-gray-100 hover:border-blue-200 hover:bg-blue-50/30 transition-all cursor-pointer group"
+              >
                 <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${log.type === 'flag' ? 'bg-red-100 text-red-600' : 'bg-blue-100 text-blue-600'}`}>
                   <span className="material-symbols-outlined">{log.type === 'flag' ? 'flag' : 'history'}</span>
                 </div>
@@ -244,7 +285,16 @@ export default function ActiveJobsBreakdown() {
                     <span className="text-xs font-semibold text-gray-400">{log.time}</span>
                   </div>
                   <p className="text-sm text-gray-600 mt-1">{log.detail}</p>
-                  <p className="text-xs text-gray-400 mt-2 font-medium flex items-center gap-1">
+                  <p 
+                    onClick={(e) => {
+                      const userId = log.changedBy || log.reporterId;
+                      if (userId) {
+                        e.stopPropagation();
+                        navigate('/profile/' + userId);
+                      }
+                    }}
+                    className="text-xs text-gray-400 mt-2 font-medium flex items-center gap-1 hover:text-blue-650 cursor-pointer w-max"
+                  >
                     <span className="material-symbols-outlined text-[14px]">person</span> {log.user}
                   </p>
                 </div>
@@ -292,7 +342,11 @@ export default function ActiveJobsBreakdown() {
         
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           {trendingJobsList.map((job, idx) => (
-            <div key={idx} className="p-5 rounded-2xl bg-gradient-to-br from-amber-50/50 to-orange-50/30 border border-amber-100 hover:shadow-md transition-shadow">
+            <div 
+              key={idx} 
+              onClick={() => job.jobId && handleJobClick(job.jobId)}
+              className={`p-5 rounded-2xl bg-gradient-to-br from-amber-50/50 to-orange-50/30 border border-amber-100 transition-shadow ${job.jobId ? 'hover:shadow-md hover:border-amber-250 cursor-pointer' : ''}`}
+            >
               <h4 className="font-bold text-gray-900 text-lg mb-4">{job.title}</h4>
               <div className="flex justify-between items-end">
                 <div>
@@ -307,6 +361,25 @@ export default function ActiveJobsBreakdown() {
       </div>
         </>
       )}
+      {/* Job Details Modal */}
+      <Modal
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        title="Job Details"
+        size="lg"
+      >
+        {loadingJobDetails ? (
+          <div className="flex justify-center p-12">
+            <span className="material-symbols-outlined animate-spin text-4xl text-blue-600">progress_activity</span>
+          </div>
+        ) : (
+          <JobDetailCard 
+            job={selectedLiveJob} 
+            isProcessing={false}
+            hideActions={true}
+          />
+        )}
+      </Modal>
     </div>
   );
 }

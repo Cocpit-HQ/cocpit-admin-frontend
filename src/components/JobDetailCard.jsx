@@ -1,6 +1,6 @@
 import React from 'react';
 
-export default function JobDetailCard({ job, onApprove, onReject, isProcessing }) {
+export default function JobDetailCard({ job, onApprove, onReject, isProcessing, hideActions }) {
   if (!job) {
     return (
       <div className="bg-white rounded-2xl border border-gray-100 p-8 text-center text-gray-400 flex flex-col items-center justify-center h-full min-h-[400px]">
@@ -156,24 +156,26 @@ export default function JobDetailCard({ job, onApprove, onReject, isProcessing }
       </div>
 
       {/* Card Footer Actions */}
-      <div className="p-4 border-t border-gray-100 bg-[#fbfbfe] shrink-0 flex items-center gap-3">
-        <button
-          onClick={() => onReject(job.job_id)}
-          disabled={isProcessing}
-          className="flex-1 flex items-center justify-center gap-2 border border-red-200 text-red-700 bg-red-50 hover:bg-red-100 disabled:opacity-50 disabled:cursor-not-allowed font-bold py-3 rounded-xl transition-all shadow-sm active:scale-98"
-        >
-          <span className="material-symbols-outlined">block</span>
-          Reject Posting
-        </button>
-        <button
-          onClick={() => onApprove(job.job_id)}
-          disabled={isProcessing}
-          className="flex-1 flex items-center justify-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white disabled:opacity-50 disabled:cursor-not-allowed font-bold py-3 rounded-xl transition-all shadow-md active:scale-98"
-        >
-          <span className="material-symbols-outlined">check_circle</span>
-          Approve Posting
-        </button>
-      </div>
+      {!hideActions && (
+        <div className="p-4 border-t border-gray-100 bg-[#fbfbfe] shrink-0 flex items-center gap-3">
+          <button
+            onClick={() => onReject(job.job_id)}
+            disabled={isProcessing}
+            className="flex-1 flex items-center justify-center gap-2 border border-red-200 text-red-700 bg-red-50 hover:bg-red-100 disabled:opacity-50 disabled:cursor-not-allowed font-bold py-3 rounded-xl transition-all shadow-sm active:scale-98"
+          >
+            <span className="material-symbols-outlined">block</span>
+            Reject Posting
+          </button>
+          <button
+            onClick={() => onApprove(job.job_id)}
+            disabled={isProcessing}
+            className="flex-1 flex items-center justify-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white disabled:opacity-50 disabled:cursor-not-allowed font-bold py-3 rounded-xl transition-all shadow-md active:scale-98"
+          >
+            <span className="material-symbols-outlined">check_circle</span>
+            Approve Posting
+          </button>
+        </div>
+      )}
     </div>
   );
 }
