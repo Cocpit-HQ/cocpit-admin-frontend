@@ -27,29 +27,71 @@ const mockOrg = {
 };
 
 const mockTechStack = [
-  { name: 'React', category: 'Frontend', color: 'bg-surface-container-low text-on-surface border-outline-variant' },
-  { name: 'Node.js', category: 'Backend', color: 'bg-surface-container-low text-on-surface border-outline-variant' },
-  { name: 'PostgreSQL', category: 'Database', color: 'bg-surface-container-low text-on-surface border-outline-variant' },
-  { name: 'Docker', category: 'DevOps', color: 'bg-surface-container-low text-on-surface border-outline-variant' },
-  { name: 'AWS', category: 'Infrastructure', color: 'bg-surface-container-low text-on-surface border-outline-variant' }
+  { name: 'React', category: 'Frontend', bg: 'bg-blue-50/50', border: 'border-blue-100', iconBg: 'bg-white', iconBorder: 'border-blue-100', iconText: 'text-blue-600', icon: 'deployed_code', colSpan: 1 },
+  { name: 'Node.js', category: 'Backend', bg: 'bg-green-50/50', border: 'border-green-100', iconBg: 'bg-white', iconBorder: 'border-green-100', iconText: 'text-green-600', icon: 'javascript', isTextIcon: true, textIcon: 'JS', colSpan: 1 },
+  { name: 'PostgreSQL', category: 'Database', bg: 'bg-indigo-50/50', border: 'border-indigo-100', iconBg: 'bg-white', iconBorder: 'border-indigo-100', iconText: 'text-indigo-600', icon: 'database', colSpan: 1 },
+  { name: 'Docker', category: 'DevOps', bg: 'bg-blue-50/50', border: 'border-blue-100', iconBg: 'bg-white', iconBorder: 'border-blue-100', iconText: 'text-blue-600', icon: 'inventory_2', colSpan: 1 },
+  { name: 'AWS Cloud Services', category: 'Infrastructure', bg: 'bg-orange-50/50', border: 'border-orange-100', iconBg: 'bg-white', iconBorder: 'border-orange-100', iconText: 'text-orange-600', icon: 'cloud', colSpan: 2 }
 ];
 
 const mockMembers = [
-  { id: 1, name: 'Alice Chen', role: 'Engineering Manager', initials: 'AC', color: 'bg-surface-container-high text-on-surface' },
-  { id: 2, name: 'Bob Smith', role: 'Senior Developer', initials: 'BS', color: 'bg-surface-container-high text-on-surface' },
-  { id: 3, name: 'Clara Jones', role: 'Product Manager', initials: 'CJ', color: 'bg-surface-container-high text-on-surface' },
-  { id: 4, name: 'David Lee', role: 'UX Designer', initials: 'DL', color: 'bg-surface-container-high text-on-surface' }
+  { id: 1, name: 'Alice Chen', role: 'Engineering Manager', initials: 'AC', color: 'bg-blue-100 text-blue-700', department: 'Engineering', email: 'alice.c@nexutech.io', status: 'ACTIVE' },
+  { id: 2, name: 'Bob Smith', role: 'Senior Developer', initials: 'BS', color: 'bg-purple-100 text-purple-700', department: 'Engineering', email: 'bob.s@nexutech.io', status: 'ACTIVE' },
+  { id: 3, name: 'Clara Jones', role: 'Product Manager', initials: 'CJ', color: 'bg-orange-100 text-orange-700', department: 'Product', email: 'clara.j@nexutech.io', status: 'INVITED' },
+  { id: 4, name: 'David Lee', role: 'UX Designer', initials: 'DL', color: 'bg-green-100 text-green-700', department: 'Design', email: 'david.l@nexutech.io', status: 'ACTIVE' }
 ];
 
 const baseActivity = [
-  { id: 1, type: 'job', text: 'Posted a new job: Senior React Developer', time: '2 hours ago', icon: 'work', color: 'text-blue-600 bg-blue-50' },
-  { id: 2, type: 'post', text: 'Published an update: "Q3 Earnings and Roadmap..."', time: '1 day ago', icon: 'article', color: 'text-purple-600 bg-purple-50' },
-  { id: 3, type: 'member', text: 'David Lee joined as UX Designer', time: '3 days ago', icon: 'person_add', color: 'text-green-600 bg-green-50' },
-  { id: 4, type: 'milestone', text: 'Reached 10,000 Followers', time: '1 week ago', icon: 'social_leaderboard', color: 'text-amber-600 bg-amber-50' },
-  { id: 5, type: 'job', text: 'Closed job: Marketing Intern', time: '2 weeks ago', icon: 'work_off', color: 'text-slate-600 bg-slate-50' },
-  { id: 6, type: 'post', text: 'Shared an article: "The Future of Cloud Computing"', time: '3 weeks ago', icon: 'share', color: 'text-purple-600 bg-purple-50' },
-  { id: 7, type: 'member', text: 'Clara Jones promoted to Product Manager', time: '1 month ago', icon: 'workspace_premium', color: 'text-green-600 bg-green-50' },
-  { id: 8, type: 'job', text: 'Posted a new job: DevOps Engineer', time: '1 month ago', icon: 'work', color: 'text-blue-600 bg-blue-50' }
+  { 
+    id: 1, 
+    type: 'approval', 
+    text: 'Sarah Jenkins approved Business License', 
+    note: 'Internal Note: Clear resolution, watermark verified.', 
+    time: '2 hours ago', 
+    icon: 'verified_user', 
+    color: 'text-green-600 bg-green-50',
+    author: { name: 'Sarah Jenkins', initials: 'SJ', avatarColor: 'bg-orange-100 text-orange-800' }
+  },
+  { 
+    id: 2, 
+    type: 'member', 
+    text: 'David Lee joined as UX Designer', 
+    note: 'Onboarding documents completed and verified.', 
+    time: '3 days ago', 
+    icon: 'person_add', 
+    color: 'text-blue-600 bg-blue-50',
+    author: { name: 'System Automation', initials: 'SA', avatarColor: 'bg-slate-100 text-slate-500' }
+  },
+  { 
+    id: 3, 
+    type: 'document', 
+    text: 'Tax ID (W-9) re-submitted', 
+    note: 'Updated document following initial rejection.', 
+    time: '4 days ago', 
+    icon: 'edit_document', 
+    color: 'text-orange-600 bg-orange-50',
+    author: { name: 'Alice Chen', initials: 'AC', avatarColor: 'bg-blue-100 text-blue-700' }
+  },
+  { 
+    id: 4, 
+    type: 'milestone', 
+    text: 'Reached 10,000 Followers', 
+    note: 'Organic growth across all social channels.', 
+    time: '1 week ago', 
+    icon: 'social_leaderboard', 
+    color: 'text-amber-600 bg-amber-50',
+    author: { name: 'Marketing Team', initials: 'MT', avatarColor: 'bg-purple-100 text-purple-700' }
+  },
+  { 
+    id: 5, 
+    type: 'job', 
+    text: 'Closed job: Marketing Intern', 
+    note: 'Position filled internally.', 
+    time: '2 weeks ago', 
+    icon: 'work_off', 
+    color: 'text-slate-600 bg-slate-50', 
+    author: { name: 'Sarah Jenkins', initials: 'SJ', avatarColor: 'bg-orange-100 text-orange-800' } 
+  }
 ];
 
 const mockAllActivity = [
@@ -79,29 +121,22 @@ export default function OrganizationProfile() {
 
   const [suspendModalOpen, setSuspendModalOpen] = useState(false);
   const [suspendDuration, setSuspendDuration] = useState('Short Temporary (3-7 days)');
+  const [documentModalOpen, setDocumentModalOpen] = useState(false);
+  const [activeDocumentStatus, setActiveDocumentStatus] = useState('Pending');
   const [membersModalOpen, setMembersModalOpen] = useState(false);
   const [activityModalOpen, setActivityModalOpen] = useState(false);
-  const [activityFilter, setActivityFilter] = useState('All');
-  const [visibleCount, setVisibleCount] = useState(4);
-  const [isLoadingMore, setIsLoadingMore] = useState(false);
+  const [auditLogsModalOpen, setAuditLogsModalOpen] = useState(false);
+  const [activitySearch, setActivitySearch] = useState('');
+  const [activityFilter, setActivityFilter] = useState('Last 30 Days');
+  const [activityPage, setActivityPage] = useState(1);
+  const itemsPerPage = 3;
 
-  const handleLoadMore = () => {
-    setIsLoadingMore(true);
-    setTimeout(() => {
-      setVisibleCount(prev => prev + 4);
-      setIsLoadingMore(false);
-    }, 800);
-  };
-
-  const filteredActivity = activityFilter === 'All' 
-    ? mockAllActivity 
-    : mockAllActivity.filter(a => {
-        if (activityFilter === 'Jobs') return a.type === 'job';
-        if (activityFilter === 'Updates') return a.type === 'post';
-        if (activityFilter === 'Members') return a.type === 'member';
-        if (activityFilter === 'Milestones') return a.type === 'milestone';
-        return false;
-      });
+  const filteredActivity = mockAllActivity.filter(a => 
+    a.text.toLowerCase().includes(activitySearch.toLowerCase())
+  );
+  
+  const totalPages = Math.ceil(filteredActivity.length / itemsPerPage);
+  const paginatedActivity = filteredActivity.slice((activityPage - 1) * itemsPerPage, activityPage * itemsPerPage);
 
   return (
     <div className="pt-6 pb-12 w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -116,111 +151,390 @@ export default function OrganizationProfile() {
         </button>
       </div>
 
-      {/* Hero Section */}
-      <div className="bg-surface rounded-2xl overflow-hidden mb-8 shadow-sm border border-outline-variant">
-        {/* Cover Gradient */}
-        <div className="h-40 sm:h-48 bg-gradient-to-r from-slate-200 to-gray-300 relative">
-          <div className="absolute inset-0 bg-black/10"></div>
-        </div>
-        
-        <div className="px-6 sm:px-8 pb-8 relative">
-          <div className="flex flex-col sm:flex-row gap-6 items-start sm:items-end -mt-16 sm:-mt-20 mb-6">
-            <div className="w-28 h-28 sm:w-36 sm:h-36 rounded-2xl bg-surface-container-highest text-on-surface flex items-center justify-center text-5xl font-bold shadow-md border-4 border-surface shrink-0 relative z-10">
-              {mockOrg.logo_url}
-            </div>
-            
-            <div className="flex-grow pt-2 sm:pt-0 pb-2 flex flex-col sm:flex-row sm:justify-between sm:items-end gap-4 w-full">
-              <div>
-                <div className="flex flex-wrap items-center gap-2 mb-1">
-                  <h1 className="text-2xl sm:text-3xl font-bold text-on-surface">{mockOrg.name}</h1>
-                  {mockOrg.status === 'Active' && (
-                    <span className="material-symbols-outlined text-green-600 text-[22px]" style={{ fontVariationSettings: "'FILL' 1" }} title="Active">check_circle</span>
-                  )}
-                  {mockOrg.moderation_flags > 0 && (
-                    <span className="bg-error-container text-on-error-container text-xs font-bold px-2 py-1 rounded flex items-center gap-1 border border-error/20 ml-2" title={`${mockOrg.moderation_flags} Moderation Flags Raised`}>
-                      <span className="material-symbols-outlined text-[14px]">flag</span>
-                      {mockOrg.moderation_flags} {mockOrg.moderation_flags === 1 ? 'Flag' : 'Flags'}
-                    </span>
-                  )}
-                </div>
-                <p className="text-body-lg text-on-surface-variant font-medium mb-3">{mockOrg.slogan}</p>
-                <div className="flex flex-wrap gap-x-6 gap-y-2 text-sm text-on-surface-variant font-medium">
-                  <div className="flex items-center gap-1.5">
-                    <span className="material-symbols-outlined text-[18px]">domain</span>
-                    {mockOrg.industry}
-                  </div>
-                  <div className="flex items-center gap-1.5">
-                    <span className="material-symbols-outlined text-[18px]">location_on</span>
-                    {mockOrg.location}
-                  </div>
-                  <div className="flex items-center gap-1.5">
-                    <span className="material-symbols-outlined text-[18px]">group</span>
-                    {mockOrg.followers_count.toLocaleString()} Followers
-                  </div>
-                </div>
-              </div>
-              
-              <div className="shrink-0">
-                {role !== 'developer' && (
-                  <button 
-                    onClick={() => setSuspendModalOpen(true)}
-                    className="bg-error/10 text-error px-4 py-2.5 rounded-xl font-semibold hover:bg-error hover:text-white transition-all shadow-sm flex items-center gap-2"
-                  >
-                    <span className="material-symbols-outlined text-[20px]">block</span>
-                    Suspend Organization
-                  </button>
-                )}
-              </div>
-            </div>
+      {/* Header Section */}
+      <div className="bg-white rounded-xl border border-outline-variant shadow-sm overflow-hidden mb-8 relative">
+        {/* Cover Image */}
+        <div className="h-48 w-full bg-cover bg-center" style={{ backgroundImage: "url('https://images.unsplash.com/photo-1557683316-973673baf926?ixlib=rb-4.0.3&auto=format&fit=crop&w=1200&q=80')" }}></div>
+
+        <div className="px-6 pb-6 relative">
+          {/* Profile Picture */}
+          <div className="w-[136px] h-[136px] rounded-2xl border-[4px] border-white bg-slate-900 overflow-hidden absolute -top-[68px] shadow-sm flex items-center justify-center">
+             <span className="material-symbols-outlined text-[80px] text-blue-400">all_inclusive</span>
+          </div>
+          
+          {/* More options button */}
+          <div className="absolute right-6 top-6">
+            <button className="material-symbols-outlined text-slate-700 hover:text-slate-900 transition-colors text-[28px]">more_vert</button>
+          </div>
+
+          {/* Profile Info */}
+          <div className="pt-20 max-w-3xl">
+            <h1 className="text-[26px] font-bold text-slate-900 leading-tight flex items-center gap-2">
+              {mockOrg.name}
+              <span className="material-symbols-outlined text-[#0a66c2] text-[24px]" style={{ fontVariationSettings: "'FILL' 1" }}>verified</span>
+            </h1>
+            <p className="text-[16px] text-slate-800 mt-2">SaaS and Fintech Solutions</p>
+            <p className="text-[14px] text-slate-500 mt-3">
+              Technology &bull; Mumbai, Maharashtra, India &bull; 1 - 50 Members
+            </p>
+            <a href="https://www.nexsus.com" className="text-[#0a66c2] text-[14px] font-medium hover:underline mt-2 inline-block">
+              https://www.nexsus.com
+            </a>
           </div>
         </div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        {/* Left Column (About & Tech) */}
+        {/* Left Column */}
         <div className="lg:col-span-2 space-y-8">
-          {/* About Card */}
-          <div className="bg-surface rounded-2xl p-6 sm:p-8 shadow-sm border border-outline-variant">
-            <h3 className="text-xl font-bold text-on-surface mb-4 flex items-center gap-2">
-              <span className="material-symbols-outlined text-primary">info</span>
-              About
-            </h3>
-            <p className="text-base text-on-surface-variant leading-relaxed mb-8">
-              {mockOrg.description}
-            </p>
+          
+          {/* Info Cards Grid */}
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+            <div className="bg-surface rounded-xl p-4 border border-outline-variant shadow-sm flex flex-col">
+              <div className="flex items-center gap-2 text-indigo-600 mb-2">
+                <span className="material-symbols-outlined text-[18px]">calendar_today</span>
+                <span className="text-[10px] font-bold uppercase tracking-wider">Founded</span>
+              </div>
+              <span className="text-sm font-bold text-on-surface leading-tight">March 14,<br/>2012</span>
+            </div>
+            <div className="bg-surface rounded-xl p-4 border border-outline-variant shadow-sm flex flex-col">
+              <div className="flex items-center gap-2 text-indigo-600 mb-2">
+                <span className="material-symbols-outlined text-[18px]">group</span>
+                <span className="text-[10px] font-bold uppercase tracking-wider">Headcount</span>
+              </div>
+              <span className="text-sm font-bold text-on-surface leading-tight">250 - 500</span>
+            </div>
+            <div className="bg-surface rounded-xl p-4 border border-outline-variant shadow-sm flex flex-col">
+              <div className="flex items-center gap-2 text-indigo-600 mb-2">
+                <span className="material-symbols-outlined text-[18px]">precision_manufacturing</span>
+                <span className="text-[10px] font-bold uppercase tracking-wider">Industry</span>
+              </div>
+              <span className="text-sm font-bold text-on-surface leading-tight">Quantum<br/>SaaS</span>
+            </div>
+            <div className="bg-surface rounded-xl p-4 border border-outline-variant shadow-sm flex flex-col">
+              <div className="flex items-center gap-2 text-indigo-600 mb-2">
+                <span className="material-symbols-outlined text-[18px]">account_balance</span>
+                <span className="text-[10px] font-bold uppercase tracking-wider">Structure</span>
+              </div>
+              <span className="text-sm font-bold text-on-surface leading-tight">LLC, CA</span>
+            </div>
+          </div>
 
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-6 bg-surface-container-lowest rounded-xl p-6 border border-outline-variant">
-              <div>
-                <span className="block text-xs font-semibold text-on-surface-variant uppercase tracking-wider mb-1">Website</span>
-                <a href={`https://${mockOrg.website}`} target="_blank" rel="noreferrer" className="text-primary font-medium hover:underline truncate block">{mockOrg.website}</a>
+          {/* Location Card */}
+          <div className="bg-surface rounded-xl p-4 border border-outline-variant shadow-sm flex flex-col sm:flex-row items-center gap-6">
+            <div className="w-full sm:w-40 h-28 bg-surface-container flex items-center justify-center rounded-lg border border-outline-variant shrink-0">
+              <span className="material-symbols-outlined text-outline text-4xl">map</span>
+            </div>
+            <div className="w-full">
+              <div className="flex items-center gap-2 text-indigo-600 mb-1">
+                <span className="material-symbols-outlined text-[18px]">location_on</span>
+                <span className="text-xs font-semibold">Headquarters</span>
               </div>
-              <div>
-                <span className="block text-xs font-semibold text-on-surface-variant uppercase tracking-wider mb-1">Company Size</span>
-                <span className="text-sm text-on-surface font-medium block truncate">{mockOrg.size}</span>
+              <h3 className="text-xl font-bold text-on-surface mb-1">Palo Alto, California</h3>
+              <p className="text-sm text-on-surface-variant font-medium">1200 Technology Drive, Suite 400</p>
+            </div>
+          </div>
+
+          {/* Verification Documents */}
+          <div className="bg-surface rounded-xl border border-outline-variant shadow-sm overflow-hidden">
+            <div className="p-4 border-b border-outline-variant flex justify-between items-center bg-surface">
+              <div className="flex items-center gap-2">
+                <span className="material-symbols-outlined text-indigo-600">verified_user</span>
+                <h3 className="font-bold text-on-surface">Verification Documents</h3>
               </div>
-              <div>
-                <span className="block text-xs font-semibold text-on-surface-variant uppercase tracking-wider mb-1">Founded</span>
-                <span className="text-sm text-on-surface font-medium block truncate">{mockOrg.established_year}</span>
+              <span className="bg-orange-100 text-orange-800 text-[10px] font-bold px-2 py-1 rounded-full flex items-center gap-1">
+                <span className="w-1.5 h-1.5 rounded-full bg-orange-600"></span>
+                3 Documents Pending
+              </span>
+            </div>
+            <div className="p-6 space-y-4">
+              
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between p-4 bg-surface border border-outline-variant rounded-xl shadow-sm hover:shadow-md transition-shadow gap-4">
+                <div className="flex items-center gap-4">
+                  <div className="w-12 h-12 rounded-lg bg-indigo-50 text-indigo-600 flex items-center justify-center shrink-0">
+                    <span className="material-symbols-outlined text-2xl">description</span>
+                  </div>
+                  <div>
+                    <h4 className="font-bold text-on-surface text-sm mb-1">Business License</h4>
+                    <div className="flex flex-wrap items-center gap-2 text-xs text-on-surface-variant font-medium">
+                      <span>Uploaded 2h ago &bull; PDF</span>
+                      <span className="text-green-600 font-bold flex items-center gap-1">
+                        <span className="material-symbols-outlined text-[14px]">check_circle</span>
+                        APPROVED
+                      </span>
+                    </div>
+                  </div>
+                </div>
+                <button className="flex items-center justify-center gap-2 px-4 py-2 border border-indigo-200 text-indigo-700 bg-indigo-50 hover:bg-indigo-100 rounded-lg text-sm font-semibold transition-colors shrink-0">
+                  <span className="material-symbols-outlined text-[18px]">visibility</span>
+                  View Document
+                </button>
               </div>
-              <div>
-                <span className="block text-xs font-semibold text-on-surface-variant uppercase tracking-wider mb-1">Entity Type</span>
-                <span className="text-sm text-on-surface font-medium block truncate capitalize">{mockOrg.entity_type.toLowerCase()}</span>
+
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between p-4 bg-surface border border-outline-variant rounded-xl shadow-sm hover:shadow-md transition-shadow gap-4">
+                <div className="flex items-center gap-4">
+                  <div className="w-12 h-12 rounded-lg bg-indigo-50 text-indigo-600 flex items-center justify-center shrink-0">
+                    <span className="material-symbols-outlined text-2xl">request_quote</span>
+                  </div>
+                  <div>
+                    <h4 className="font-bold text-on-surface text-sm mb-1">Tax ID (W-9)</h4>
+                    <div className="flex flex-wrap items-center gap-2 text-xs text-on-surface-variant font-medium">
+                      <span>Uploaded 2h ago &bull; PDF</span>
+                      <span className="text-orange-600 font-bold flex items-center gap-1">
+                        <span className="material-symbols-outlined text-[14px]">more_horiz</span>
+                        PENDING REVIEW
+                      </span>
+                    </div>
+                  </div>
+                </div>
+                <button onClick={() => setDocumentModalOpen(true)} className="flex items-center justify-center gap-2 px-4 py-2 border border-indigo-200 text-indigo-700 bg-indigo-50 hover:bg-indigo-100 rounded-lg text-sm font-semibold transition-colors shrink-0">
+                  <span className="material-symbols-outlined text-[18px]">visibility</span>
+                  View Document
+                </button>
+              </div>
+
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between p-4 bg-surface border border-outline-variant rounded-xl shadow-sm hover:shadow-md transition-shadow gap-4">
+                <div className="flex items-center gap-4">
+                  <div className="w-12 h-12 rounded-lg bg-indigo-50 text-indigo-600 flex items-center justify-center shrink-0">
+                    <span className="material-symbols-outlined text-2xl">location_on</span>
+                  </div>
+                  <div>
+                    <h4 className="font-bold text-on-surface text-sm mb-1">Address Proof</h4>
+                    <div className="flex flex-wrap items-center gap-2 text-xs text-on-surface-variant font-medium">
+                      <span>Uploaded 3h ago &bull; PDF</span>
+                      <span className="text-orange-600 font-bold flex items-center gap-1">
+                        <span className="material-symbols-outlined text-[14px]">more_horiz</span>
+                        PENDING REVIEW
+                      </span>
+                    </div>
+                  </div>
+                </div>
+                <button onClick={() => setDocumentModalOpen(true)} className="flex items-center justify-center gap-2 px-4 py-2 border border-indigo-200 text-indigo-700 bg-indigo-50 hover:bg-indigo-100 rounded-lg text-sm font-semibold transition-colors shrink-0">
+                  <span className="material-symbols-outlined text-[18px]">visibility</span>
+                  View Document
+                </button>
+              </div>
+
+            </div>
+          </div>
+
+          {/* Review Lifecycle Audit */}
+          <div className="bg-surface rounded-xl border border-outline-variant shadow-sm overflow-hidden">
+            <div className="p-4 border-b border-outline-variant flex justify-between items-center bg-surface">
+              <div className="flex items-center gap-2">
+                <span className="material-symbols-outlined text-indigo-600 text-[20px]">history</span>
+                <h3 className="font-bold text-on-surface">Review Lifecycle Audit</h3>
+              </div>
+              <button onClick={() => setAuditLogsModalOpen(true)} className="text-indigo-600 text-sm font-semibold flex items-center gap-1 hover:underline">
+                View detailed logs <span className="material-symbols-outlined text-[16px]">open_in_new</span>
+              </button>
+            </div>
+            <div className="p-6">
+              <div className="relative border-l-2 border-outline-variant ml-6 space-y-8 pb-4">
+                
+                {/* Event 1 */}
+                <div className="relative pl-8">
+                  <div className="absolute -left-[21px] top-1 w-10 h-10 rounded-full bg-surface border-2 border-indigo-400 text-indigo-600 flex items-center justify-center shadow-sm">
+                    <span className="material-symbols-outlined text-[20px]">edit_document</span>
+                  </div>
+                  <div className="bg-surface border border-outline-variant rounded-xl p-4 shadow-sm">
+                    <div className="flex justify-between items-start mb-2">
+                      <h4 className="font-bold text-on-surface">Documents Re-submitted</h4>
+                      <span className="bg-indigo-50 text-indigo-800 text-[10px] font-bold px-2 py-0.5 rounded-full shrink-0">Today, 2:45 PM</span>
+                    </div>
+                    <p className="text-sm text-on-surface-variant font-medium mb-4">The organization updated their 'Business License' following an initial request for better resolution. Metadata validation passed.</p>
+                    <div className="flex justify-between items-center">
+                      <div className="flex items-center gap-3">
+                        <div className="w-8 h-8 rounded-full bg-slate-200 flex items-center justify-center shrink-0">
+                          <span className="material-symbols-outlined text-slate-500 text-[16px]">person</span>
+                        </div>
+                        <div>
+                          <p className="text-xs font-bold text-on-surface">Sarah Jenkins</p>
+                          <p className="text-[10px] uppercase text-on-surface-variant font-bold tracking-wider">ORGANIZATION ADMIN</p>
+                        </div>
+                      </div>
+                      <span className="bg-green-50 text-green-700 text-[9px] font-bold px-2 py-1 uppercase rounded tracking-wider shrink-0">External Action</span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Event 2 */}
+                <div className="relative pl-8">
+                  <div className="absolute -left-[21px] top-1 w-10 h-10 rounded-full bg-surface border-2 border-red-500 text-red-600 flex items-center justify-center shadow-sm">
+                    <span className="material-symbols-outlined text-[20px]">warning</span>
+                  </div>
+                  <div className="bg-surface border border-outline-variant rounded-xl p-4 shadow-sm">
+                    <div className="flex justify-between items-start mb-2">
+                      <h4 className="font-bold text-on-surface">Initial Document Rejection</h4>
+                      <span className="bg-indigo-50 text-indigo-800 text-[10px] font-bold px-2 py-0.5 rounded-full shrink-0">Today, 11:30 AM</span>
+                    </div>
+                    <p className="text-sm text-on-surface-variant font-medium italic mb-4">Reviewer rejected 'Business License' citing: "Document image is too blurry to verify watermark. Please upload a high-resolution scan."</p>
+                    <div className="flex justify-between items-center">
+                      <div className="flex items-center gap-3">
+                        <div className="w-8 h-8 rounded-full bg-slate-200 flex items-center justify-center shrink-0">
+                          <span className="material-symbols-outlined text-slate-500 text-[16px]">person</span>
+                        </div>
+                        <div>
+                          <p className="text-xs font-bold text-on-surface">Marcus Aurelius</p>
+                          <p className="text-[10px] uppercase text-on-surface-variant font-bold tracking-wider">LEAD REVIEWER</p>
+                        </div>
+                      </div>
+                      <span className="bg-purple-50 text-purple-700 text-[9px] font-bold px-2 py-1 uppercase rounded tracking-wider shrink-0">Internal Review</span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Event 3 */}
+                <div className="relative pl-8">
+                  <div className="absolute -left-[21px] top-1 w-10 h-10 rounded-full bg-surface border-2 border-slate-400 text-slate-600 flex items-center justify-center shadow-sm">
+                    <span className="material-symbols-outlined text-[20px]">rocket_launch</span>
+                  </div>
+                  <div className="bg-surface border border-outline-variant rounded-xl p-4 shadow-sm">
+                    <div className="flex justify-between items-start mb-2">
+                      <h4 className="font-bold text-on-surface">Application Received</h4>
+                      <span className="bg-indigo-50 text-indigo-800 text-[10px] font-bold px-2 py-0.5 rounded-full shrink-0">Yesterday, 4:12 PM</span>
+                    </div>
+                    <p className="text-sm text-on-surface-variant font-medium mb-4">Initial registration and document upload completed for Enterprise Tier access. Auto-KYC check initialized.</p>
+                    <div className="flex justify-between items-center">
+                      <div className="flex items-center gap-3">
+                        <div className="w-8 h-8 rounded-full bg-slate-100 border border-outline-variant flex items-center justify-center shrink-0">
+                          <span className="material-symbols-outlined text-slate-400 text-[16px]">smart_toy</span>
+                        </div>
+                        <div>
+                          <p className="text-xs font-bold text-on-surface">System Automation</p>
+                          <p className="text-[10px] uppercase text-on-surface-variant font-bold tracking-wider">INFRASTRUCTURE</p>
+                        </div>
+                      </div>
+                      <span className="bg-slate-100 text-slate-600 text-[9px] font-bold px-2 py-1 uppercase rounded tracking-wider shrink-0">System Event</span>
+                    </div>
+                  </div>
+                </div>
+
               </div>
             </div>
           </div>
 
-          {/* Tech Stack Card */}
+          {/* About Card */}
           <div className="bg-surface rounded-2xl p-6 sm:p-8 shadow-sm border border-outline-variant">
-            <h3 className="text-xl font-bold text-on-surface mb-6 flex items-center gap-2">
-              <span className="material-symbols-outlined text-primary">code</span>
-              Tech Stack
+            <h3 className="text-xl font-bold text-indigo-700 mb-4 flex items-center gap-2">
+              <span className="material-symbols-outlined text-indigo-600">info</span>
+              About
             </h3>
-            <div className="flex flex-wrap gap-3">
-              {mockTechStack.map(tech => (
-                <div key={tech.name} className={`px-4 py-2 border rounded-xl flex items-center gap-3 ${tech.color}`}>
+            <p className="text-base text-on-surface-variant leading-relaxed mb-4">
+              {mockOrg.description}
+            </p>
+            <div className="flex gap-4 mb-4">
+               <span className="text-sm bg-surface px-3 py-1.5 rounded border border-outline-variant font-bold text-on-surface shadow-sm">Website: {mockOrg.website}</span>
+               <span className="text-sm bg-surface px-3 py-1.5 rounded border border-outline-variant font-bold text-on-surface shadow-sm">Followers: {mockOrg.followers_count.toLocaleString()}</span>
+            </div>
+          </div>
+          
+
+        </div>
+
+        {/* Right Column */}
+        <div className="space-y-8">
+          
+          {/* Decision Panel */}
+          <div className="bg-slate-800 text-white rounded-xl p-6 shadow-lg border border-slate-700">
+            <div className="flex items-center gap-2 mb-6">
+              <span className="material-symbols-outlined text-indigo-400">gavel</span>
+              <h3 className="text-lg font-bold text-white">Decision Panel</h3>
+            </div>
+            
+            <div className="space-y-6">
+              <div>
+                <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-2">Current Verification Status</label>
+                <div className="bg-slate-700 border border-slate-600 rounded-lg p-3 flex justify-between items-center">
+                  <span className="flex items-center gap-2 font-bold text-sm text-yellow-400">
+                    <span className="w-2 h-2 rounded-full bg-yellow-400"></span>
+                    Pending Review
+                  </span>
+                  <span className="material-symbols-outlined text-slate-400 text-[18px]">info</span>
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-2">Rejection Reason</label>
+                <select className="w-full bg-slate-700 border border-slate-600 text-sm text-slate-200 rounded-lg p-3 focus:outline-none focus:ring-1 focus:ring-indigo-500 appearance-none">
+                  <option>No rejection reason selected</option>
+                  <option>Missing Document</option>
+                  <option>Invalid License</option>
+                  <option>Fraud Suspected</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-2">Internal Reviewer Notes</label>
+                <textarea 
+                  className="w-full bg-slate-700 border border-slate-600 text-sm text-slate-200 rounded-lg p-3 h-24 focus:outline-none focus:ring-1 focus:ring-indigo-500 placeholder-slate-400 resize-none"
+                  placeholder="Type private observations here..."
+                ></textarea>
+              </div>
+
+              <div className="pt-2 space-y-3">
+                <button className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 px-4 rounded-lg flex items-center justify-center gap-2 transition-colors">
+                  <span className="material-symbols-outlined text-[20px]">verified</span>
+                  Approve Organization
+                </button>
+                <button className="w-full bg-slate-700 hover:bg-slate-600 text-white font-bold py-3 px-4 rounded-lg flex items-center justify-center gap-2 transition-colors border border-slate-600">
+                  <span className="material-symbols-outlined text-[20px]">block</span>
+                  Deny Application
+                </button>
+              </div>
+            </div>
+          </div>
+
+          {/* Key Members Card */}
+          <div className="bg-surface rounded-2xl p-6 shadow-sm border border-outline-variant">
+            <div className="flex items-center justify-between mb-6">
+              <h3 className="text-lg font-bold text-indigo-700 flex items-center gap-2">
+                <span className="material-symbols-outlined text-indigo-600 text-[20px]">group</span>
+                Key Members
+              </h3>
+              <span className="bg-indigo-50 text-indigo-600 px-2.5 py-0.5 rounded-full text-xs font-bold">{mockMembers.length}</span>
+            </div>
+            
+            <div className="space-y-4">
+              {mockMembers.map(member => (
+                <div key={member.id} onClick={() => navigate('/profile')} className="flex items-center gap-3 p-2 hover:bg-surface-container-lowest rounded-xl border border-transparent hover:border-outline-variant transition-all cursor-pointer">
+                  <div className={`w-10 h-10 rounded-full flex items-center justify-center font-bold text-sm ${member.color}`}>
+                    {member.initials}
+                  </div>
                   <div>
-                    <span className="block text-sm font-bold">{tech.name}</span>
-                    <span className="block text-[10px] uppercase tracking-wider opacity-80 font-bold">{tech.category}</span>
+                    <p className="text-sm font-bold text-on-surface">{member.name}</p>
+                    <p className="text-[11px] text-on-surface-variant font-medium">{member.role}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+            <button onClick={() => setMembersModalOpen(true)} className="w-full mt-6 py-2 bg-surface border border-indigo-200 rounded-lg text-indigo-700 text-sm font-bold hover:bg-indigo-50 transition-colors shadow-sm">
+              View All Members
+            </button>
+          </div>
+
+          {/* Tech Stack Card */}
+          <div className="bg-surface rounded-2xl p-6 shadow-sm border border-outline-variant">
+            <div className="flex items-center justify-between mb-6">
+              <h3 className="text-lg font-bold text-indigo-700 flex items-center gap-2">
+                <span className="material-symbols-outlined text-indigo-600 text-[20px]">code</span>
+                Tech Stack
+              </h3>
+              <span className="text-slate-400 text-[10px] font-bold uppercase tracking-wider">{mockTechStack.length} TECHNOLOGIES</span>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              {mockTechStack.map(tech => (
+                <div key={tech.name} className={`p-3 border rounded-xl flex items-center gap-3 ${tech.bg} ${tech.border} ${tech.colSpan === 2 ? 'col-span-2' : 'col-span-1'}`}>
+                  <div className={`w-10 h-10 rounded-lg flex items-center justify-center shrink-0 border ${tech.iconBg} ${tech.iconBorder} ${tech.iconText}`}>
+                    {tech.isTextIcon ? (
+                      <span className="font-black text-[12px]">{tech.textIcon}</span>
+                    ) : (
+                      <span className="material-symbols-outlined text-[20px]">{tech.icon}</span>
+                    )}
+                  </div>
+                  <div>
+                    <span className="block text-sm font-bold text-slate-800">{tech.name}</span>
+                    <span className={`block text-[9px] uppercase tracking-wider font-bold ${tech.iconText}`}>{tech.category}</span>
                   </div>
                 </div>
               ))}
@@ -228,60 +542,30 @@ export default function OrganizationProfile() {
           </div>
 
           {/* Activity Feed Card */}
-          <div className="bg-surface rounded-2xl p-6 sm:p-8 shadow-sm border border-outline-variant">
+          <div className="bg-surface rounded-2xl p-6 shadow-sm border border-outline-variant">
             <div className="flex items-center justify-between mb-6">
-              <h3 className="text-xl font-bold text-on-surface flex items-center gap-2">
-                <span className="material-symbols-outlined text-primary">history</span>
+              <h3 className="text-lg font-bold text-indigo-700 flex items-center gap-2">
+                <span className="material-symbols-outlined text-indigo-600 text-[20px]">history</span>
                 Recent Activity
               </h3>
-              <button onClick={() => setActivityModalOpen(true)} className="text-primary font-label-md text-label-md hover:underline">View All</button>
+              <button onClick={() => setActivityModalOpen(true)} className="text-indigo-600 text-sm font-bold uppercase tracking-wider hover:underline">VIEW ALL</button>
             </div>
             
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="flex flex-col gap-3">
               {mockAllActivity.slice(0, 4).map(activity => (
                 <div key={activity.id} className="flex items-start gap-4 p-4 rounded-xl border border-outline-variant bg-surface hover:bg-surface-container-lowest transition-colors shadow-sm">
-                  <div className={`flex items-center justify-center w-10 h-10 rounded-full border-4 border-surface shrink-0 shadow-sm ${activity.color}`}>
-                    <span className="material-symbols-outlined text-[18px]">{activity.icon}</span>
+                  <div className={`flex items-center justify-center w-8 h-8 rounded shrink-0 ${activity.color.split(' ')[0]} bg-surface`}>
+                    <span className="material-symbols-outlined text-[20px]">{activity.icon}</span>
                   </div>
                   <div className="flex-1">
-                    <p className="text-sm font-semibold text-on-surface mb-1">{activity.text}</p>
-                    <time className="text-xs text-on-surface-variant font-medium">{activity.time}</time>
+                    <p className="text-sm font-bold text-on-surface mb-1 leading-snug">{activity.text}</p>
+                    <time className="text-[10px] text-on-surface-variant font-medium">{activity.time}</time>
                   </div>
                 </div>
               ))}
             </div>
           </div>
-        </div>
 
-        {/* Right Column (Members) */}
-        <div className="space-y-8">
-          <div className="bg-surface rounded-2xl p-6 sm:p-8 shadow-sm border border-outline-variant">
-            <div className="flex items-center justify-between mb-6">
-              <h3 className="text-xl font-bold text-on-surface flex items-center gap-2">
-                <span className="material-symbols-outlined text-primary">group</span>
-                Key Members
-              </h3>
-              <span className="bg-primary/10 text-primary px-3 py-1 rounded-full text-sm font-bold">{mockMembers.length}</span>
-            </div>
-            
-            <div className="space-y-4">
-              {mockMembers.map(member => (
-                <div key={member.id} onClick={() => navigate('/profile')} className="flex items-center gap-4 p-3 hover:bg-surface-container-lowest rounded-xl border border-transparent hover:border-outline-variant transition-all cursor-pointer">
-                  <div className={`w-12 h-12 rounded-full flex items-center justify-center font-bold text-lg ${member.color}`}>
-                    {member.initials}
-                  </div>
-                  <div>
-                    <p className="text-base font-bold text-on-surface">{member.name}</p>
-                    <p className="text-sm text-on-surface-variant font-medium">{member.role}</p>
-                  </div>
-                </div>
-              ))}
-            </div>
-            
-            <button onClick={() => setMembersModalOpen(true)} className="w-full mt-6 py-3 border border-outline-variant rounded-xl text-primary font-semibold hover:bg-primary/5 transition-colors">
-              View All Members
-            </button>
-          </div>
         </div>
       </div>
 
@@ -342,36 +626,99 @@ export default function OrganizationProfile() {
       {/* All Members Modal */}
       {membersModalOpen && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 backdrop-blur-sm animate-in fade-in duration-200">
-          <div className="bg-surface border border-outline-variant w-[600px] max-w-[90vw] max-h-[80vh] flex flex-col rounded-2xl shadow-2xl animate-in zoom-in-95 duration-200">
-            <div className="p-6 border-b border-outline-variant flex justify-between items-center shrink-0">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center text-primary">
-                  <span className="material-symbols-outlined text-[20px]">group</span>
-                </div>
-                <div>
-                  <h3 className="text-xl font-bold text-on-surface">All Members</h3>
-                  <p className="text-sm text-on-surface-variant font-medium">{mockOrg.name}</p>
-                </div>
-              </div>
-              <button onClick={() => setMembersModalOpen(false)} className="material-symbols-outlined text-on-surface-variant hover:text-on-surface transition-colors p-1">close</button>
-            </div>
+          <div className="bg-surface w-[800px] max-w-[95vw] max-h-[90vh] flex flex-col rounded-xl shadow-2xl animate-in zoom-in-95 duration-200 overflow-hidden">
             
-            <div className="p-4 sm:p-6 overflow-y-auto space-y-3">
-              {[...mockMembers, ...mockMembers, ...mockMembers].map((member, i) => (
-                <div key={`${member.id}-${i}`} onClick={() => navigate('/profile')} className="flex items-center gap-4 p-3 hover:bg-surface-container-lowest rounded-xl border border-transparent hover:border-outline-variant transition-all cursor-pointer group">
-                  <div className={`w-12 h-12 rounded-full flex items-center justify-center font-bold text-lg shrink-0 ${member.color}`}>
-                    {member.initials}
+            {/* Header */}
+            <div className="px-6 py-4 border-b border-outline-variant flex justify-between items-center shrink-0">
+              <div className="flex items-center gap-3">
+                <h3 className="text-xl font-bold text-slate-800">Organization Members</h3>
+                <span className="bg-indigo-50 text-indigo-600 px-2 py-0.5 rounded-full text-xs font-bold">12 Members</span>
+              </div>
+              <button onClick={() => setMembersModalOpen(false)} className="material-symbols-outlined text-slate-400 hover:text-slate-600 transition-colors">close</button>
+            </div>
+
+            {/* Toolbar */}
+            <div className="p-4 border-b border-outline-variant flex items-center gap-4 shrink-0 bg-white">
+              <div className="relative flex-1">
+                <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-[20px]">search</span>
+                <input 
+                  type="text" 
+                  placeholder="Search members by name or email..." 
+                  className="w-full pl-10 pr-4 py-2 border border-outline-variant rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-indigo-500 placeholder-slate-400"
+                />
+              </div>
+              <select className="border border-outline-variant rounded-lg px-4 py-2 text-sm text-slate-700 focus:outline-none focus:ring-1 focus:ring-indigo-500 appearance-none bg-white font-medium cursor-pointer">
+                <option>All Departments</option>
+                <option>Engineering</option>
+                <option>Product</option>
+              </select>
+            </div>
+
+            {/* Table Header */}
+            <div className="grid grid-cols-12 gap-4 px-6 py-3 bg-slate-50 border-b border-outline-variant text-xs font-bold text-slate-500 uppercase tracking-wider shrink-0">
+              <div className="col-span-4">MEMBER</div>
+              <div className="col-span-3">DEPARTMENT</div>
+              <div className="col-span-3">EMAIL</div>
+              <div className="col-span-1">STATUS</div>
+              <div className="col-span-1 text-right">ACTIONS</div>
+            </div>
+
+            {/* Table Body */}
+            <div className="overflow-y-auto bg-white flex-1">
+              {mockMembers.map((member, i) => (
+                <div key={member.id} className="grid grid-cols-12 gap-4 px-6 py-4 border-b border-outline-variant items-center hover:bg-slate-50 transition-colors">
+                  
+                  {/* Member */}
+                  <div className="col-span-4 flex items-center gap-3">
+                    <div className={`w-10 h-10 rounded-full flex items-center justify-center font-bold text-sm ${member.color}`}>
+                      {member.initials}
+                    </div>
+                    <div>
+                      <p className="text-sm font-bold text-slate-800">{member.name}</p>
+                      <p className="text-[12px] text-slate-500">{member.role}</p>
+                    </div>
                   </div>
-                  <div className="flex-1">
-                    <p className="text-base font-bold text-on-surface group-hover:text-primary transition-colors">{member.name}</p>
-                    <p className="text-sm text-on-surface-variant font-medium">{member.role}</p>
+
+                  {/* Department */}
+                  <div className="col-span-3 text-sm text-slate-600">{member.department}</div>
+
+                  {/* Email */}
+                  <div className="col-span-3 text-sm text-slate-600">{member.email}</div>
+
+                  {/* Status */}
+                  <div className="col-span-1">
+                    {member.status === 'ACTIVE' ? (
+                      <span className="bg-green-50 text-green-700 text-[10px] font-bold px-2 py-1 rounded uppercase tracking-wider">ACTIVE</span>
+                    ) : (
+                      <span className="bg-indigo-50 text-indigo-700 text-[10px] font-bold px-2 py-1 rounded uppercase tracking-wider">INVITED</span>
+                    )}
                   </div>
-                  <div className="shrink-0">
-                    <span className="material-symbols-outlined text-on-surface-variant opacity-0 group-hover:opacity-100 transition-opacity">chevron_right</span>
+
+                  {/* Actions */}
+                  <div className="col-span-1 flex justify-end">
+                    <button 
+                      onClick={() => navigate('/profile')}
+                      className="material-symbols-outlined text-slate-400 hover:text-indigo-600 transition-colors text-[20px]"
+                      title="View Profile"
+                    >
+                      visibility
+                    </button>
                   </div>
+
                 </div>
               ))}
             </div>
+
+            {/* Footer */}
+            <div className="p-4 border-t border-outline-variant bg-white flex justify-end shrink-0">
+              <button 
+                onClick={() => setMembersModalOpen(false)} 
+                className="px-6 py-2 border border-outline-variant rounded-lg text-sm font-bold text-slate-800 hover:bg-slate-50 transition-colors shadow-sm"
+              >
+                Close
+              </button>
+            </div>
+
           </div>
         </div>
       )}
@@ -379,86 +726,604 @@ export default function OrganizationProfile() {
       {/* View All Activity Modal */}
       {activityModalOpen && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 backdrop-blur-sm animate-in fade-in duration-200">
-          <div className="bg-surface border border-outline-variant w-[650px] max-w-[90vw] max-h-[85vh] flex flex-col rounded-2xl shadow-2xl animate-in zoom-in-95 duration-200">
+          <div className="bg-surface w-[800px] max-w-[95vw] max-h-[90vh] flex flex-col rounded-xl shadow-2xl animate-in zoom-in-95 duration-200 overflow-hidden">
+            
             {/* Header */}
-            <div className="p-6 border-b border-outline-variant flex justify-between items-center shrink-0">
+            <div className="px-6 py-4 border-b border-outline-variant flex justify-between items-center shrink-0">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center text-primary">
-                  <span className="material-symbols-outlined text-[20px]">history</span>
-                </div>
-                <div>
-                  <h3 className="text-xl font-bold text-on-surface">Activity History</h3>
-                  <p className="text-sm text-on-surface-variant font-medium">{mockOrg.name}</p>
-                </div>
+                <h3 className="text-xl font-bold text-slate-800">Recent Activity</h3>
+                <span className="bg-indigo-50 text-indigo-600 px-2 py-0.5 rounded-full text-xs font-bold">48 Events</span>
               </div>
-              <button onClick={() => setActivityModalOpen(false)} className="material-symbols-outlined text-on-surface-variant hover:text-on-surface transition-colors p-1">close</button>
+              <button onClick={() => setActivityModalOpen(false)} className="material-symbols-outlined text-slate-400 hover:text-slate-600 transition-colors">close</button>
             </div>
 
-            {/* Filters */}
-            <div className="px-6 py-4 border-b border-outline-variant shrink-0 flex gap-3 overflow-x-auto">
-              <button 
-                onClick={() => { setActivityFilter('All'); setVisibleCount(4); }} 
-                className={`px-4 py-1.5 rounded-full text-sm font-bold shrink-0 transition-colors ${activityFilter === 'All' ? 'bg-primary text-white' : 'border border-outline-variant text-on-surface-variant hover:bg-surface-container-lowest'}`}
-              >
-                All
-              </button>
-              <button 
-                onClick={() => { setActivityFilter('Jobs'); setVisibleCount(4); }} 
-                className={`px-4 py-1.5 rounded-full text-sm font-bold shrink-0 transition-colors ${activityFilter === 'Jobs' ? 'bg-primary text-white' : 'border border-outline-variant text-on-surface-variant hover:bg-surface-container-lowest'}`}
-              >
-                Jobs
-              </button>
-              <button 
-                onClick={() => { setActivityFilter('Updates'); setVisibleCount(4); }} 
-                className={`px-4 py-1.5 rounded-full text-sm font-bold shrink-0 transition-colors ${activityFilter === 'Updates' ? 'bg-primary text-white' : 'border border-outline-variant text-on-surface-variant hover:bg-surface-container-lowest'}`}
-              >
-                Updates
-              </button>
-              <button 
-                onClick={() => { setActivityFilter('Members'); setVisibleCount(4); }} 
-                className={`px-4 py-1.5 rounded-full text-sm font-bold shrink-0 transition-colors ${activityFilter === 'Members' ? 'bg-primary text-white' : 'border border-outline-variant text-on-surface-variant hover:bg-surface-container-lowest'}`}
-              >
-                Members
-              </button>
-              <button 
-                onClick={() => { setActivityFilter('Milestones'); setVisibleCount(4); }} 
-                className={`px-4 py-1.5 rounded-full text-sm font-bold shrink-0 transition-colors ${activityFilter === 'Milestones' ? 'bg-primary text-white' : 'border border-outline-variant text-on-surface-variant hover:bg-surface-container-lowest'}`}
-              >
-                Milestones
-              </button>
+            {/* Toolbar */}
+            <div className="p-4 border-b border-outline-variant flex items-center gap-4 shrink-0 bg-white">
+              <div className="relative flex-1">
+                <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-[20px]">search</span>
+                <input 
+                  type="text" 
+                  placeholder="Search activity logs..." 
+                  value={activitySearch}
+                  onChange={(e) => {
+                    setActivitySearch(e.target.value);
+                    setActivityPage(1);
+                  }}
+                  className="w-full pl-10 pr-4 py-2 border border-outline-variant rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-indigo-500 placeholder-slate-400"
+                />
+              </div>
+              <div className="relative border border-outline-variant rounded-lg bg-white flex items-center shrink-0 pr-2">
+                <span className="material-symbols-outlined text-slate-400 pl-3 text-[18px]">calendar_today</span>
+                <select 
+                  value={activityFilter}
+                  onChange={(e) => setActivityFilter(e.target.value)}
+                  className="pl-2 pr-6 py-2 text-sm text-slate-700 focus:outline-none appearance-none bg-transparent font-medium cursor-pointer"
+                >
+                  <option>Last 30 Days</option>
+                  <option>Last 7 Days</option>
+                  <option>All Time</option>
+                </select>
+                <span className="material-symbols-outlined absolute right-2 pointer-events-none text-slate-400 text-[18px]">expand_more</span>
+              </div>
             </div>
-            
+
             {/* Scrollable Feed */}
-            <div className="p-6 overflow-y-auto space-y-6 relative flex-1">
-              <div className="absolute left-6 top-6 bottom-6 w-[2px] bg-outline-variant ml-[11px]"></div>
-              
-              {filteredActivity.slice(0, visibleCount).map((activity) => (
-                <div key={activity.id} className="flex gap-4 relative group">
-                  <div className={`w-6 h-6 rounded-full flex items-center justify-center z-10 mt-1 shrink-0 shadow-sm ${activity.color} ring-2 ring-surface`}>
-                    <span className="material-symbols-outlined text-[14px]" style={{ fontVariationSettings: "'FILL' 1" }}>{activity.icon}</span>
+            <div className="p-6 overflow-y-auto space-y-4 relative flex-1 bg-slate-50/50">
+              {paginatedActivity.map((activity) => (
+                <div key={activity.id} className="bg-white border border-outline-variant rounded-xl p-4 flex gap-4 shadow-sm hover:shadow-md transition-shadow relative">
+                  
+                  <div className={`w-12 h-12 rounded-xl flex items-center justify-center shrink-0 ${activity.color.split(' ')[1]} ${activity.color.split(' ')[0]}`}>
+                    <span className="material-symbols-outlined text-[24px]">{activity.icon}</span>
                   </div>
-                  <div className="flex-1 p-3 rounded-xl border border-transparent hover:border-outline-variant hover:bg-surface-container-lowest transition-colors">
-                    <p className="font-body-md text-body-md text-on-surface">{activity.text}</p>
-                    <time className="text-xs text-on-surface-variant font-medium mt-1">{activity.time}</time>
+                  
+                  <div className="flex-1">
+                    <div className="flex justify-between items-start mb-1">
+                      <h4 className="text-[15px] font-bold text-slate-800">{activity.text}</h4>
+                      <span className="text-xs text-slate-400 font-medium">{activity.time}</span>
+                    </div>
+                    {activity.note && (
+                      <p className="text-[13px] text-slate-600 mb-3">{activity.note}</p>
+                    )}
+                    
+                    {activity.author && (
+                      <div className="flex items-center gap-2">
+                        <div className={`w-5 h-5 rounded-full flex items-center justify-center font-bold text-[9px] ${activity.author.avatarColor}`}>
+                          {activity.author.initials}
+                        </div>
+                        <span className="text-[11px] text-slate-500 font-medium">{activity.author.name}</span>
+                      </div>
+                    )}
                   </div>
+
                 </div>
               ))}
+            </div>
 
-              {/* Load More Button */}
-              {visibleCount < filteredActivity.length && (
-                <div className="pt-4 flex justify-center relative z-10">
-                  <button 
-                    onClick={handleLoadMore}
-                    disabled={isLoadingMore}
-                    className="px-6 py-2.5 rounded-full border border-outline-variant text-primary font-semibold hover:bg-primary/5 transition-colors flex items-center gap-2 bg-surface disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    <span className={`material-symbols-outlined text-[20px] ${isLoadingMore ? 'animate-spin' : ''}`}>
-                      {isLoadingMore ? 'progress_activity' : 'refresh'}
-                    </span>
-                    {isLoadingMore ? 'Loading...' : 'Load More'}
+            {/* Footer with Pagination */}
+            <div className="p-4 border-t border-outline-variant bg-white flex justify-between items-center shrink-0">
+              <div className="flex gap-2">
+                <button 
+                  onClick={() => setActivityPage(p => Math.max(1, p - 1))}
+                  disabled={activityPage === 1}
+                  className="px-4 py-2 border border-outline-variant rounded-lg text-sm font-bold text-slate-700 hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                >
+                  Previous
+                </button>
+                <button 
+                  onClick={() => setActivityPage(p => Math.min(totalPages, p + 1))}
+                  disabled={activityPage === totalPages || totalPages === 0}
+                  className="px-4 py-2 border border-outline-variant rounded-lg text-sm font-bold text-slate-700 hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                >
+                  Next
+                </button>
+              </div>
+              <button 
+                onClick={() => setActivityModalOpen(false)} 
+                className="px-8 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-sm font-bold transition-colors shadow-sm"
+              >
+                Close
+              </button>
+            </div>
+
+          </div>
+        </div>
+      )}
+
+      {/* Detailed Audit Logs Modal */}
+      {auditLogsModalOpen && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm animate-in fade-in duration-200 p-4 sm:p-8">
+          <div className="bg-white w-full max-w-[1200px] h-[90vh] flex flex-col rounded-2xl shadow-2xl overflow-hidden relative">
+            
+            {/* Header */}
+            <div className="px-8 py-6 border-b border-slate-200 flex justify-between items-start shrink-0">
+              <div className="flex items-center gap-4">
+                <div className="w-12 h-12 bg-indigo-50 text-indigo-600 rounded-xl flex items-center justify-center shrink-0">
+                  <span className="material-symbols-outlined text-[28px]">history</span>
+                </div>
+                <div>
+                  <h2 className="text-2xl font-bold text-[#0f2546] mb-1">Detailed Audit Logs</h2>
+                  <div className="flex items-center gap-3">
+                    <span className="bg-indigo-50 text-indigo-600 px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider">Enterprise Registry</span>
+                    <span className="text-slate-500 text-xs font-medium">&bull; 4,284 Events Tracked</span>
+                  </div>
+                </div>
+              </div>
+              <button onClick={() => setAuditLogsModalOpen(false)} className="material-symbols-outlined text-slate-400 hover:text-slate-700 transition-colors">close</button>
+            </div>
+
+            {/* Toolbar */}
+            <div className="px-8 py-4 border-b border-slate-100 flex items-center gap-4 shrink-0 bg-slate-50/50">
+              <div className="relative flex-1">
+                <span className="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 text-[20px]">search</span>
+                <input 
+                  type="text" 
+                  placeholder="Search by activity, admin name, or event ID..." 
+                  className="w-full pl-12 pr-4 py-2.5 bg-white border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all placeholder-slate-400 shadow-sm"
+                />
+              </div>
+              <div className="relative border border-slate-200 bg-white rounded-xl flex items-center shrink-0 pr-3 shadow-sm hover:border-indigo-200 transition-colors">
+                <span className="material-symbols-outlined text-indigo-600 pl-4 pr-2 text-[20px]">calendar_today</span>
+                <select className="pl-1 pr-6 py-2.5 text-sm font-bold text-slate-700 focus:outline-none appearance-none bg-transparent cursor-pointer">
+                  <option>Oct 01 - Oct 31, 2023</option>
+                  <option>Sep 01 - Sep 30, 2023</option>
+                </select>
+                <span className="material-symbols-outlined absolute right-3 pointer-events-none text-slate-400 text-[18px]">expand_more</span>
+              </div>
+              <button className="flex items-center gap-2 border border-slate-200 bg-white px-5 py-2.5 rounded-xl hover:bg-slate-50 transition-colors shadow-sm shrink-0">
+                <span className="material-symbols-outlined text-[20px] text-slate-600">filter_list</span>
+                <span className="text-sm font-bold text-slate-700">Filters</span>
+                <span className="bg-indigo-100 text-indigo-700 w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold ml-1">2</span>
+              </button>
+              <button className="border border-slate-200 bg-white w-11 h-11 flex items-center justify-center rounded-xl hover:bg-slate-50 transition-colors shadow-sm shrink-0">
+                <span className="material-symbols-outlined text-slate-600 text-[20px]">download</span>
+              </button>
+            </div>
+
+            {/* Table Header */}
+            <div className="grid grid-cols-12 gap-6 px-8 py-4 bg-slate-100/50 border-b border-slate-200 shrink-0">
+              <div className="col-span-2 text-[10px] font-bold text-slate-500 uppercase tracking-wider">TIMESTAMP</div>
+              <div className="col-span-2 text-[10px] font-bold text-slate-500 uppercase tracking-wider">CLASSIFICATION</div>
+              <div className="col-span-3 text-[10px] font-bold text-slate-500 uppercase tracking-wider">ACTIVITY</div>
+              <div className="col-span-2 text-[10px] font-bold text-slate-500 uppercase tracking-wider">EXECUTOR</div>
+              <div className="col-span-3 text-[10px] font-bold text-slate-500 uppercase tracking-wider">METADATA & DETAILS</div>
+            </div>
+
+            {/* Table Body */}
+            <div className="flex-1 overflow-y-auto">
+              
+              {/* Row 1 */}
+              <div className="grid grid-cols-12 gap-6 px-8 py-6 border-b border-slate-100 items-start hover:bg-slate-50/50 transition-colors">
+                <div className="col-span-2 flex flex-col">
+                  <span className="text-sm font-medium text-slate-700">Oct 24,</span>
+                  <span className="text-sm font-bold text-slate-800">11:30:05 AM</span>
+                </div>
+                <div className="col-span-2">
+                  <span className="inline-flex items-center gap-1.5 bg-orange-50 text-orange-600 border border-orange-100 px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider">
+                    <span className="w-1.5 h-1.5 rounded-full bg-orange-500"></span> SECURITY
+                  </span>
+                </div>
+                <div className="col-span-3 flex flex-col">
+                  <span className="text-sm font-bold text-error mb-1">Reject Credentials</span>
+                  <span className="text-[10px] font-mono text-slate-400">ID: #DOC-882-QX</span>
+                </div>
+                <div className="col-span-2 flex items-center gap-3">
+                  <img src="https://api.dicebear.com/7.x/avataaars/svg?seed=Marcus" alt="Marcus" className="w-9 h-9 rounded-full bg-slate-100" />
+                  <div className="flex flex-col">
+                    <span className="text-sm font-bold text-[#0f2546] leading-snug">Marcus<br/>Aurelius</span>
+                    <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wider mt-0.5">LEAD REVIEWER</span>
+                  </div>
+                </div>
+                <div className="col-span-3">
+                  <div className="bg-red-50/50 border border-red-100 rounded-lg p-3">
+                    <p className="text-xs text-slate-600 leading-relaxed">
+                      <span className="font-bold text-error mr-1">REASON:</span>
+                      Image resolution too low to verify security watermarks. Manual review required.
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Row 2 */}
+              <div className="grid grid-cols-12 gap-6 px-8 py-6 border-b border-slate-100 items-start hover:bg-slate-50/50 transition-colors">
+                <div className="col-span-2 flex flex-col">
+                  <span className="text-sm font-medium text-slate-700">Oct 23,</span>
+                  <span className="text-sm font-bold text-slate-800">4:12:44 PM</span>
+                </div>
+                <div className="col-span-2">
+                  <span className="inline-flex items-center gap-1.5 bg-slate-100 text-slate-600 border border-slate-200 px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider">
+                    <span className="w-1.5 h-1.5 rounded-full bg-slate-500"></span> INFRASTRUCTURE
+                  </span>
+                </div>
+                <div className="col-span-3 flex flex-col">
+                  <span className="text-sm font-bold text-[#0f2546] mb-1">Initialize Auto-<br/>KYC</span>
+                  <span className="text-[10px] font-mono text-slate-400">ID: #KYC-SEQ-001</span>
+                </div>
+                <div className="col-span-2 flex items-center gap-3">
+                  <div className="w-9 h-9 rounded-full bg-slate-100 border border-slate-200 flex items-center justify-center shrink-0">
+                    <span className="material-symbols-outlined text-slate-500 text-[18px]">smart_toy</span>
+                  </div>
+                  <div className="flex flex-col">
+                    <span className="text-sm font-bold text-[#0f2546] leading-snug">Indigo System<br/>Bot</span>
+                    <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wider mt-0.5">AUTOMATED<br/>ROUTINE</span>
+                  </div>
+                </div>
+                <div className="col-span-3">
+                  <div className="bg-indigo-50/50 border border-indigo-50 rounded-lg p-3">
+                    <p className="text-xs text-slate-600 leading-relaxed">
+                      Automated identity verification protocol triggered for Enterprise Tier onboarding application.
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Row 3 */}
+              <div className="grid grid-cols-12 gap-6 px-8 py-6 border-b border-slate-100 items-start hover:bg-slate-50/50 transition-colors">
+                <div className="col-span-2 flex flex-col">
+                  <span className="text-sm font-medium text-slate-700">Oct 22,</span>
+                  <span className="text-sm font-bold text-slate-800">10:20:18 AM</span>
+                </div>
+                <div className="col-span-2">
+                  <span className="inline-flex items-center gap-1.5 bg-green-50 text-green-700 border border-green-100 px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider">
+                    <span className="w-1.5 h-1.5 rounded-full bg-green-500"></span> IAM CHANGE
+                  </span>
+                </div>
+                <div className="col-span-3 flex flex-col">
+                  <span className="text-sm font-bold text-[#0f2546] mb-1">Grant "Manager"<br/>Role</span>
+                  <span className="text-[10px] font-mono text-slate-400">USER: #CLARA-J</span>
+                </div>
+                <div className="col-span-2 flex items-center gap-3">
+                  <div className="w-9 h-9 rounded-full bg-purple-100 text-purple-700 flex items-center justify-center shrink-0 font-bold text-xs">
+                    SJ
+                  </div>
+                  <div className="flex flex-col">
+                    <span className="text-sm font-bold text-[#0f2546] leading-snug">Sarah Jenkins</span>
+                    <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wider mt-0.5">ORG<br/>ADMINISTRATOR</span>
+                  </div>
+                </div>
+                <div className="col-span-3">
+                  <div className="bg-slate-50 border border-slate-100 rounded-lg p-3">
+                    <p className="text-xs text-slate-600 leading-relaxed">
+                      Promoted Clara Jones to Product Manager within the NexuTech organization workspace.
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+            </div>
+
+            {/* Footer */}
+            <div className="px-8 py-4 border-t border-slate-200 bg-white flex justify-between items-center shrink-0">
+              <div className="flex items-center gap-6">
+                <div className="flex items-center gap-3">
+                  <span className="text-xs font-medium text-slate-500">Rows per page:</span>
+                  <span className="bg-slate-100 text-slate-800 px-3 py-1.5 rounded-lg text-sm font-bold">25</span>
+                </div>
+                <span className="text-xs text-slate-500">Showing <span className="font-bold text-slate-700">1-25</span> of 4,284 entries</span>
+              </div>
+              <div className="flex gap-4">
+                <div className="flex items-center border border-slate-200 rounded-lg bg-white shadow-sm overflow-hidden">
+                  <button className="px-3 py-2 text-slate-300 border-r border-slate-200 bg-slate-50 flex items-center justify-center pointer-events-none">
+                    <span className="material-symbols-outlined text-[20px]">chevron_left</span>
+                  </button>
+                  <span className="px-5 py-2 text-sm font-bold text-indigo-600 bg-indigo-50/50">Page 1</span>
+                  <button className="px-3 py-2 text-slate-600 border-l border-slate-200 hover:bg-slate-50 flex items-center justify-center transition-colors">
+                    <span className="material-symbols-outlined text-[20px]">chevron_right</span>
                   </button>
                 </div>
-              )}
+                <button 
+                  onClick={() => setAuditLogsModalOpen(false)}
+                  className="bg-indigo-600 hover:bg-indigo-700 text-white px-8 py-2.5 rounded-xl font-bold shadow-sm transition-colors text-sm"
+                >
+                  Done
+                </button>
+              </div>
+            </div>
+
+          </div>
+        </div>
+      )}
+
+      {/* Document Verification Modal */}
+      {documentModalOpen && (
+        <div className="fixed inset-0 z-[100] flex bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="flex w-full h-full p-4 sm:p-8 gap-0">
+            {/* Left side: Document Viewer */}
+            <div className="flex-1 bg-slate-700 rounded-l-2xl flex flex-col overflow-hidden relative shadow-2xl border-r border-slate-600">
+              
+              {/* Top toolbar */}
+              <div className="h-14 bg-white/95 shrink-0 px-6 flex justify-between items-center border-b border-slate-200">
+                <div className="flex items-center gap-6">
+                  <span className="text-xs font-bold text-slate-800 tracking-wider">PAGE 1 OF 3</span>
+                  <div className="h-4 w-px bg-slate-300"></div>
+                  <div className="flex items-center gap-3">
+                    <button className="material-symbols-outlined text-slate-500 hover:text-slate-800 text-[20px]">zoom_out</button>
+                    <span className="text-sm font-medium text-slate-700">100%</span>
+                    <button className="material-symbols-outlined text-slate-500 hover:text-slate-800 text-[20px]">zoom_in</button>
+                  </div>
+                </div>
+                <div className="flex items-center gap-4">
+                  <button className="material-symbols-outlined text-slate-500 hover:text-slate-800 text-[20px]">print</button>
+                  <button className="material-symbols-outlined text-slate-500 hover:text-slate-800 text-[20px]">download</button>
+                  <button className="material-symbols-outlined text-slate-500 hover:text-slate-800 text-[20px]">fullscreen</button>
+                </div>
+              </div>
+
+              {/* Document Scroll Area */}
+              <div className="flex-1 overflow-y-auto p-8 flex flex-col gap-8 items-center">
+                {/* Page 1 */}
+                <div className="w-full max-w-3xl bg-white min-h-[900px] rounded shadow-xl flex flex-col relative shrink-0">
+                  <div className="pt-24 pb-16 px-16 flex-1 flex flex-col">
+                    <div className="flex justify-center mb-12">
+                      <div className="w-20 h-20 rounded-full border border-slate-200 bg-slate-50 flex items-center justify-center text-slate-400">
+                        <span className="material-symbols-outlined text-[40px]">account_balance</span>
+                      </div>
+                    </div>
+                    
+                    <div className="text-center mb-16 space-y-4">
+                      <h1 className="text-4xl font-bold tracking-[0.2em] text-[#0f2546]">CERTIFICATE OF</h1>
+                      <h1 className="text-4xl font-bold tracking-[0.2em] text-[#0f2546]">INCORPORATION</h1>
+                      <p className="text-xl text-slate-500 italic mt-4 font-serif">Of a Private Limited Company</p>
+                    </div>
+
+                    <div className="h-px bg-slate-200 w-full mb-12"></div>
+
+                    <div className="text-center space-y-8 flex-1">
+                      <p className="text-lg text-slate-600">The Registrar of Companies for England and Wales, hereby<br/>certifies that</p>
+                      <h2 className="text-2xl font-bold text-[#0f2546]">TECHNOVA GLOBAL LTD</h2>
+                      <p className="text-lg text-slate-600 leading-relaxed">
+                        is this day incorporated under the Companies Act 2006 as a<br/>
+                        private company, that the company is limited by shares, and<br/>
+                        the situation of its registered office is in England and Wales
+                      </p>
+                    </div>
+
+                    <div className="flex justify-between items-end mt-24">
+                      <div>
+                        <p className="text-xs font-bold text-slate-400 tracking-wider mb-2">COMPANY NUMBER</p>
+                        <p className="text-lg font-bold">12948576</p>
+                      </div>
+                      <div className="text-right">
+                        <p className="text-xs font-bold text-slate-400 tracking-wider mb-2">DATE</p>
+                        <p className="text-lg font-mono font-bold tracking-tight">24th October 2023</p>
+                      </div>
+                    </div>
+
+                    <div className="mt-12 flex justify-between items-start">
+                      <div>
+                        <p className="text-xs font-bold text-slate-400 tracking-wider mb-2">GIVEN AT COMPANIES HOUSE</p>
+                        <p className="text-base font-bold">CARDIFF</p>
+                      </div>
+                      <div className="w-24 h-24 bg-slate-50 border border-slate-100 opacity-50"></div>
+                    </div>
+                  </div>
+                  
+                  <div className="absolute bottom-0 right-0 w-32 h-32 bg-slate-100" style={{ clipPath: 'polygon(100% 0, 100% 100%, 0 100%)' }}></div>
+                </div>
+
+                {/* Page 2 */}
+                <div className="w-full max-w-3xl bg-white min-h-[900px] rounded shadow-xl flex flex-col relative shrink-0 p-16">
+                  <div className="border-b-2 border-[#0f2546] pb-6 mb-10 flex justify-between items-end">
+                    <div>
+                      <h2 className="text-2xl font-bold text-[#0f2546] tracking-wide">ARTICLES OF ASSOCIATION</h2>
+                      <p className="text-sm text-slate-500 mt-2">Private Company Limited by Shares</p>
+                    </div>
+                    <div className="text-right">
+                      <div className="w-16 h-16 border-2 border-indigo-100 rounded-full flex items-center justify-center text-indigo-200 mb-2 ml-auto">
+                        <span className="material-symbols-outlined text-3xl">gavel</span>
+                      </div>
+                      <p className="text-[10px] font-bold text-slate-400">PART 1: INTERPRETATION</p>
+                    </div>
+                  </div>
+
+                  <div className="space-y-8 flex-1">
+                    <section>
+                      <h3 className="text-sm font-bold text-slate-800 mb-3 flex items-center gap-2">
+                        <span className="w-6 h-6 bg-slate-100 rounded flex items-center justify-center text-xs">1</span>
+                        Defined Terms
+                      </h3>
+                      <p className="text-sm text-slate-600 leading-relaxed pl-8">
+                        In the articles, unless the context requires otherwise: "articles" means the company's articles of association; "bankruptcy" includes individual insolvency proceedings in a jurisdiction other than England and Wales or Northern Ireland which have an effect similar to that of bankruptcy.
+                      </p>
+                    </section>
+                    
+                    <section>
+                      <h3 className="text-sm font-bold text-slate-800 mb-3 flex items-center gap-2">
+                        <span className="w-6 h-6 bg-slate-100 rounded flex items-center justify-center text-xs">2</span>
+                        Liability of members
+                      </h3>
+                      <p className="text-sm text-slate-600 leading-relaxed pl-8">
+                        The liability of the members is limited to the amount, if any, unpaid on the shares held by them.
+                      </p>
+                    </section>
+                    
+                    <section>
+                      <h3 className="text-sm font-bold text-slate-800 mb-3 flex items-center gap-2">
+                        <span className="w-6 h-6 bg-slate-100 rounded flex items-center justify-center text-xs">3</span>
+                        Directors' general authority
+                      </h3>
+                      <p className="text-sm text-slate-600 leading-relaxed pl-8">
+                        Subject to the articles, the directors are responsible for the management of the company's business, for which purpose they may exercise all the powers of the company.
+                      </p>
+                    </section>
+                    
+                    <div className="h-px bg-slate-100 my-8"></div>
+                    
+                    <div className="grid grid-cols-2 gap-8 mt-12">
+                      <div className="border border-slate-200 rounded p-6 bg-slate-50">
+                        <p className="text-xs font-bold text-slate-500 mb-6">SIGNATURE OF DIRECTOR 1</p>
+                        <div className="border-b border-slate-400 border-dashed pb-2 mb-2">
+                          <span className="font-mono italic text-2xl text-indigo-900 opacity-80">J. Smith</span>
+                        </div>
+                        <p className="text-xs text-slate-600">Johnathan Smith</p>
+                      </div>
+                      <div className="border border-slate-200 rounded p-6 bg-slate-50">
+                        <p className="text-xs font-bold text-slate-500 mb-6">SIGNATURE OF DIRECTOR 2</p>
+                        <div className="border-b border-slate-400 border-dashed pb-2 mb-2">
+                          <span className="font-mono italic text-2xl text-indigo-900 opacity-80">A. Davies</span>
+                        </div>
+                        <p className="text-xs text-slate-600">Alice Davies</p>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <div className="mt-12 flex justify-between items-center text-xs text-slate-400 font-bold border-t border-slate-100 pt-6">
+                    <span>TECHNOVA GLOBAL LTD - 12948576</span>
+                    <span>PAGE 2 OF 3</span>
+                  </div>
+                </div>
+
+                {/* Page 3 */}
+                <div className="w-full max-w-3xl bg-white min-h-[900px] rounded shadow-xl flex flex-col relative shrink-0 p-16">
+                  <div className="flex justify-between items-start mb-12">
+                    <div className="w-24 h-24 border-4 border-red-600/20 rounded-full flex items-center justify-center relative">
+                      <div className="absolute inset-2 border border-red-600/40 rounded-full flex items-center justify-center">
+                        <span className="text-red-600/60 font-bold text-[10px] text-center uppercase tracking-widest leading-tight -rotate-12">Official<br/>Seal</span>
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-xs font-bold text-slate-400 mb-1">APPENDIX A</p>
+                      <h2 className="text-xl font-bold text-slate-800">Statement of Capital</h2>
+                    </div>
+                  </div>
+
+                  <div className="flex-1">
+                    <p className="text-sm text-slate-600 mb-6">
+                      The total number of shares and total aggregate nominal value of issued share capital at the date of incorporation is detailed below:
+                    </p>
+                    
+                    <div className="border border-slate-200 rounded-lg overflow-hidden mb-12">
+                      <table className="w-full text-sm text-left">
+                        <thead className="bg-slate-50 text-xs font-bold text-slate-500">
+                          <tr>
+                            <th className="px-6 py-4 border-b border-slate-200">Currency</th>
+                            <th className="px-6 py-4 border-b border-slate-200">Class of Shares</th>
+                            <th className="px-6 py-4 border-b border-slate-200 text-right">Number of Shares</th>
+                            <th className="px-6 py-4 border-b border-slate-200 text-right">Aggregate Nominal Value</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          <tr>
+                            <td className="px-6 py-4 border-b border-slate-100 font-medium">GBP</td>
+                            <td className="px-6 py-4 border-b border-slate-100">ORDINARY</td>
+                            <td className="px-6 py-4 border-b border-slate-100 text-right">100</td>
+                            <td className="px-6 py-4 border-b border-slate-100 text-right">£100.00</td>
+                          </tr>
+                          <tr className="bg-slate-50/50 font-bold">
+                            <td className="px-6 py-4" colSpan={2}>TOTAL</td>
+                            <td className="px-6 py-4 text-right">100</td>
+                            <td className="px-6 py-4 text-right">£100.00</td>
+                          </tr>
+                        </tbody>
+                      </table>
+                    </div>
+
+                    <div className="bg-amber-50 border-l-4 border-amber-500 p-4 rounded-r">
+                      <div className="flex items-start gap-3">
+                        <span className="material-symbols-outlined text-amber-600">info</span>
+                        <div>
+                          <h4 className="text-sm font-bold text-amber-900">Prescribed particulars of rights attached to shares</h4>
+                          <p className="text-sm text-amber-700 mt-1 leading-relaxed">
+                            Each share has full rights in the company with respect to voting, dividends and distributions.
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                    
+                    <div className="mt-16 flex justify-end">
+                      <div className="w-48">
+                        <p className="text-[10px] font-bold text-slate-400 uppercase mb-2">Electronic Signature</p>
+                        <div className="bg-slate-50 border border-slate-200 rounded px-4 py-3 font-mono text-xs text-slate-500 break-all">
+                          3f8c2b9a1d4e7f0g5h8j2k1m4n7p0q3r
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <div className="mt-12 flex justify-between items-center text-xs text-slate-400 font-bold border-t border-slate-100 pt-6">
+                    <span>TECHNOVA GLOBAL LTD - 12948576</span>
+                    <span>PAGE 3 OF 3</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Right side: Verification Panel */}
+            <div className="w-[420px] bg-white rounded-r-2xl flex flex-col shadow-2xl relative shrink-0">
+              <button 
+                onClick={() => setDocumentModalOpen(false)}
+                className="absolute right-4 top-4 material-symbols-outlined text-slate-400 hover:text-slate-700 bg-white rounded-full transition-colors z-10"
+              >
+                close
+              </button>
+
+              <div className="p-6 border-b border-slate-100 shrink-0 mt-2">
+                <div className="flex items-center gap-2 mb-6">
+                  <span className="material-symbols-outlined text-indigo-600 bg-indigo-50 rounded-full text-[20px] p-1 font-bold">verified</span>
+                  <h2 className="text-lg font-bold text-[#0f2546]">Verification Panel</h2>
+                </div>
+
+                <div className="bg-[#f0f4f8] rounded-xl p-4 border border-indigo-100 mb-4 border-l-4 border-l-indigo-600">
+                  <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">FILE NAME</p>
+                  <p className="text-sm font-bold text-[#0f2546] truncate">COI_TechNova_Global_2023.pdf</p>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="bg-slate-50 rounded-xl p-4">
+                    <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">SIZE</p>
+                    <p className="text-sm font-bold text-[#0f2546]">1.4 MB</p>
+                  </div>
+                  <div className="bg-slate-50 rounded-xl p-4">
+                    <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">UPLOADED</p>
+                    <p className="text-sm font-bold text-[#0f2546]">Oct 25, 2023</p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="p-6 border-b border-slate-100 flex-1 overflow-y-auto">
+                <div className="mb-8">
+                  <p className="text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-4">DOCUMENT STATUS</p>
+                  <div className="flex bg-slate-50 p-1 rounded-xl">
+                    <button 
+                      onClick={() => setActiveDocumentStatus('Pending')}
+                      className={`flex-1 py-2 text-sm font-bold rounded-lg transition-all ${activeDocumentStatus === 'Pending' ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
+                    >
+                      Pending
+                    </button>
+                    <button 
+                      onClick={() => setActiveDocumentStatus('Approved')}
+                      className={`flex-1 py-2 text-sm font-bold rounded-lg transition-all ${activeDocumentStatus === 'Approved' ? 'bg-white text-green-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
+                    >
+                      Approved
+                    </button>
+                    <button 
+                      onClick={() => setActiveDocumentStatus('Rejected')}
+                      className={`flex-1 py-2 text-sm font-bold rounded-lg transition-all ${activeDocumentStatus === 'Rejected' ? 'bg-white text-error shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
+                    >
+                      Rejected
+                    </button>
+                  </div>
+                </div>
+
+                <div>
+                  <p className="text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-4">INTERNAL ADMIN NOTES</p>
+                  <textarea 
+                    placeholder="Add private notes for other auditors..."
+                    className="w-full h-32 resize-none border border-slate-200 rounded-xl p-4 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 placeholder-slate-400"
+                  ></textarea>
+                </div>
+              </div>
+
+              <div className="p-6 bg-slate-50 rounded-br-2xl shrink-0">
+                <button 
+                  onClick={() => { setDocumentModalOpen(false); }}
+                  className="w-full bg-[#4f46e5] hover:bg-[#4338ca] text-white py-3.5 rounded-xl text-sm font-bold shadow-md transition-all flex items-center justify-center gap-2 mb-4"
+                >
+                  Submit Decision
+                  <span className="material-symbols-outlined text-[18px]">send</span>
+                </button>
+                <p className="text-center text-[11px] text-slate-500 italic">Action will be logged in the Audit History</p>
+              </div>
+
             </div>
           </div>
         </div>

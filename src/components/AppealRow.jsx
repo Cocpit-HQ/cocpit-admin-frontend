@@ -39,23 +39,23 @@ export default function AppealRow({ appeal, onAction }) {
         </div>
       </td>
       <td className="px-lg py-md align-top text-right min-w-[150px]">
-        <div className="flex flex-col gap-2 items-end">
-          <div className="flex gap-2">
-            <button onClick={() => onAction(appeal.id, 'approved')} className="px-sm py-xs text-[11px] font-bold uppercase text-green-700 bg-green-50 hover:bg-green-100 rounded-lg transition-all border border-green-200 shadow-sm flex items-center justify-center" title="Reinstate">
-              Reinstate
-            </button>
-            <button onClick={() => onAction(appeal.id, 'approved')} className="px-sm py-xs text-[11px] font-bold uppercase text-yellow-700 bg-yellow-50 hover:bg-yellow-100 rounded-lg transition-all border border-yellow-200 shadow-sm flex items-center justify-center" title="Reinstate with Warning">
-              Warning
-            </button>
-          </div>
-          <div className="flex gap-2">
-            <button onClick={() => onAction(appeal.id, 'rejected')} className="px-sm py-xs text-[11px] font-bold uppercase text-orange-700 bg-orange-50 hover:bg-orange-100 rounded-lg transition-all border border-orange-200 shadow-sm flex items-center justify-center" title="Extend Suspension">
-              Extend
-            </button>
-            <button onClick={() => onAction(appeal.id, 'rejected')} className="px-sm py-xs text-[11px] font-bold uppercase text-error bg-error-container hover:bg-red-100 rounded-lg transition-all border border-red-200 shadow-sm flex items-center justify-center" title="Uphold (Permanent)">
-              Uphold
-            </button>
-          </div>
+        <div className="grid grid-cols-2 gap-2 min-w-[160px]">
+          <button onClick={() => onAction(appeal.id, 'approved')} className="flex flex-col items-center justify-center gap-1 p-2 bg-surface hover:bg-green-50 border border-outline-variant hover:border-green-300 text-on-surface-variant hover:text-green-700 rounded-xl transition-all shadow-sm hover:shadow-md" title="Reinstate">
+            <span className="material-symbols-outlined text-[18px]">undo</span>
+            <span className="text-[10px] font-bold uppercase tracking-wider">Reinstate</span>
+          </button>
+          <button onClick={() => onAction(appeal.id, 'approved')} className="flex flex-col items-center justify-center gap-1 p-2 bg-surface hover:bg-yellow-50 border border-outline-variant hover:border-yellow-300 text-on-surface-variant hover:text-yellow-700 rounded-xl transition-all shadow-sm hover:shadow-md" title="Reinstate with Warning">
+            <span className="material-symbols-outlined text-[18px]">warning</span>
+            <span className="text-[10px] font-bold uppercase tracking-wider">Warning</span>
+          </button>
+          <button onClick={() => onAction(appeal.id, 'rejected')} className="flex flex-col items-center justify-center gap-1 p-2 bg-surface hover:bg-orange-50 border border-outline-variant hover:border-orange-300 text-on-surface-variant hover:text-orange-700 rounded-xl transition-all shadow-sm hover:shadow-md" title="Extend Suspension">
+            <span className="material-symbols-outlined text-[18px]">update</span>
+            <span className="text-[10px] font-bold uppercase tracking-wider">Extend</span>
+          </button>
+          <button onClick={() => onAction(appeal.id, 'rejected')} className="flex flex-col items-center justify-center gap-1 p-2 bg-surface hover:bg-red-50 border border-outline-variant hover:border-red-300 text-on-surface-variant hover:text-red-700 rounded-xl transition-all shadow-sm hover:shadow-md" title="Uphold (Permanent)">
+            <span className="material-symbols-outlined text-[18px]">gavel</span>
+            <span className="text-[10px] font-bold uppercase tracking-wider">Uphold</span>
+          </button>
         </div>
       </td>
     </tr>
