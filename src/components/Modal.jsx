@@ -42,7 +42,7 @@ export const Modal = ({
 
       {/* Modal Card */}
       <div
-        className={`relative rounded-2xl bg-surface border border-outline/10 text-on-surface shadow-2xl transition-all transform animate-zoom-in ${sizeClasses[size] || sizeClasses.md}`}
+        className={`relative w-full rounded-2xl bg-surface border border-outline/10 text-on-surface shadow-2xl transition-all transform animate-zoom-in ${sizeClasses[size] || sizeClasses.md}`}
         role="dialog"
         aria-modal="true"
       >
