@@ -1,80 +1,91 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-
-const mockHistory = [
-  {
-    id: '#90221-BX',
-    type: 'User',
-    name: 'Marcus V.',
-    status: 'Suspended',
-    reason: 'Hate Speech / Harassment',
-    contentPreview: '"This platform is garbage and everyone here is a complete moron. I\'m going to find where you..."',
-    flaggedBy: '@SafetyBot_04',
-    time: '14 mins ago',
-    image: 'https://lh3.googleusercontent.com/aida-public/AB6AXuAl34ZW-QnwuANVglUDhG_gk2vschCwqxEVtT39bRNZVIVDsk_rjXiEn-6In9dEMdGfxpcc5QX6wN8iRj2fEIxlPf8QgxdXaoWa_JOZ0-hRWcy2kQ2XNR70Tki5f5HPBLJkfxmEsZrVesiOP_bcGuw5OHW8g1IWqcu0Nk7tbIN317tjx2ZV5a26k_14seMdN8Eqg5IwKa-rkBy4S_J0aQ41h7h_uO2PS19jY607SPQzRYvhHmGK4RwYd0n-xHgem-trIt1raRhtWIsa'
-  },
-  {
-    id: '#MA-7722',
-    type: 'Organization',
-    name: 'Global Market Post',
-    status: 'Rejected',
-    reason: 'Suspected Spam',
-    contentPreview: 'Multiple reports of repetitive commercial spam. Content identified as legitimate promotional campaign with prior authorization.',
-    flaggedBy: '@user_prime_99',
-    time: '2 hours ago',
-    icon: 'article'
-  },
-  {
-    id: '#11029-LK',
-    type: 'User',
-    name: 'Elena K.',
-    status: 'Approved',
-    reason: 'Sensitive IP Disclosure',
-    contentPreview: 'Media attachment: system_diagram_v2.png',
-    flaggedBy: '@CorpSecurity',
-    time: '5 hours ago',
-    image: 'https://lh3.googleusercontent.com/aida-public/AB6AXuD9Pz9PCYP__YK6z_ZjIjFQJ8N6JBrVsNCDUluwHVA_-bOEcD5_qBGWGnXR1xokdse9GnWQsKr07f7ZC4WWP5HUIZfb7aosU8Rnn6Ot_Bedv3PFiNjh6GwnHfnq8CHBHZSlOL5T_gBPPFJ0xYNOA-Mq7xPIJ11CNd-gmtRRJDYh_3AUAQwAj9Qpt-FA1VDnra4VsEyvwCiyf8DR-kE0NgisoT_vEPYzs6sUe3Km6DC50ZzAaXjUqDjjpPkUPcvxxsN4gUbz7qa3HPOE'
-  },
-  {
-    id: '#99318-ZZ',
-    type: 'User',
-    name: '@anon_bot_net',
-    status: 'Suspended',
-    reason: 'Bot Activity Detection',
-    contentPreview: 'System detected automated scripted activity. Account engaged in high-frequency polling exceeding rate limits by 1400%.',
-    flaggedBy: 'System Sentinel',
-    time: 'Yesterday',
-    icon: 'alternate_email'
-  },
-  {
-    id: '#APP-1002-Y',
-    type: 'Appeal',
-    name: 'Omar Al-Fayed',
-    status: 'Reinstated',
-    reason: 'Appeal for Suspended Account',
-    contentPreview: 'My account was hacked. I did not post those crypto links.',
-    flaggedBy: 'User Submission',
-    time: 'Oct 23, 2023',
-    icon: 'gavel'
-  },
-  {
-    id: '#APP-1001-Z',
-    type: 'Appeal',
-    name: 'Crypto Scammer 99',
-    status: 'Upheld',
-    reason: 'Appeal for Suspended Account',
-    contentPreview: 'Why was I banned? I did nothing wrong.',
-    flaggedBy: 'User Submission',
-    time: 'Oct 20, 2023',
-    icon: 'gavel'
-  }
-];
+import { useAuth } from '../AuthContext';
 
 export default function ReviewHistory() {
   const location = useLocation();
+  const { accessToken } = useAuth();
+  
   const [searchTerm, setSearchTerm] = useState('');
   const [activeFilter, setActiveFilter] = useState(location.state?.filter || 'All Cases');
   const [visibleCount, setVisibleCount] = useState(4);
+  
+  const [historyData, setHistoryData] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchHistory = async () => {
+      if (!accessToken) return;
+      try {
+        setLoading(true);
+        const headers = { 'Authorization': `Bearer ${accessToken}` };
+        
+        // Fetch all history data concurrently
+        const [resolvedRes, dismissedRes, approvedAppealsRes, rejectedAppealsRes] = await Promise.all([
+          fetch('/api/admin/reports?status=resolved', { headers }),
+          fetch('/api/admin/reports?status=dismissed', { headers }),
+          fetch('/api/admin/appeals?status=approved', { headers }),
+          fetch('/api/admin/appeals?status=rejected', { headers })
+        ]);
+
+        const resolvedData = resolvedRes.ok ? await resolvedRes.json() : { reports: [] };
+        const dismissedData = dismissedRes.ok ? await dismissedRes.json() : { reports: [] };
+        const approvedAppealsData = approvedAppealsRes.ok ? await approvedAppealsRes.json() : [];
+        const rejectedAppealsData = rejectedAppealsRes.ok ? await rejectedAppealsRes.json() : [];
+
+        // Format reports
+        const formatReport = (r, status) => ({
+          id: `#RPT-${r.id}`,
+          type: r.type,
+          name: r.targetUserName || r.rawType || 'Unknown',
+          status: status,
+          reason: r.reason || 'Violation',
+          contentPreview: r.contentPreview || 'No content preview available.',
+          flaggedBy: r.reportedBy || 'System',
+          time: new Date(r.postTime).toLocaleDateString(),
+          image: r.image,
+          icon: r.type === 'User' ? 'person' : 'article',
+          rawTime: new Date(r.postTime).getTime()
+        });
+
+        const formattedResolved = (resolvedData.reports || []).map(r => formatReport(r, r.type === 'User' ? 'Suspended' : 'Rejected'));
+        const formattedDismissed = (dismissedData.reports || []).map(r => formatReport(r, 'Approved'));
+
+        // Format appeals
+        const formatAppeal = (a, status) => ({
+          id: `#APP-${a.id}`,
+          type: 'Appeal',
+          name: a.user || 'Unknown User',
+          status: status,
+          reason: 'Appeal for Suspended Account',
+          contentPreview: a.appealText || 'No appeal text provided.',
+          flaggedBy: 'User Submission',
+          time: new Date(a.appealTime).toLocaleDateString(),
+          icon: 'gavel',
+          rawTime: new Date(a.appealTime).getTime()
+        });
+
+        const formattedApprovedAppeals = approvedAppealsData.map(a => formatAppeal(a, 'Reinstated'));
+        const formattedRejectedAppeals = rejectedAppealsData.map(a => formatAppeal(a, 'Upheld'));
+
+        // Combine and sort by time descending
+        const combined = [
+          ...formattedResolved,
+          ...formattedDismissed,
+          ...formattedApprovedAppeals,
+          ...formattedRejectedAppeals
+        ].sort((a, b) => b.rawTime - a.rawTime);
+
+        setHistoryData(combined);
+      } catch (err) {
+        console.error('Failed to fetch history:', err);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchHistory();
+  }, [accessToken]);
 
   const getStatusStyle = (status) => {
     switch (status) {
@@ -98,7 +109,7 @@ export default function ReviewHistory() {
     }
   };
 
-  const filteredHistory = mockHistory.filter(item => {
+  const filteredHistory = historyData.filter(item => {
     const matchesSearch = item.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
                           item.reason.toLowerCase().includes(searchTerm.toLowerCase()) ||
                           item.contentPreview.toLowerCase().includes(searchTerm.toLowerCase());
@@ -156,59 +167,63 @@ export default function ReviewHistory() {
 
       {/* History List */}
       <div className="space-y-md">
-        {filteredHistory.slice(0, visibleCount).map((item, index) => (
-          <div key={index} className="bg-surface-container-lowest border border-outline-variant rounded-xl p-md flex flex-col gap-sm shadow-sm transition-all hover:border-primary/50">
-            <div className="flex justify-between items-start">
-              <div className="flex items-center gap-sm">
-                <div className="w-10 h-10 rounded-lg bg-surface-container-high flex items-center justify-center overflow-hidden border border-outline-variant/20">
-                  {item.image ? (
-                    <img alt="User" className="w-full h-full object-cover" src={item.image} />
-                  ) : (
-                    <span className="material-symbols-outlined text-primary">{item.icon}</span>
-                  )}
-                </div>
-                <div>
-                  <h3 className="font-headline-sm text-on-surface leading-tight">{item.name}</h3>
-                  <p className="text-[11px] text-on-surface-variant font-mono-label">ID: {item.id}</p>
-                </div>
-              </div>
-              <span className={`px-sm py-xs rounded text-[11px] font-bold uppercase tracking-wider ${getStatusStyle(item.status)}`}>
-                {item.status}
-              </span>
-            </div>
-            
-            <div className={`bg-surface-container-low p-sm rounded-lg ${item.status === 'Suspended' ? 'border-l-4 border-tertiary-container' : ''}`}>
-              <p className={`text-body-sm text-on-surface ${item.status !== 'Rejected' ? 'italic line-clamp-2' : ''}`}>
-                {item.contentPreview}
-              </p>
-            </div>
-            
-            <div className="flex flex-col gap-xs pt-xs border-t border-outline-variant/10 mt-2">
-              <div className="flex items-center gap-xs">
-                <span className={`material-symbols-outlined text-[14px] ${getIconColor(item.status)}`}>
-                  {item.status === 'Rejected' ? 'spam' : item.status === 'Approved' ? 'lock' : 'report'}
-                </span>
-                <span className={`text-body-sm font-semibold ${getIconColor(item.status)}`}>
-                  {item.reason}
-                </span>
-              </div>
-              <div className="flex justify-between items-center text-[11px] text-on-surface-variant">
-                <span>Flagged by: <span className="text-on-surface font-medium">{item.flaggedBy}</span></span>
-                <span>{item.time}</span>
-              </div>
-            </div>
+        {loading ? (
+          <div className="flex justify-center p-12">
+            <span className="material-symbols-outlined animate-spin text-4xl text-primary">progress_activity</span>
           </div>
-        ))}
-
-        {filteredHistory.length === 0 && (
+        ) : filteredHistory.length === 0 ? (
           <div className="p-xl text-center text-on-surface-variant font-body-md bg-surface-container-low rounded-xl border border-outline-variant">
             No moderation cases found matching your search.
           </div>
+        ) : (
+          filteredHistory.slice(0, visibleCount).map((item, index) => (
+            <div key={index} className="bg-surface-container-lowest border border-outline-variant rounded-xl p-md flex flex-col gap-sm shadow-sm transition-all hover:border-primary/50">
+              <div className="flex justify-between items-start">
+                <div className="flex items-center gap-sm">
+                  <div className="w-10 h-10 rounded-lg bg-surface-container-high flex items-center justify-center overflow-hidden border border-outline-variant/20">
+                    {item.image ? (
+                      <img alt="User" className="w-full h-full object-cover" src={item.image} />
+                    ) : (
+                      <span className="material-symbols-outlined text-primary">{item.icon}</span>
+                    )}
+                  </div>
+                  <div>
+                    <h3 className="font-headline-sm text-on-surface leading-tight">{item.name}</h3>
+                    <p className="text-[11px] text-on-surface-variant font-mono-label">ID: {item.id}</p>
+                  </div>
+                </div>
+                <span className={`px-sm py-xs rounded text-[11px] font-bold uppercase tracking-wider ${getStatusStyle(item.status)}`}>
+                  {item.status}
+                </span>
+              </div>
+              
+              <div className={`bg-surface-container-low p-sm rounded-lg ${item.status === 'Suspended' ? 'border-l-4 border-tertiary-container' : ''}`}>
+                <p className={`text-body-sm text-on-surface ${item.status !== 'Rejected' ? 'italic line-clamp-2' : ''}`}>
+                  {item.contentPreview}
+                </p>
+              </div>
+              
+              <div className="flex flex-col gap-xs pt-xs border-t border-outline-variant/10 mt-2">
+                <div className="flex items-center gap-xs">
+                  <span className={`material-symbols-outlined text-[14px] ${getIconColor(item.status)}`}>
+                    {item.status === 'Rejected' ? 'spam' : item.status === 'Approved' ? 'lock' : 'report'}
+                  </span>
+                  <span className={`text-body-sm font-semibold ${getIconColor(item.status)}`}>
+                    {item.reason}
+                  </span>
+                </div>
+                <div className="flex justify-between items-center text-[11px] text-on-surface-variant">
+                  <span>Flagged by: <span className="text-on-surface font-medium">{item.flaggedBy}</span></span>
+                  <span>{item.time}</span>
+                </div>
+              </div>
+            </div>
+          ))
         )}
       </div>
 
       {/* Footer Load More */}
-      {visibleCount < filteredHistory.length && (
+      {!loading && visibleCount < filteredHistory.length && (
         <div className="mt-xl flex flex-col items-center">
           <button 
             onClick={() => setVisibleCount(prev => prev + 4)}
