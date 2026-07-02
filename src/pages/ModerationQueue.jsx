@@ -4,6 +4,7 @@ import { useAuth } from '../AuthContext';
 import ReportRow from '../components/ReportRow';
 import AppealRow from '../components/AppealRow';
 import ReportDetailModal from '../components/ReportDetailModal';
+import WarningModal from '../components/WarningModal';
 
 export default function ModerationQueue() {
   const { role, accessToken } = useAuth();
@@ -16,20 +17,40 @@ export default function ModerationQueue() {
   const [filterReason, setFilterReason] = useState('All');
   const [filterSeverity, setFilterSeverity] = useState('All');
   const [loading, setLoading] = useState(true);
+  
+  const [reportReasons, setReportReasons] = useState([]);
+
+  // Pagination State
+  const [activePage, setActivePage] = useState(1);
+  const [activeTotalPages, setActiveTotalPages] = useState(1);
+  const [escalatedPage, setEscalatedPage] = useState(1);
+  const [escalatedTotalPages, setEscalatedTotalPages] = useState(1);
 
   // Modal State
   const [selectedReport, setSelectedReport] = useState(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [warningModalOpen, setWarningModalOpen] = useState(false);
+  const [userToWarn, setUserToWarn] = useState(null);
+  const [warningReportGroup, setWarningReportGroup] = useState(null);
 
-  const fetchReports = async (status, setter) => {
+  const fetchReports = async (status, setter, setTotalPages, page, type = 'All', reason = 'All', severity = 'All') => {
     try {
-      const res = await fetch(`/api/admin/reports?status=${status}`, {
+      const queryParams = new URLSearchParams({
+        status,
+        page,
+        limit: 10,
+        type,
+        reason,
+        severity
+      });
+      const res = await fetch(`/api/admin/reports?${queryParams.toString()}`, {
         headers: { 'Authorization': `Bearer ${accessToken}` }
       });
       if (res.ok) {
         const data = await res.json();
         console.log(`Fetched ${status} reports:`, data);
-        setter(data);
+        setter(data.reports || []);
+        if (setTotalPages) setTotalPages(data.totalPages || 1);
       } else {
         console.error(`Failed to fetch ${status} reports:`, res.status, await res.text());
         if (res.status === 401 || res.status === 403) {
@@ -58,37 +79,136 @@ export default function ModerationQueue() {
   useEffect(() => {
     if (accessToken) {
       setLoading(true);
+      
+      const fetchReasons = async () => {
+        try {
+          const res = await fetch('/api/admin/reports/reasons', { headers: { 'Authorization': `Bearer ${accessToken}` } });
+          if (res.ok) {
+            const data = await res.json();
+            setReportReasons(data); // store the full array of {code, label}
+          }
+        } catch (e) {
+          console.error(e);
+        }
+      };
+
       Promise.all([
-        fetchReports('active', setReports),
-        fetchReports('escalated', setEscalatedReports),
-        fetchAppeals()
+        fetchReports('active', setReports, setActiveTotalPages, activePage, filterType, filterReason, filterSeverity),
+        fetchReports('escalated', setEscalatedReports, setEscalatedTotalPages, escalatedPage, filterType, filterReason, filterSeverity),
+        fetchAppeals(),
+        fetchReasons()
       ]).finally(() => setLoading(false));
     }
-  }, [accessToken]);
+  }, [accessToken, activePage, escalatedPage, filterType, filterReason, filterSeverity]);
 
-  const currentReports = activeTab === 'Escalations' ? escalatedReports : reports;
-  const filteredReports = currentReports.filter(report => {
-    const typeMatch = filterType === 'All' || report.type === filterType;
-    const reasonMatch = filterReason === 'All' || report.reason === filterReason;
-    const severityMatch = filterSeverity === 'All' || (report.severity || '') === filterSeverity;
-    return typeMatch && reasonMatch && severityMatch;
-  });
+  const filteredReports = activeTab === 'Escalations' ? escalatedReports : reports;
 
-  const updateReportStatus = async (id, status) => {
+  const groupedReports = React.useMemo(() => {
+    const groups = {};
+    filteredReports.forEach(report => {
+      // Group by postId, fallback to contentPreview if missing
+      const groupId = report.postId || report.contentPreview;
+      
+      if (!groups[groupId]) {
+        groups[groupId] = {
+          id: groupId, // The grouped ID
+          type: report.type,
+          contentPreview: report.contentPreview,
+          postId: report.postId,
+          postTime: report.postTime,
+          image: report.image,
+          offenses: report.offenses,
+          targetUserId: report.targetUserId,
+          targetUserName: report.targetUserName,
+          reports: [],
+        };
+      }
+      groups[groupId].reports.push(report);
+    });
+
+    // Post-process the groups
+    return Object.values(groups).map(group => {
+      // Determine highest severity
+      const hasTier3 = group.reports.some(r => (r.severity || '').includes('Tier 3'));
+      const hasTier2 = group.reports.some(r => (r.severity || '').includes('Tier 2'));
+      const highestSeverity = hasTier3 ? 'Tier 3 (Severe)' : (hasTier2 ? 'Tier 2 (Moderate)' : 'Tier 1 (Minor)');
+      
+      // Get unique reasons
+      const uniqueReasons = [...new Set(group.reports.map(r => r.reason))];
+      
+      // Get unique reporters count
+      const uniqueReporters = new Set(group.reports.map(r => r.reportedBy)).size;
+
+      return {
+        ...group,
+        highestSeverity,
+        uniqueReasons,
+        uniqueReporters,
+        reportCount: group.reports.length
+      };
+    }).sort((a, b) => {
+      // Sort by severity first, then by number of reports
+      if (a.highestSeverity !== b.highestSeverity) {
+        if (a.highestSeverity.includes('Tier 3')) return -1;
+        if (b.highestSeverity.includes('Tier 3')) return 1;
+        if (a.highestSeverity.includes('Tier 2')) return -1;
+        if (b.highestSeverity.includes('Tier 2')) return 1;
+      }
+      return b.reportCount - a.reportCount;
+    });
+  }, [filteredReports]);
+
+  const updateReportStatusBulk = async (reportIds, status) => {
+    try {
+      const promises = reportIds.map(id => 
+        fetch(`/api/admin/reports/${id}`, {
+          method: 'PATCH',
+          headers: {
+            'Authorization': `Bearer ${accessToken}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({ status })
+        })
+      );
+      await Promise.all(promises);
+      
+      // Update local state by filtering out all affected report IDs
+      if (activeTab === 'Escalations') {
+        setEscalatedReports(prev => prev.filter(r => !reportIds.includes(r.id)));
+      } else {
+        setReports(prev => prev.filter(r => !reportIds.includes(r.id)));
+      }
+    } catch (e) {
+      console.error("Bulk update error:", e);
+    }
+  };
+
+  const handleApproveGroup = async (groupedReport) => {
+    if (window.confirm(`Approve content and dismiss all ${groupedReport.reportCount} reports?`)) {
+      const reportIds = groupedReport.reports.map(r => r.id);
+      await updateReportStatusBulk(reportIds, 'dismissed');
+      alert("All reports dismissed.");
+    }
+  };
+
+  const handleDismissFromModal = async (reportIds) => {
+    await updateReportStatusBulk(reportIds, 'dismissed');
+    setIsModalOpen(false);
+    alert("Reports dismissed.");
+  };
+
+  const handleDismissIndividual = async (id) => {
     try {
       const res = await fetch(`/api/admin/reports/${id}`, {
         method: 'PATCH',
-        headers: {
-          'Authorization': `Bearer ${accessToken}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({ status })
+        headers: { 'Authorization': `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: 'dismissed' })
       });
       if (res.ok) {
         if (activeTab === 'Escalations') {
-          setEscalatedReports(escalatedReports.filter(r => r.id !== id));
+          setEscalatedReports(prev => prev.filter(r => r.id !== id));
         } else {
-          setReports(reports.filter(r => r.id !== id));
+          setReports(prev => prev.filter(r => r.id !== id));
         }
       }
     } catch (e) {
@@ -96,27 +216,13 @@ export default function ModerationQueue() {
     }
   };
 
-  const handleApprove = async (id) => {
-    if (window.confirm("Approve content and dismiss the report?")) {
-      await updateReportStatus(id, 'dismissed');
-      alert("Report dismissed.");
-    }
-  };
-
-  const handleDismissFromModal = async (id) => {
-    await updateReportStatus(id, 'dismissed');
-    setIsModalOpen(false);
-    alert("Report dismissed.");
-  };
-
-  const handleDeleteContent = async (report) => {
+  const handleDeleteContent = async (groupedReport) => {
     if (window.confirm("Are you sure you want to delete this content? This action cannot be undone.")) {
       try {
-        // Assume Content reports refer to posts for MVP
-        const endpoint = report.type === 'Content' ? `/api/admin/posts/${report.postId}` : null;
+        const endpoint = groupedReport.type === 'Content' ? `/api/admin/posts/${groupedReport.postId}` : null;
         
         if (!endpoint) {
-          alert(`Deletion not implemented for type: ${report.type}`);
+          alert(`Deletion not implemented for type: ${groupedReport.type}`);
           return;
         }
 
@@ -129,11 +235,11 @@ export default function ModerationQueue() {
         });
         
         if (res.ok) {
-          // Remove from local state since backend auto-resolves reports
+          const reportIds = groupedReport.reports.map(r => r.id);
           if (activeTab === 'Escalations') {
-            setEscalatedReports(escalatedReports.filter(r => r.id !== report.id));
+            setEscalatedReports(prev => prev.filter(r => !reportIds.includes(r.id)));
           } else {
-            setReports(reports.filter(r => r.id !== report.id));
+            setReports(prev => prev.filter(r => !reportIds.includes(r.id)));
           }
           setIsModalOpen(false);
           alert("Content deleted and associated reports resolved.");
@@ -148,42 +254,30 @@ export default function ModerationQueue() {
     }
   };
 
-  const handleReject = async (report) => {
-    // We now have a modal for this, but keeping quick action for escalate
-    let penalty = "Review for immediate action.";
-    if (role === 'moderator' && report.severity.includes('Tier 3')) {
-      penalty = "Tier 3 violation: Escalate to Admin.";
-      if (window.confirm(`Action Recommended:\n${penalty}\n\nProceed with escalation?`)) {
-        await updateReportStatus(report.id, 'escalated');
-        setReports(reports.filter(r => r.id !== report.id));
-        setEscalatedReports([...escalatedReports, { ...report, status: 'escalated' }]);
-        alert("Escalated to Administrator.");
+  const handleEscalateGroup = async (groupedReport) => {
+    if (window.confirm(`Are you sure you want to manually escalate all ${groupedReport.reportCount} reports to an Administrator?`)) {
+      const reportIds = groupedReport.reports.map(r => r.id);
+      await updateReportStatusBulk(reportIds, 'escalated');
+      
+      // Add them locally to the escalated tab if we are in active reports
+      if (activeTab !== 'Escalations') {
+        const newEscalated = groupedReport.reports.map(r => ({ ...r, status: 'escalated' }));
+        setEscalatedReports(prev => [...prev, ...newEscalated]);
       }
-      return;
-    }
-    
-    // For non-Tier 3, just open the modal to review
-    openReportModal(report);
-  };
-
-  const handleEscalate = async (report) => {
-    if (window.confirm(`Are you sure you want to manually escalate this case to an Administrator?`)) {
-      await updateReportStatus(report.id, 'escalated');
-      setReports(reports.filter(r => r.id !== report.id));
-      setEscalatedReports([...escalatedReports, { ...report, status: 'escalated' }]);
-      alert("Escalated to Administrator.");
+      alert("Reports escalated to Administrator.");
     }
   };
 
-  const handleSuspend = async (report) => {
-    if (report.severity.includes('Tier 3') && role === 'moderator') {
+  const handleSuspendGroup = async (groupedReport) => {
+    if (groupedReport.highestSeverity.includes('Tier 3') && role === 'moderator') {
       alert("Moderators cannot directly suspend for Tier 3 violations. Please escalate using the Reject button.");
       return;
     }
     
     if (window.confirm(`Proceed with Suspension for user who posted this?`)) {
-      await updateReportStatus(report.id, 'resolved');
-      alert("Report resolved and suspension logged.");
+      const reportIds = groupedReport.reports.map(r => r.id);
+      await updateReportStatusBulk(reportIds, 'resolved');
+      alert("Reports resolved and suspension logged.");
     }
   };
 
@@ -209,6 +303,60 @@ export default function ModerationQueue() {
   const openReportModal = (report) => {
     setSelectedReport(report);
     setIsModalOpen(true);
+  };
+
+  const handleOpenWarnModal = (groupedReport) => {
+    const authorId = groupedReport.reports?.[0]?.targetUserId || groupedReport.targetUserId;
+    const authorName = groupedReport.reports?.[0]?.targetUserName || groupedReport.targetUserName;
+    if (!authorId) {
+      alert("Unable to identify the author of this content.");
+      return;
+    }
+    setUserToWarn({ id: authorId, name: authorName });
+    setWarningReportGroup(groupedReport);
+    setWarningModalOpen(true);
+  };
+
+  const handleSendWarning = async ({ reason, message, isSevere }) => {
+    if (!userToWarn || !warningReportGroup) return;
+    try {
+      const response = await fetch(`/api/admin/users/${userToWarn.id}/warn`, {
+        method: 'POST',
+        headers: { 
+          'Authorization': `Bearer ${accessToken}`, 
+          'Content-Type': 'application/json' 
+        },
+        body: JSON.stringify({ reason, message, isSevere })
+      });
+      const data = await response.json();
+      
+      let autoSuspended = data.autoSuspended;
+      let alertMsg = "";
+      if (autoSuspended) {
+        alertMsg = `${userToWarn.name} has been warned and AUTOMATICALLY SUSPENDED due to exceeding 7 moderation flags.`;
+      } else {
+        if (isSevere) {
+          alertMsg = `Severe warning sent to ${userToWarn.name}. Their moderation flag was incremented (Total: ${data.moderation_flags}).`;
+        } else {
+          alertMsg = `Warning sent to ${userToWarn.name}. No moderation flags were added.`;
+        }
+      }
+      
+      // Auto-resolve all reports in this group
+      const reportIds = warningReportGroup.reports.map(r => r.id);
+      await updateReportStatusBulk(reportIds, 'resolved');
+      
+      alert(alertMsg + "\n\nAssociated reports have been resolved.");
+      
+      setIsModalOpen(false); // Close the detail modal
+    } catch (e) {
+      console.error(e);
+      alert("Failed to send warning.");
+    } finally {
+      setWarningModalOpen(false);
+      setUserToWarn(null);
+      setWarningReportGroup(null);
+    }
   };
 
   if (loading) {
@@ -240,8 +388,8 @@ export default function ModerationQueue() {
               onClick={() => {
                 setLoading(true);
                 Promise.all([
-                  fetchReports('active', setReports),
-                  fetchReports('escalated', setEscalatedReports),
+                  fetchReports('active', setReports, setActiveTotalPages, activePage, filterType, filterReason, filterSeverity),
+                  fetchReports('escalated', setEscalatedReports, setEscalatedTotalPages, escalatedPage, filterType, filterReason, filterSeverity),
                   fetchAppeals()
                 ]).finally(() => setLoading(false));
               }}
@@ -288,7 +436,7 @@ export default function ModerationQueue() {
             </div>
             <select
               value={filterType}
-              onChange={(e) => setFilterType(e.target.value)}
+              onChange={(e) => { setActivePage(1); setEscalatedPage(1); setFilterType(e.target.value); }}
               className="bg-surface-container-lowest border border-outline-variant rounded-lg font-body-sm text-on-surface px-md py-sm focus:ring-primary focus:outline-none"
             >
               <option value="All">Type: All</option>
@@ -298,19 +446,17 @@ export default function ModerationQueue() {
             </select>
             <select
               value={filterReason}
-              onChange={(e) => setFilterReason(e.target.value)}
+              onChange={(e) => { setActivePage(1); setEscalatedPage(1); setFilterReason(e.target.value); }}
               className="bg-surface-container-lowest border border-outline-variant rounded-lg font-body-sm text-on-surface px-md py-sm focus:ring-primary focus:outline-none"
             >
               <option value="All">Reason: All</option>
-              <option value="Spam">Spam</option>
-              <option value="Harassment">Harassment</option>
-              <option value="Hate Speech">Hate Speech</option>
-              <option value="Misinformation">Misinformation</option>
-              <option value="External Links">External Links</option>
+              {reportReasons.map((r) => (
+                <option key={r.code} value={r.label}>{r.code}</option>
+              ))}
             </select>
             <select
               value={filterSeverity}
-              onChange={(e) => setFilterSeverity(e.target.value)}
+              onChange={(e) => { setActivePage(1); setEscalatedPage(1); setFilterSeverity(e.target.value); }}
               className="bg-surface-container-lowest border border-outline-variant rounded-lg font-body-sm text-on-surface px-md py-sm focus:ring-primary focus:outline-none"
             >
               <option value="All">Tier: All</option>
@@ -320,7 +466,7 @@ export default function ModerationQueue() {
             </select>
             {(filterType !== 'All' || filterReason !== 'All' || filterSeverity !== 'All') && (
               <button
-                onClick={() => { setFilterType('All'); setFilterReason('All'); setFilterSeverity('All'); }}
+                onClick={() => { setActivePage(1); setEscalatedPage(1); setFilterType('All'); setFilterReason('All'); setFilterSeverity('All'); }}
                 className="text-primary font-label-md hover:underline bg-transparent border-none cursor-pointer px-sm py-xs"
               >
                 Clear Filters
@@ -342,19 +488,19 @@ export default function ModerationQueue() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-outline-variant">
-                {filteredReports.map((report) => (
+                {groupedReports.map((report) => (
                   <ReportRow 
                     key={report.id} 
                     report={report} 
                     role={role} 
                     activeTab={activeTab}
-                    onApprove={handleApprove}
+                    onApprove={() => handleApproveGroup(report)}
                     onReject={() => openReportModal(report)}
-                    onEscalate={handleEscalate}
-                    onSuspend={handleSuspend}
+                    onEscalate={() => handleEscalateGroup(report)}
+                    onSuspend={() => handleSuspendGroup(report)}
                   />
                 ))}
-                {filteredReports.length === 0 && (
+                {groupedReports.length === 0 && (
                   <tr>
                     <td colSpan="5" className="px-lg py-xl text-center text-on-surface-variant">
                       No reports found.
@@ -363,6 +509,28 @@ export default function ModerationQueue() {
                 )}
               </tbody>
             </table>
+          </div>
+          {/* Pagination Controls */}
+          <div className="flex items-center justify-between px-lg py-md border-t border-outline-variant bg-surface-container">
+            <span className="font-body-sm text-on-surface-variant">
+              Page {activeTab === 'Escalations' ? escalatedPage : activePage} of {activeTab === 'Escalations' ? escalatedTotalPages : activeTotalPages}
+            </span>
+            <div className="flex gap-sm">
+              <button 
+                disabled={activeTab === 'Escalations' ? escalatedPage === 1 : activePage === 1}
+                onClick={() => activeTab === 'Escalations' ? setEscalatedPage(p => Math.max(1, p - 1)) : setActivePage(p => Math.max(1, p - 1))}
+                className="px-md py-xs font-label-md bg-surface border border-outline-variant rounded hover:bg-surface-variant disabled:opacity-50 transition-opacity"
+              >
+                Previous
+              </button>
+              <button 
+                disabled={activeTab === 'Escalations' ? escalatedPage >= escalatedTotalPages : activePage >= activeTotalPages}
+                onClick={() => activeTab === 'Escalations' ? setEscalatedPage(p => Math.min(escalatedTotalPages, p + 1)) : setActivePage(p => Math.min(activeTotalPages, p + 1))}
+                className="px-md py-xs font-label-md bg-surface border border-outline-variant rounded hover:bg-surface-variant disabled:opacity-50 transition-opacity"
+              >
+                Next
+              </button>
+            </div>
           </div>
         </div>
         </>
@@ -407,6 +575,16 @@ export default function ModerationQueue() {
         role={role}
         onDeleteContent={handleDeleteContent}
         onDismissReport={handleDismissFromModal}
+        onDismissIndividual={handleDismissIndividual}
+        onWarnUser={handleOpenWarnModal}
+      />
+
+      {/* Warning Modal */}
+      <WarningModal
+        isOpen={warningModalOpen}
+        onClose={() => setWarningModalOpen(false)}
+        userName={userToWarn?.name}
+        onSend={handleSendWarning}
       />
     </div>
   );
