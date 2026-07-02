@@ -26,10 +26,10 @@ export const Modal = ({
   if (!isOpen) return null;
 
   const sizeClasses = {
-    sm: 'w-[450px] max-w-[90vw]',
-    md: 'w-[600px] max-w-[90vw]',
-    lg: 'w-[800px] max-w-[90vw]',
-    xl: 'w-[1000px] max-w-[90vw]',
+    sm: 'max-w-[450px]',
+    md: 'max-w-[600px]',
+    lg: 'max-w-[800px]',
+    xl: 'max-w-[1000px]',
   };
 
   return (
