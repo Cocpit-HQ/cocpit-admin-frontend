@@ -134,6 +134,19 @@ export default function JobDetailCard({ job, onApprove, onReject, isProcessing, 
           </div>
         </div>
 
+        {/* Rejection Reason */}
+        {job.moderation_status === 'REJECTED' && (
+          <div className="border-t border-red-100 pt-4">
+            <h3 className="text-xs font-bold text-red-600 uppercase tracking-wider mb-2 flex items-center gap-1.5">
+              <span className="material-symbols-outlined text-[16px]">error</span>
+              Rejection Reason
+            </h3>
+            <p className="text-sm text-red-700 bg-red-50 border border-red-100 rounded-xl p-4 whitespace-pre-line font-medium">
+              {job.rejection_reason || 'No specific reason provided for this rejection.'}
+            </p>
+          </div>
+        )}
+
         {/* About Company */}
         {job.about_company && (
           <div className="border-t border-gray-100 pt-4">

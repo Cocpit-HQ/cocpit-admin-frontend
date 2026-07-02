@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../AuthContext';
 import JobDetailCard from '../JobDetailCard';
+import Modal from '../Modal';
 
 export default function JobVerificationQueue() {
   const { accessToken } = useAuth();
@@ -9,6 +10,9 @@ export default function JobVerificationQueue() {
   const [selectedJobId, setSelectedJobId] = useState(null);
   const [loading, setLoading] = useState(true);
   const [isProcessing, setIsProcessing] = useState(false);
+  const [isRejectModalOpen, setIsRejectModalOpen] = useState(false);
+  const [rejectReason, setRejectReason] = useState('');
+  const [rejectingJobId, setRejectingJobId] = useState(null);
 
   useEffect(() => {
     fetchJobs();
@@ -37,7 +41,7 @@ export default function JobVerificationQueue() {
     }
   };
 
-  const handleModerate = async (jobId, action) => {
+  const handleModerate = async (jobId, action, reason = null) => {
     setIsProcessing(true);
     try {
       const res = await fetch(`/api/admin/jobs/${jobId}/moderation`, {
@@ -46,7 +50,7 @@ export default function JobVerificationQueue() {
           'Authorization': `Bearer ${accessToken}`,
           'Content-Type': 'application/json'
         },
-        body: JSON.stringify({ action }) // 'approve' or 'reject'
+        body: JSON.stringify({ action, rejection_reason: reason }) // 'approve' or 'reject'
       });
 
       if (res.ok) {
@@ -64,6 +68,21 @@ export default function JobVerificationQueue() {
     } finally {
       setIsProcessing(false);
     }
+  };
+
+  const openRejectModal = (jobId) => {
+    setRejectingJobId(jobId);
+    setRejectReason('');
+    setIsRejectModalOpen(true);
+  };
+
+  const submitReject = () => {
+    if (!rejectReason.trim()) {
+      alert('Please provide a reason for rejection.');
+      return;
+    }
+    handleModerate(rejectingJobId, 'reject', rejectReason);
+    setIsRejectModalOpen(false);
   };
 
   const selectedJob = jobs.find(j => j.job_id === selectedJobId);
@@ -170,10 +189,34 @@ export default function JobVerificationQueue() {
             job={selectedJob} 
             isProcessing={isProcessing}
             onApprove={(id) => handleModerate(id, 'approve')}
-            onReject={(id) => handleModerate(id, 'reject')}
+            onReject={(id) => openRejectModal(id)}
+            hideActions={activeTab !== 'UNDER_REVIEW'}
           />
         </div>
       </div>
+
+      <Modal
+        isOpen={isRejectModalOpen}
+        onClose={() => setIsRejectModalOpen(false)}
+        title="Reject Job Posting"
+        footer={
+          <>
+            <button onClick={() => setIsRejectModalOpen(false)} className="px-4 py-2 font-bold text-gray-600 hover:bg-gray-100 rounded-lg transition-colors">Cancel</button>
+            <button onClick={submitReject} disabled={isProcessing} className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white font-bold rounded-lg disabled:opacity-50 transition-colors shadow-sm">Confirm Rejection</button>
+          </>
+        }
+      >
+        <div className="space-y-4 font-sans">
+          <p className="text-sm text-gray-600">Please provide a reason for rejecting this job. This reason will be recorded.</p>
+          <textarea
+            className="w-full border border-gray-300 rounded-xl p-4 text-sm focus:outline-none focus:ring-2 focus:ring-red-500 min-h-[120px]"
+            placeholder="e.g. Salary information is missing or unrealistic..."
+            value={rejectReason}
+            onChange={(e) => setRejectReason(e.target.value)}
+          ></textarea>
+        </div>
+      </Modal>
+
     </div>
   );
 }
