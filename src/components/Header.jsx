@@ -1,10 +1,14 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../AuthContext';
 
 export default function Header({ toggleSidebar }) {
+  const { logout, role } = useAuth();
   const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
+  const [isProfileOpen, setIsProfileOpen] = useState(false);
   const [hasUnread, setHasUnread] = useState(true);
   const dropdownRef = useRef(null);
+  const profileDropdownRef = useRef(null);
   const navigate = useNavigate();
 
   const notifications = [
@@ -46,10 +50,13 @@ export default function Header({ toggleSidebar }) {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
         setIsNotificationsOpen(false);
       }
+      if (profileDropdownRef.current && !profileDropdownRef.current.contains(event.target)) {
+        setIsProfileOpen(false);
+      }
     }
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, [dropdownRef]);
+  }, [dropdownRef, profileDropdownRef]);
 
   const handleNotificationClick = (path) => {
     setIsNotificationsOpen(false);
@@ -125,11 +132,37 @@ export default function Header({ toggleSidebar }) {
 
         <button className="material-symbols-outlined hover:bg-surface-container p-2 rounded-full transition-all text-on-surface-variant hidden md:block">help</button>
         <div className="w-px h-6 bg-outline-variant mx-1 md:mx-2"></div>
-        <img
-          alt="Administrator Profile"
-          className="w-8 h-8 rounded-full border border-outline-variant shrink-0"
-          src="https://ui-avatars.com/api/?name=Alex+Rivera&background=3525cd&color=fff"
-        />
+        {/* Profile Dropdown */}
+        <div className="relative" ref={profileDropdownRef}>
+          <button 
+            onClick={() => setIsProfileOpen(!isProfileOpen)}
+            className="flex items-center focus:outline-none cursor-pointer"
+          >
+            <img
+              alt="Administrator Profile"
+              className="w-8 h-8 rounded-full border border-outline-variant shrink-0"
+              src="https://ui-avatars.com/api/?name=Alex+Rivera&background=3525cd&color=fff"
+            />
+          </button>
+          
+          {isProfileOpen && (
+            <div className="absolute right-0 mt-2 w-48 bg-surface border border-outline-variant rounded-xl shadow-xl overflow-hidden z-50">
+              <div className="p-4 border-b border-outline-variant bg-surface-container-lowest">
+                <p className="font-label-md text-label-md font-bold capitalize">{role || 'Admin'} User</p>
+                <p className="text-body-sm text-on-surface-variant capitalize">{role || 'Super Admin'}</p>
+              </div>
+              <div className="p-2">
+                <button
+                  onClick={logout}
+                  className="w-full flex items-center gap-3 px-3 py-2 text-error hover:bg-error-container/30 rounded-lg transition-colors cursor-pointer"
+                >
+                  <span className="material-symbols-outlined text-[20px]">logout</span>
+                  <span className="font-label-md">Logout</span>
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
       </div>
     </header>
   );
