@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import VerificationQueue from '../components/VerificationQueue';
 
 const mockOrganizations = [
   { id: 1, initials: 'NT', name: 'NexuTech Solutions', website: 'nexus-tech.io', industry: 'Software & IT', founded: 'Jan 12, 2018', location: 'San Francisco, USA', status: 'Active', colorClass: 'bg-primary-fixed text-primary', industryClass: 'bg-secondary-container text-on-secondary-container' },
@@ -25,10 +26,12 @@ import { useAuth } from '../AuthContext';
 export default function Organizations() {
   const { role } = useAuth();
   const navigate = useNavigate();
+  const [activeTab, setActiveTab] = useState('VerificationQueue');
   const [selectedOrgs, setSelectedOrgs] = useState(new Set());
   const [currentPage, setCurrentPage] = useState(1);
   const [industryFilter, setIndustryFilter] = useState('All');
   const [statusFilter, setStatusFilter] = useState('All');
+  const [searchQuery, setSearchQuery] = useState('');
   const orgsPerPage = 8;
 
   const [warningModalOpen, setWarningModalOpen] = useState(false);
@@ -66,6 +69,11 @@ export default function Organizations() {
   };
 
   const filteredOrgs = mockOrganizations
+    .filter(org => 
+      searchQuery === '' || 
+      org.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
+      org.website.toLowerCase().includes(searchQuery.toLowerCase())
+    )
     .filter(org => industryFilter === 'All' || org.industry === industryFilter)
     .filter(org => statusFilter === 'All' || org.status === statusFilter);
 
@@ -95,15 +103,58 @@ export default function Organizations() {
   };
 
   return (
-    <div className="pt-8 pb-12 w-full max-w-max-width mx-auto">
+    <div className="pt-8 pb-12 w-full max-w-[1400px] mx-auto px-4">
       {/* Page Header */}
-      <div className="flex flex-col md:flex-row md:items-end justify-between mb-xl gap-md">
-        <div>
-          <h2 className="font-display-lg text-display-lg text-on-background">Organization Directory</h2>
-          <p className="text-on-surface-variant font-body-lg text-body-lg">Manage registered entities, verification status, and platform access.</p>
+      <div className="flex flex-col xl:flex-row xl:items-center justify-between mb-xl gap-md">
+        <div className="flex items-start gap-4">
+          <div className="w-12 h-12 rounded-xl flex items-center justify-center bg-indigo-50 border border-indigo-100 shrink-0 shadow-sm">
+             <span className="material-symbols-outlined text-indigo-600 text-[24px]">
+               {activeTab === 'Directory' ? 'domain' : 'verified_user'}
+             </span>
+          </div>
+          <div className="flex flex-col justify-center min-h-[48px]">
+            <div className="flex items-center gap-3 mb-1">
+              <h2 className="font-display-lg text-display-lg text-on-background font-bold m-0 leading-none">
+                {activeTab === 'Directory' ? 'Organization Directory' : 'Verification Queue'}
+              </h2>
+              {activeTab === 'VerificationQueue' && (
+                <span className="bg-indigo-500 text-white text-[11px] font-bold px-2.5 py-0.5 rounded-full uppercase tracking-wider shadow-sm">
+                  94 PENDING
+                </span>
+              )}
+            </div>
+            <p className="text-on-surface-variant font-body-lg text-body-lg m-0 leading-tight">
+              {activeTab === 'Directory' 
+                ? 'Manage registered entities, verification status, and platform access.' 
+                : 'Review, approve, or reject job postings submitted to the platform.'}
+            </p>
+          </div>
+        </div>
+
+        <div className="flex flex-wrap items-center gap-md w-full xl:w-auto">
+          {/* Tab Control */}
+          <div className="flex bg-indigo-50/50 p-1 rounded-xl w-full sm:w-auto shadow-inner">
+            <button 
+              onClick={() => setActiveTab('Directory')}
+              className={`flex-1 sm:flex-none px-5 py-2 rounded-lg text-sm font-semibold transition-all whitespace-nowrap ${activeTab === 'Directory' ? 'bg-white shadow-sm text-indigo-700' : 'text-on-surface-variant hover:text-on-surface hover:bg-white/50'}`}
+            >
+              Organization Directory
+            </button>
+            <button 
+              onClick={() => setActiveTab('VerificationQueue')}
+              className={`flex-1 sm:flex-none px-5 py-2 rounded-lg text-sm font-semibold transition-all whitespace-nowrap ${activeTab === 'VerificationQueue' ? 'bg-white shadow-sm text-indigo-700' : 'text-on-surface-variant hover:text-on-surface hover:bg-white/50'}`}
+            >
+              Verification Queue
+            </button>
+          </div>
+
         </div>
       </div>
 
+      {activeTab === 'VerificationQueue' ? (
+        <VerificationQueue />
+      ) : (
+        <>
       {/* Stat Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-md mb-xl">
         {/* Total Organizations */}
@@ -198,46 +249,63 @@ export default function Organizations() {
 
       {/* Filter Bar */}
       <div className="bg-surface border border-outline-variant rounded-xl p-md mb-xl flex flex-wrap items-center justify-between gap-md">
-        <div className="flex flex-wrap items-center gap-md">
-          <div className="relative">
-            <span className="material-symbols-outlined absolute left-sm top-1/2 -translate-y-1/2 text-[20px] text-on-surface-variant pointer-events-none">filter_alt</span>
-            <select
-              value={industryFilter}
-              onChange={(e) => { setIndustryFilter(e.target.value); setCurrentPage(1); }}
-              className="appearance-none bg-surface border border-outline-variant rounded-lg pl-10 pr-10 py-2 text-body-md font-medium focus:ring-1 focus:ring-primary focus:border-primary outline-none cursor-pointer"
-            >
-              <option value="All">All Industries</option>
-              <option value="Software & IT">Software & IT</option>
-              <option value="Advertising">Advertising</option>
-              <option value="Supply Chain">Supply Chain</option>
-              <option value="Biotechnology">Biotechnology</option>
-              <option value="E-commerce">E-commerce</option>
-              <option value="Aerospace">Aerospace</option>
-              <option value="Manufacturing">Manufacturing</option>
-              <option value="Finance">Finance</option>
-              <option value="Healthcare">Healthcare</option>
-              <option value="Cybersecurity">Cybersecurity</option>
-              <option value="Energy">Energy</option>
-            </select>
-            <span className="material-symbols-outlined absolute right-sm top-1/2 -translate-y-1/2 text-[20px] text-on-surface-variant pointer-events-none">expand_more</span>
+        <div className="flex flex-wrap items-center gap-md w-full lg:w-auto">
+          <div className="relative w-full lg:w-auto">
+            <span className="material-symbols-outlined absolute left-sm top-1/2 -translate-y-1/2 text-[20px] text-on-surface-variant pointer-events-none">search</span>
+            <input
+              type="text"
+              placeholder="Filter by Name, Email, or Website..."
+              value={searchQuery}
+              onChange={(e) => { setSearchQuery(e.target.value); setCurrentPage(1); }}
+              className="bg-surface border border-outline-variant rounded-lg pl-10 pr-4 py-2 text-body-md font-medium focus:ring-1 focus:ring-primary focus:border-primary outline-none w-full lg:w-[280px]"
+            />
           </div>
-          <div className="relative">
-            <select
-              value={statusFilter}
-              onChange={(e) => { setStatusFilter(e.target.value); setCurrentPage(1); }}
-              className="appearance-none bg-surface border border-outline-variant rounded-lg pl-md pr-10 py-2 text-body-md font-medium focus:ring-1 focus:ring-primary focus:border-primary outline-none cursor-pointer"
-            >
-              <option value="All">Any</option>
-              <option value="Active">Active</option>
-              <option value="Suspended">Suspended</option>
-            </select>
-            <span className="material-symbols-outlined absolute right-sm top-1/2 -translate-y-1/2 text-[20px] text-on-surface-variant pointer-events-none">expand_more</span>
+          
+          <div className="flex items-center gap-sm">
+            <span className="text-body-sm text-on-surface-variant font-medium hidden lg:inline">Status:</span>
+            <div className="relative">
+              <select
+                value={statusFilter}
+                onChange={(e) => { setStatusFilter(e.target.value); setCurrentPage(1); }}
+                className="appearance-none bg-surface border border-outline-variant rounded-lg pl-md pr-10 py-2 text-body-md font-medium focus:ring-1 focus:ring-primary focus:border-primary outline-none cursor-pointer"
+              >
+                <option value="All">All Statuses</option>
+                <option value="Active">Active</option>
+                <option value="Suspended">Suspended</option>
+              </select>
+              <span className="material-symbols-outlined absolute right-sm top-1/2 -translate-y-1/2 text-[20px] text-on-surface-variant pointer-events-none">expand_more</span>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-sm">
+            <span className="text-body-sm text-on-surface-variant font-medium hidden lg:inline">Industry:</span>
+            <div className="relative">
+              <select
+                value={industryFilter}
+                onChange={(e) => { setIndustryFilter(e.target.value); setCurrentPage(1); }}
+                className="appearance-none bg-surface border border-outline-variant rounded-lg pl-md pr-10 py-2 text-body-md font-medium focus:ring-1 focus:ring-primary focus:border-primary outline-none cursor-pointer"
+              >
+                <option value="All">All Industries</option>
+                <option value="Software & IT">Software & IT</option>
+                <option value="Advertising">Advertising</option>
+                <option value="Supply Chain">Supply Chain</option>
+                <option value="Biotechnology">Biotechnology</option>
+                <option value="E-commerce">E-commerce</option>
+                <option value="Aerospace">Aerospace</option>
+                <option value="Manufacturing">Manufacturing</option>
+                <option value="Finance">Finance</option>
+                <option value="Healthcare">Healthcare</option>
+                <option value="Cybersecurity">Cybersecurity</option>
+                <option value="Energy">Energy</option>
+              </select>
+              <span className="material-symbols-outlined absolute right-sm top-1/2 -translate-y-1/2 text-[20px] text-on-surface-variant pointer-events-none">expand_more</span>
+            </div>
           </div>
         </div>
 
         <div className="flex items-center gap-md">
           <button
-            onClick={() => { setIndustryFilter('All'); setStatusFilter('All'); }}
+            onClick={() => { setIndustryFilter('All'); setStatusFilter('All'); setSearchQuery(''); }}
             className="text-primary font-label-md hover:underline"
           >
             Clear all filters
@@ -472,6 +540,8 @@ export default function Organizations() {
             </div>
           </div>
         </div>
+      )}
+        </>
       )}
     </div>
   );
