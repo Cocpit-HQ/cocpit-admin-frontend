@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
+import { useNavigate, useLocation, useParams } from 'react-router-dom';
 import { useAuth } from '../AuthContext';
 
-const mockOrg = {
+const defaultOrgData = {
   org_id: '1',
   name: 'NexuTech Solutions',
   slug: 'nexutech-solutions',
@@ -26,86 +26,93 @@ const mockOrg = {
   moderation_flags: 3
 };
 
-const mockTechStack = [
-  { name: 'React', category: 'Frontend', bg: 'bg-blue-50/50', border: 'border-blue-100', iconBg: 'bg-white', iconBorder: 'border-blue-100', iconText: 'text-blue-600', icon: 'deployed_code', colSpan: 1 },
-  { name: 'Node.js', category: 'Backend', bg: 'bg-green-50/50', border: 'border-green-100', iconBg: 'bg-white', iconBorder: 'border-green-100', iconText: 'text-green-600', icon: 'javascript', isTextIcon: true, textIcon: 'JS', colSpan: 1 },
-  { name: 'PostgreSQL', category: 'Database', bg: 'bg-indigo-50/50', border: 'border-indigo-100', iconBg: 'bg-white', iconBorder: 'border-indigo-100', iconText: 'text-indigo-600', icon: 'database', colSpan: 1 },
-  { name: 'Docker', category: 'DevOps', bg: 'bg-blue-50/50', border: 'border-blue-100', iconBg: 'bg-white', iconBorder: 'border-blue-100', iconText: 'text-blue-600', icon: 'inventory_2', colSpan: 1 },
-  { name: 'AWS Cloud Services', category: 'Infrastructure', bg: 'bg-orange-50/50', border: 'border-orange-100', iconBg: 'bg-white', iconBorder: 'border-orange-100', iconText: 'text-orange-600', icon: 'cloud', colSpan: 2 }
-];
-
-const mockMembers = [
-  { id: 1, name: 'Alice Chen', role: 'Engineering Manager', initials: 'AC', color: 'bg-blue-100 text-blue-700', department: 'Engineering', email: 'alice.c@nexutech.io', status: 'ACTIVE' },
-  { id: 2, name: 'Bob Smith', role: 'Senior Developer', initials: 'BS', color: 'bg-purple-100 text-purple-700', department: 'Engineering', email: 'bob.s@nexutech.io', status: 'ACTIVE' },
-  { id: 3, name: 'Clara Jones', role: 'Product Manager', initials: 'CJ', color: 'bg-orange-100 text-orange-700', department: 'Product', email: 'clara.j@nexutech.io', status: 'INVITED' },
-  { id: 4, name: 'David Lee', role: 'UX Designer', initials: 'DL', color: 'bg-green-100 text-green-700', department: 'Design', email: 'david.l@nexutech.io', status: 'ACTIVE' }
-];
-
-const baseActivity = [
-  { 
-    id: 1, 
-    type: 'approval', 
-    text: 'Sarah Jenkins approved Business License', 
-    note: 'Internal Note: Clear resolution, watermark verified.', 
-    time: '2 hours ago', 
-    icon: 'verified_user', 
-    color: 'text-green-600 bg-green-50',
-    author: { name: 'Sarah Jenkins', initials: 'SJ', avatarColor: 'bg-orange-100 text-orange-800' }
-  },
-  { 
-    id: 2, 
-    type: 'member', 
-    text: 'David Lee joined as UX Designer', 
-    note: 'Onboarding documents completed and verified.', 
-    time: '3 days ago', 
-    icon: 'person_add', 
-    color: 'text-blue-600 bg-blue-50',
-    author: { name: 'System Automation', initials: 'SA', avatarColor: 'bg-slate-100 text-slate-500' }
-  },
-  { 
-    id: 3, 
-    type: 'document', 
-    text: 'Tax ID (W-9) re-submitted', 
-    note: 'Updated document following initial rejection.', 
-    time: '4 days ago', 
-    icon: 'edit_document', 
-    color: 'text-orange-600 bg-orange-50',
-    author: { name: 'Alice Chen', initials: 'AC', avatarColor: 'bg-blue-100 text-blue-700' }
-  },
-  { 
-    id: 4, 
-    type: 'milestone', 
-    text: 'Reached 10,000 Followers', 
-    note: 'Organic growth across all social channels.', 
-    time: '1 week ago', 
-    icon: 'social_leaderboard', 
-    color: 'text-amber-600 bg-amber-50',
-    author: { name: 'Marketing Team', initials: 'MT', avatarColor: 'bg-purple-100 text-purple-700' }
-  },
-  { 
-    id: 5, 
-    type: 'job', 
-    text: 'Closed job: Marketing Intern', 
-    note: 'Position filled internally.', 
-    time: '2 weeks ago', 
-    icon: 'work_off', 
-    color: 'text-slate-600 bg-slate-50', 
-    author: { name: 'Sarah Jenkins', initials: 'SJ', avatarColor: 'bg-orange-100 text-orange-800' } 
-  }
-];
-
-const mockAllActivity = [
-  ...baseActivity,
-  ...baseActivity.map(a => ({ ...a, id: a.id + 10, time: 'Older' })),
-  ...baseActivity.map(a => ({ ...a, id: a.id + 20, time: 'Even Older' }))
-];
+// Dummy data constants removed, using live data from backend
 
 export default function OrganizationProfile() {
-  const { role } = useAuth();
+  const { role, accessToken } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
+  const { id } = useParams();
   const from = location.state?.from || '/organizations';
   const backLabel = location.state?.label || 'Organizations';
+
+  const [mockOrg, setMockOrg] = useState(defaultOrgData);
+  const [loading, setLoading] = useState(true);
+
+  React.useEffect(() => {
+    if (id && accessToken) {
+      fetch(`/api/admin/organisations/${id}`, {
+        headers: { 'Authorization': `Bearer ${accessToken}` }
+      })
+      .then(res => res.json())
+      .then(data => {
+        if (!data.error) {
+          const processedActivity = (data.activity || []).map(a => ({
+            id: a.id,
+            type: a.type,
+            text: a.text || (a.metadata && a.metadata.text) || `Action: ${a.type}`,
+            note: a.note || (a.metadata && a.metadata.note) || '',
+            time: new Date(a.time).toLocaleString(),
+            icon: a.type === 'CREATE' ? 'add_circle' : (a.type === 'VIEW' ? 'visibility' : 'info'),
+            color: 'text-indigo-600 bg-indigo-50',
+            author: { 
+              name: a.author_name || 'System', 
+              initials: (a.author_name || 'SY').substring(0, 2).toUpperCase(), 
+              avatarColor: 'bg-slate-100 text-slate-500' 
+            }
+          }));
+
+          const processedTechStack = (data.techStack || []).map(tech => ({
+            name: tech.name,
+            category: tech.category || 'General',
+            bg: 'bg-slate-50/50', border: 'border-slate-100', iconBg: 'bg-white', iconBorder: 'border-slate-100', iconText: 'text-slate-600', icon: 'deployed_code', colSpan: 1
+          }));
+
+          const processedMembers = (data.members || []).map(m => ({
+            id: m.id,
+            name: m.name || 'Unknown User',
+            role: m.role || 'Member',
+            initials: (m.name || 'U ').substring(0, 2).toUpperCase(),
+            color: m.color || 'bg-slate-100 text-slate-700',
+            department: 'General',
+            email: m.email || '',
+            status: m.status || 'ACTIVE'
+          }));
+
+          setMockOrg(prev => ({ 
+            ...prev, 
+            ...data,
+            activity: processedActivity,
+            techStack: processedTechStack,
+            members: processedMembers,
+            documents: data.documents || []
+          }));
+        }
+        setLoading(false);
+      })
+      .catch(err => {
+        console.error('Error fetching org:', err);
+        setLoading(false);
+      });
+    } else {
+      setLoading(false);
+    }
+  }, [id, accessToken]);
+
+  const [suspendModalOpen, setSuspendModalOpen] = useState(false);
+  const [suspendDuration, setSuspendDuration] = useState('Short Temporary (3-7 days)');
+  const [documentModalOpen, setDocumentModalOpen] = useState(false);
+  const [activeDocumentStatus, setActiveDocumentStatus] = useState('Pending');
+  const [membersModalOpen, setMembersModalOpen] = useState(false);
+  const [activityModalOpen, setActivityModalOpen] = useState(false);
+  const [auditLogsModalOpen, setAuditLogsModalOpen] = useState(false);
+  const [activitySearch, setActivitySearch] = useState('');
+  const [activityFilter, setActivityFilter] = useState('Last 30 Days');
+  const [activityPage, setActivityPage] = useState(1);
+
+  if (loading) {
+    return <div className="p-8 text-center text-on-surface">Loading organization profile...</div>;
+  }
 
   if (role === 'moderator' && from !== '/moderation') {
     return (
@@ -119,20 +126,10 @@ export default function OrganizationProfile() {
     );
   }
 
-  const [suspendModalOpen, setSuspendModalOpen] = useState(false);
-  const [suspendDuration, setSuspendDuration] = useState('Short Temporary (3-7 days)');
-  const [documentModalOpen, setDocumentModalOpen] = useState(false);
-  const [activeDocumentStatus, setActiveDocumentStatus] = useState('Pending');
-  const [membersModalOpen, setMembersModalOpen] = useState(false);
-  const [activityModalOpen, setActivityModalOpen] = useState(false);
-  const [auditLogsModalOpen, setAuditLogsModalOpen] = useState(false);
-  const [activitySearch, setActivitySearch] = useState('');
-  const [activityFilter, setActivityFilter] = useState('Last 30 Days');
-  const [activityPage, setActivityPage] = useState(1);
   const itemsPerPage = 3;
 
-  const filteredActivity = mockAllActivity.filter(a => 
-    a.text.toLowerCase().includes(activitySearch.toLowerCase())
+  const filteredActivity = (mockOrg.activity || []).filter(a => 
+    a.text?.toLowerCase().includes(activitySearch.toLowerCase())
   );
   
   const totalPages = Math.ceil(filteredActivity.length / itemsPerPage);
@@ -182,6 +179,12 @@ export default function OrganizationProfile() {
             <h1 className="text-[26px] font-bold text-slate-900 leading-tight flex items-center gap-2">
               {mockOrg.name}
               <span className="material-symbols-outlined text-[#0a66c2] text-[24px]" style={{ fontVariationSettings: "'FILL' 1" }}>verified</span>
+              {mockOrg.moderation_flags > 0 && (
+                <span className="ml-2 text-sm bg-orange-100 text-orange-800 px-3 py-1 rounded-full border border-orange-200 flex items-center gap-1 font-semibold">
+                  <span className="material-symbols-outlined text-[16px]">flag</span>
+                  {mockOrg.moderation_flags} Moderation Flags
+                </span>
+              )}
             </h1>
             <p className="text-[16px] text-slate-800 mt-2">SaaS and Fintech Solutions</p>
             <p className="text-[14px] text-slate-500 mt-3">
@@ -254,76 +257,43 @@ export default function OrganizationProfile() {
               </div>
               <span className="bg-orange-100 text-orange-800 text-[10px] font-bold px-2 py-1 rounded-full flex items-center gap-1">
                 <span className="w-1.5 h-1.5 rounded-full bg-orange-600"></span>
-                3 Documents Pending
+                {(mockOrg.documents || []).length} Documents
               </span>
             </div>
             <div className="p-6 space-y-4">
               
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between p-4 bg-surface border border-outline-variant rounded-xl shadow-sm hover:shadow-md transition-shadow gap-4">
-                <div className="flex items-center gap-4">
-                  <div className="w-12 h-12 rounded-lg bg-indigo-50 text-indigo-600 flex items-center justify-center shrink-0">
-                    <span className="material-symbols-outlined text-2xl">description</span>
-                  </div>
-                  <div>
-                    <h4 className="font-bold text-on-surface text-sm mb-1">Business License</h4>
-                    <div className="flex flex-wrap items-center gap-2 text-xs text-on-surface-variant font-medium">
-                      <span>Uploaded 2h ago &bull; PDF</span>
-                      <span className="text-green-600 font-bold flex items-center gap-1">
-                        <span className="material-symbols-outlined text-[14px]">check_circle</span>
-                        APPROVED
-                      </span>
-                    </div>
-                  </div>
+              {(mockOrg.documents || []).length === 0 ? (
+                <div className="text-center p-8 text-on-surface-variant bg-surface-container-lowest rounded-xl border border-dashed border-outline">
+                  No verification documents uploaded.
                 </div>
-                <button className="flex items-center justify-center gap-2 px-4 py-2 border border-indigo-200 text-indigo-700 bg-indigo-50 hover:bg-indigo-100 rounded-lg text-sm font-semibold transition-colors shrink-0">
-                  <span className="material-symbols-outlined text-[18px]">visibility</span>
-                  View Document
-                </button>
-              </div>
-
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between p-4 bg-surface border border-outline-variant rounded-xl shadow-sm hover:shadow-md transition-shadow gap-4">
-                <div className="flex items-center gap-4">
-                  <div className="w-12 h-12 rounded-lg bg-indigo-50 text-indigo-600 flex items-center justify-center shrink-0">
-                    <span className="material-symbols-outlined text-2xl">request_quote</span>
-                  </div>
-                  <div>
-                    <h4 className="font-bold text-on-surface text-sm mb-1">Tax ID (W-9)</h4>
-                    <div className="flex flex-wrap items-center gap-2 text-xs text-on-surface-variant font-medium">
-                      <span>Uploaded 2h ago &bull; PDF</span>
-                      <span className="text-orange-600 font-bold flex items-center gap-1">
-                        <span className="material-symbols-outlined text-[14px]">more_horiz</span>
-                        PENDING REVIEW
-                      </span>
+              ) : (
+                (mockOrg.documents || []).map(doc => (
+                  <div key={doc.id} className="flex flex-col sm:flex-row sm:items-center justify-between p-4 bg-surface border border-outline-variant rounded-xl shadow-sm hover:shadow-md transition-shadow gap-4">
+                    <div className="flex items-center gap-4">
+                      <div className="w-12 h-12 rounded-lg bg-indigo-50 text-indigo-600 flex items-center justify-center shrink-0">
+                        <span className="material-symbols-outlined text-2xl">
+                          {doc.document_type === 'BUSINESS_LICENSE' ? 'description' : 
+                           doc.document_type === 'TAX_ID' ? 'request_quote' : 'insert_drive_file'}
+                        </span>
+                      </div>
+                      <div>
+                        <h4 className="font-bold text-on-surface text-sm mb-1">{doc.document_name || 'Document'}</h4>
+                        <div className="flex flex-wrap items-center gap-2 text-xs text-on-surface-variant font-medium">
+                          <span>Uploaded {new Date(doc.uploaded_at).toLocaleDateString()}</span>
+                          <span className="text-orange-600 font-bold flex items-center gap-1">
+                            <span className="material-symbols-outlined text-[14px]">more_horiz</span>
+                            {mockOrg.verification_status || 'PENDING REVIEW'}
+                          </span>
+                        </div>
+                      </div>
                     </div>
+                    <button onClick={() => setDocumentModalOpen(true)} className="flex items-center justify-center gap-2 px-4 py-2 border border-indigo-200 text-indigo-700 bg-indigo-50 hover:bg-indigo-100 rounded-lg text-sm font-semibold transition-colors shrink-0">
+                      <span className="material-symbols-outlined text-[18px]">visibility</span>
+                      View Document
+                    </button>
                   </div>
-                </div>
-                <button onClick={() => setDocumentModalOpen(true)} className="flex items-center justify-center gap-2 px-4 py-2 border border-indigo-200 text-indigo-700 bg-indigo-50 hover:bg-indigo-100 rounded-lg text-sm font-semibold transition-colors shrink-0">
-                  <span className="material-symbols-outlined text-[18px]">visibility</span>
-                  View Document
-                </button>
-              </div>
-
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between p-4 bg-surface border border-outline-variant rounded-xl shadow-sm hover:shadow-md transition-shadow gap-4">
-                <div className="flex items-center gap-4">
-                  <div className="w-12 h-12 rounded-lg bg-indigo-50 text-indigo-600 flex items-center justify-center shrink-0">
-                    <span className="material-symbols-outlined text-2xl">location_on</span>
-                  </div>
-                  <div>
-                    <h4 className="font-bold text-on-surface text-sm mb-1">Address Proof</h4>
-                    <div className="flex flex-wrap items-center gap-2 text-xs text-on-surface-variant font-medium">
-                      <span>Uploaded 3h ago &bull; PDF</span>
-                      <span className="text-orange-600 font-bold flex items-center gap-1">
-                        <span className="material-symbols-outlined text-[14px]">more_horiz</span>
-                        PENDING REVIEW
-                      </span>
-                    </div>
-                  </div>
-                </div>
-                <button onClick={() => setDocumentModalOpen(true)} className="flex items-center justify-center gap-2 px-4 py-2 border border-indigo-200 text-indigo-700 bg-indigo-50 hover:bg-indigo-100 rounded-lg text-sm font-semibold transition-colors shrink-0">
-                  <span className="material-symbols-outlined text-[18px]">visibility</span>
-                  View Document
-                </button>
-              </div>
+                ))
+              )}
 
             </div>
           </div>
@@ -436,6 +406,7 @@ export default function OrganizationProfile() {
             <div className="flex gap-4 mb-4">
                <span className="text-sm bg-surface px-3 py-1.5 rounded border border-outline-variant font-bold text-on-surface shadow-sm">Website: {mockOrg.website}</span>
                <span className="text-sm bg-surface px-3 py-1.5 rounded border border-outline-variant font-bold text-on-surface shadow-sm">Followers: {mockOrg.followers_count.toLocaleString()}</span>
+               <span className={`text-sm px-3 py-1.5 rounded border font-bold shadow-sm ${mockOrg.moderation_flags > 0 ? 'bg-orange-50 border-orange-200 text-orange-700' : 'bg-surface border-outline-variant text-on-surface'}`}>Moderation Flags: {mockOrg.moderation_flags}</span>
             </div>
           </div>
           
@@ -456,9 +427,9 @@ export default function OrganizationProfile() {
               <div>
                 <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-2">Current Verification Status</label>
                 <div className="bg-slate-700 border border-slate-600 rounded-lg p-3 flex justify-between items-center">
-                  <span className="flex items-center gap-2 font-bold text-sm text-yellow-400">
-                    <span className="w-2 h-2 rounded-full bg-yellow-400"></span>
-                    Pending Review
+                  <span className={`flex items-center gap-2 font-bold text-sm ${mockOrg.verification_status === 'VERIFIED' ? 'text-green-400' : mockOrg.verification_status === 'REJECTED' ? 'text-red-400' : 'text-yellow-400'}`}>
+                    <span className={`w-2 h-2 rounded-full ${mockOrg.verification_status === 'VERIFIED' ? 'bg-green-400' : mockOrg.verification_status === 'REJECTED' ? 'bg-red-400' : 'bg-yellow-400'}`}></span>
+                    {mockOrg.verification_status || 'UNVERIFIED'}
                   </span>
                   <span className="material-symbols-outlined text-slate-400 text-[18px]">info</span>
                 </div>
@@ -479,6 +450,7 @@ export default function OrganizationProfile() {
                 <textarea 
                   className="w-full bg-slate-700 border border-slate-600 text-sm text-slate-200 rounded-lg p-3 h-24 focus:outline-none focus:ring-1 focus:ring-indigo-500 placeholder-slate-400 resize-none"
                   placeholder="Type private observations here..."
+                  defaultValue={mockOrg.review_notes || ''}
                 ></textarea>
               </div>
 
@@ -502,11 +474,11 @@ export default function OrganizationProfile() {
                 <span className="material-symbols-outlined text-indigo-600 text-[20px]">group</span>
                 Key Members
               </h3>
-              <span className="bg-indigo-50 text-indigo-600 px-2.5 py-0.5 rounded-full text-xs font-bold">{mockMembers.length}</span>
+              <span className="bg-indigo-50 text-indigo-600 px-2.5 py-0.5 rounded-full text-xs font-bold">{(mockOrg.members || []).length}</span>
             </div>
             
             <div className="space-y-4">
-              {mockMembers.map(member => (
+              {(mockOrg.members || []).map(member => (
                 <div key={member.id} onClick={() => navigate('/profile')} className="flex items-center gap-3 p-2 hover:bg-surface-container-lowest rounded-xl border border-transparent hover:border-outline-variant transition-all cursor-pointer">
                   <div className={`w-10 h-10 rounded-full flex items-center justify-center font-bold text-sm ${member.color}`}>
                     {member.initials}
@@ -530,10 +502,10 @@ export default function OrganizationProfile() {
                 <span className="material-symbols-outlined text-indigo-600 text-[20px]">code</span>
                 Tech Stack
               </h3>
-              <span className="text-slate-400 text-[10px] font-bold uppercase tracking-wider">{mockTechStack.length} TECHNOLOGIES</span>
+              <span className="text-slate-400 text-[10px] font-bold uppercase tracking-wider">{(mockOrg.techStack || []).length} TECHNOLOGIES</span>
             </div>
             <div className="grid grid-cols-2 gap-3">
-              {mockTechStack.map(tech => (
+              {(mockOrg.techStack || []).map(tech => (
                 <div key={tech.name} className={`p-3 border rounded-xl flex items-center gap-3 ${tech.bg} ${tech.border} ${tech.colSpan === 2 ? 'col-span-2' : 'col-span-1'}`}>
                   <div className={`w-10 h-10 rounded-lg flex items-center justify-center shrink-0 border ${tech.iconBg} ${tech.iconBorder} ${tech.iconText}`}>
                     {tech.isTextIcon ? (
@@ -562,7 +534,7 @@ export default function OrganizationProfile() {
             </div>
             
             <div className="flex flex-col gap-3">
-              {mockAllActivity.slice(0, 4).map(activity => (
+              {(mockOrg.activity || []).slice(0, 4).map(activity => (
                 <div key={activity.id} className="flex items-start gap-4 p-4 rounded-xl border border-outline-variant bg-surface hover:bg-surface-container-lowest transition-colors shadow-sm">
                   <div className={`flex items-center justify-center w-8 h-8 rounded shrink-0 ${activity.color.split(' ')[0]} bg-surface`}>
                     <span className="material-symbols-outlined text-[20px]">{activity.icon}</span>
