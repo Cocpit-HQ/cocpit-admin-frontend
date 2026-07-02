@@ -23,7 +23,6 @@ import OrganizationGrowthBreakdown from '../components/analytics-breakdowns/Orga
 import ActiveJobsBreakdown from '../components/analytics-breakdowns/ActiveJobsBreakdown';
 import UpcomingEventsBreakdown from '../components/analytics-breakdowns/UpcomingEventsBreakdown';
 import FeedEngagementBreakdown from '../components/analytics-breakdowns/FeedEngagementBreakdown';
-import AIAnalyticsBreakdown from '../components/analytics-breakdowns/AIAnalyticsBreakdown';
 import NewConnectionsBreakdown from '../components/analytics-breakdowns/NewConnectionsBreakdown';
 
 const METRICS = [
@@ -35,7 +34,6 @@ const METRICS = [
   { id: 'organization_growth', label: 'Organisation Growth %', icon: 'trending_up' },
   { id: 'feed_engagement', label: 'Feed Engagement', icon: 'feed' },
   { id: 'new_connections', label: 'New Connections', icon: 'people' },
-  { id: 'ai_usage', label: 'AI Usage', icon: 'auto_awesome' },
   { id: 'active_jobs', label: 'Active Jobs', icon: 'work' },
   { id: 'upcoming_events', label: 'Upcoming Events', icon: 'event' }
 ];
@@ -373,7 +371,6 @@ export default function DetailedAnalytics() {
             {activeMetric === 'active_jobs' && <ActiveJobsBreakdown />}
             {activeMetric === 'upcoming_events' && <UpcomingEventsBreakdown />}
             {activeMetric === 'feed_engagement' && <FeedEngagementBreakdown />}
-            {activeMetric === 'ai_usage' && <AIAnalyticsBreakdown />}
             {activeMetric === 'new_connections' && <NewConnectionsBreakdown />}
 
           </div>
