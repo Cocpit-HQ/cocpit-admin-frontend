@@ -92,9 +92,16 @@ export default function VerificationQueue() {
           rejectionReason: status === 'REJECTED' ? rejectionReason : undefined
         })
       });
+      if (!res.ok) {
+        const errorText = await res.text();
+        alert(`Error: ${errorText}`);
+        return;
+      }
       const data = await res.json();
       if (!data.error) {
         alert(`Organization verification ${status === 'VERIFIED' ? 'approved' : 'rejected'} successfully.`);
+        if (status === 'VERIFIED') setFilter('Approved');
+        else if (status === 'REJECTED') setFilter('Rejected');
         fetchQueue();
       } else {
         alert(data.error);
@@ -188,21 +195,31 @@ export default function VerificationQueue() {
                   <span className="material-symbols-outlined text-[14px]">person</span>
                   {org.author}
                 </div>
-                <div className="flex flex-wrap gap-2">
-                  {org.location && org.location !== 'N/A' && (
-                    <span className="bg-surface-container-low border border-outline-variant px-2 py-0.5 rounded text-[10px] text-on-surface-variant flex items-center gap-1 font-semibold uppercase">
-                      <span className="material-symbols-outlined text-[12px]">location_on</span>
-                      {org.location}
-                    </span>
-                  )}
-                  {org.type && org.type !== 'Other' && (
-                    <span className="bg-surface-container-low border border-outline-variant px-2 py-0.5 rounded text-[10px] text-on-surface-variant flex items-center gap-1 font-semibold uppercase">
-                      <span className="material-symbols-outlined text-[12px]">domain</span>
-                      {org.type}
-                    </span>
-                  )}
-                </div>
-              </div>
+              <div className="flex flex-wrap gap-2">
+  {org.location && org.location !== 'N/A' && (
+    <span className="bg-surface-container-low border border-outline-variant px-2 py-0.5 rounded text-[10px] text-on-surface-variant flex items-center gap-1 font-semibold uppercase">
+      <span className="material-symbols-outlined text-[12px]">location_on</span>
+      {org.location}
+    </span>
+  )}
+  {org.type && org.type !== 'Other' && (
+    <span className="bg-surface-container-low border border-outline-variant px-2 py-0.5 rounded text-[10px] text-on-surface-variant flex items-center gap-1 font-semibold uppercase">
+      <span className="material-symbols-outlined text-[12px]">domain</span>
+      {org.type}
+    </span>
+  )}
+  {/* Document previews for pending/under review */}
+  {org.documents && org.documents.length > 0 && (org.status === 'Under Review' || org.status === 'Pending') && (
+    <div className="flex flex-wrap gap-1 mt-1">
+      {org.documents.slice(0, 2).map(doc => (
+        <span key={doc.id} className="bg-indigo-50 text-indigo-700 text-[9px] px-1 py-0.5 rounded">
+          {doc.document_name}
+        </span>
+      ))}
+    </div>
+  )}
+</div>
+</div>
             ))
           )}
         </div>
@@ -373,18 +390,18 @@ export default function VerificationQueue() {
 
                     <div className="pt-2 space-y-3">
                       <button 
-                        onClick={() => handleFinalReview('VERIFIED')}
-                        className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 px-4 rounded-lg flex items-center justify-center gap-2 transition-colors"
+                        disabled
+                        className="w-full bg-indigo-600/50 cursor-not-allowed text-white/50 font-bold py-3 px-4 rounded-lg flex items-center justify-center gap-2 transition-colors"
                       >
                         <span className="material-symbols-outlined text-[20px]">verified</span>
-                        Approve Organization
+                        Approve Organization (Disabled)
                       </button>
                       <button 
-                        onClick={() => handleFinalReview('REJECTED')}
-                        className="w-full bg-slate-700 hover:bg-slate-600 text-white font-bold py-3 px-4 rounded-lg flex items-center justify-center gap-2 transition-colors border border-slate-600"
+                        disabled
+                        className="w-full bg-slate-700/50 cursor-not-allowed text-white/50 font-bold py-3 px-4 rounded-lg flex items-center justify-center gap-2 transition-colors border border-slate-600/50"
                       >
                         <span className="material-symbols-outlined text-[20px]">block</span>
-                        Deny Application
+                        Deny Application (Disabled)
                       </button>
                     </div>
                   </>

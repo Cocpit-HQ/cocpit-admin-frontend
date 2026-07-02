@@ -1,58 +1,120 @@
 import React, { useState } from 'react';
 
 export default function SystemControls() {
-  const [activeTab, setActiveTab] = useState('Maintenance');
+  const [activeTab, setActiveTab] = useState('Authentication');
 
   const [settings, setSettings] = useState({
-    // Maintenance
+    // Authentication & Onboarding
+    enableUserLogin: true,
+    enableUserSignup: true,
+    requireOtpVerification: true,
+    requireOnboarding: true,
+
+    // Feed & Post Creation
+    enableFeedAccess: true,
+    enablePostCreation: true,
+    enableFeedPostInteractions: true,
+    enableTrendingNow: true,
+    enablePostReporting: true,
+    enableNotInterested: true,
+    enableAiPostEnhancement: true,
+    enableMediaUploads: true,
+
+    // Notifications
+    enableNotifications: true,
+
+    // Messaging & Chats
+    enableMessaging: true,
+    enableMessageRequests: true,
+    enableNewChatCreation: true,
+    enableGroupChats: true,
+
+    // Connections & Following
+    enableConnectionsTab: true,
+    enableConnectionSuggestions: true,
+    enableConnectionManagement: true,
+    enableUserFollowing: true,
+
+    // AI Assistant & Projects
+    enableAITab: true,
+    enableAIChatHistory: true,
+    enableAIProjects: true,
+
+    // Jobs & Careers
+    enableJobsBoard: true,
+    enableJobApplications: true,
+    enableApplicationTracking: true,
+    enableSavedJobs: true,
+    enableJobOffers: true,
+    enableMyListings: true,
+    enableJobCreation: true,
+    enableAiJobDescription: true,
+
+    // Analytics
+    enableAnalyticsTab: true,
+
+    // User Profile
+    enableProfileTab: true,
+    enableProfileEditing: true,
+    enableResumeParsing: true,
+    enableCoverImageUpload: true,
+    enableProfileSkills: true,
+    enableProfileEducation: true,
+    enableProfileExperience: true,
+    enableContactInfo: true,
+    enableProfileSharing: true,
+    enableUserReporting: true,
+    enableLivingResumeDownload: true,
+
+    // Global Search
+    enableGlobalSearch: true,
+
+    // Settings & Privacy
+    enableSavedPosts: true,
+    enableActivityHistory: true,
+    enableUserBlocking: true,
+    enableSessionManagement: true,
+    enableCommentHiding: true,
+    enableOrgCreation: true,
+    enableAccountDeletion: true,
+
+    // User-Facing Messaging
+    maintenanceModeMessage: 'We are currently down for maintenance.',
+    enableGlobalBanner: false,
+    globalBannerMessage: '',
+    scheduledPlatformNotice: '',
+
+    // Legacy Settings (kept for compatibility with original code if any)
     maintenanceMode: false,
     readOnlyMode: false,
     disableJobBoard: false,
     disableMessaging: false,
     apiAccess: true,
-
-    // Feature Flags
     enableUserRegistration: true,
     enableOrgRegistration: true,
     enableGoogleAuth: true,
     enableGithubAuth: true,
     enablePasswordAuth: true,
-    enablePostCreation: true,
     enableMessagingBetweenUsers: true,
-    enableNotifications: true,
     enableUploads: true,
     enableSearch: true,
     enablePublicProfiles: true,
-
-    // Moderation
     enforceAutoFlag: true,
     enableNewReports: true,
     enableEmailWarnings: true,
-
-    // Rate Limiting
     globalRateLimit: '100',
     enableNewSessions: true,
     blockSpecificIps: false,
     force2FA: false,
-
-    // Background Jobs
     pauseJobQueue: false,
     enableEmailDelivery: true,
     enableWebhookDelivery: true,
     integrationStripe: true,
     integrationSendgrid: true,
-
-    // Data & Storage
     enableDatabaseWrites: true,
     verboseLogging: false,
     enableAuditLogging: true,
     dataRetentionPeriod: '90',
-
-    // Messaging
-    maintenanceMessage: 'We are currently down for maintenance.',
-    bannerMessage: '',
-    enableGlobalBanner: false,
-    platformNotice: '',
   });
 
   const handleToggle = (key) => {
@@ -64,13 +126,18 @@ export default function SystemControls() {
   };
 
   const tabs = [
-    { id: 'Maintenance', icon: 'power_settings_new', label: 'Maintenance & Availability' },
-    { id: 'FeatureFlags', icon: 'toggle_on', label: 'Feature Flags' },
-    { id: 'Moderation', icon: 'shield', label: 'Moderation Controls' },
-    { id: 'Security', icon: 'security', label: 'Rate Limiting & Security' },
-    { id: 'Jobs', icon: 'memory', label: 'Background Jobs' },
-    { id: 'Data', icon: 'database', label: 'Data & Storage' },
-    { id: 'Messaging', icon: 'campaign', label: 'User-Facing Messaging' },
+    { id: 'Authentication', icon: 'login', label: 'Auth & Onboarding' },
+    { id: 'Feed', icon: 'feed', label: 'Feed & Posts' },
+    { id: 'Networking', icon: 'group', label: 'Connections & Following' },
+    { id: 'Messaging', icon: 'chat', label: 'Messaging & Chats' },
+    { id: 'Notifications', icon: 'notifications', label: 'Notifications' },
+    { id: 'Jobs', icon: 'work', label: 'Jobs & Careers' },
+    { id: 'AI', icon: 'robot_2', label: 'AI Assistant' },
+    { id: 'Profile', icon: 'person', label: 'User Profile' },
+    { id: 'Search', icon: 'search', label: 'Global Search' },
+    { id: 'Settings', icon: 'settings', label: 'Settings & Privacy' },
+    { id: 'Announcements', icon: 'campaign', label: 'User-Facing Messaging' },
+    { id: 'System', icon: 'memory', label: 'System & DB (Legacy)' },
   ];
 
   const ToggleRow = ({ label, description, settingKey, danger = false }) => (
@@ -104,7 +171,7 @@ export default function SystemControls() {
       <div className="flex flex-col lg:flex-row gap-lg">
         {/* Vertical Tabs Sidebar */}
         <div className="w-full lg:w-64 shrink-0">
-          <div className="bg-surface border border-outline-variant rounded-xl overflow-hidden shadow-sm">
+          <div className="bg-surface border border-outline-variant rounded-xl overflow-hidden shadow-sm h-full max-h-[800px] overflow-y-auto">
             {tabs.map((tab) => (
               <button
                 key={tab.id}
@@ -125,137 +192,161 @@ export default function SystemControls() {
         {/* Tab Content */}
         <div className="flex-1">
           <div className="bg-surface-container-lowest border border-outline-variant rounded-xl p-lg shadow-sm min-h-[500px]">
-            {activeTab === 'Maintenance' && (
+            
+            {activeTab === 'Authentication' && (
               <div className="animate-in fade-in duration-300">
-                <h3 className="font-headline-sm mb-md pb-xs border-b border-outline-variant">Maintenance & Availability</h3>
-                <div className="grid grid-cols-1 gap-md">
-                  <ToggleRow label="Maintenance Mode" description="Takes the platform offline for regular users with a custom message." settingKey="maintenanceMode" danger />
-                  <ToggleRow label="Read-Only Mode" description="Platform stays live but all write actions (posting, messaging, applying) are disabled." settingKey="readOnlyMode" danger />
-                  <ToggleRow label="Disable Job Board" description="Take down the job board page individually." settingKey="disableJobBoard" />
-                  <ToggleRow label="Disable Messaging" description="Take down the messaging system individually." settingKey="disableMessaging" />
-                  <ToggleRow label="Enable Public API Access" description="Allow external third-party API access to the platform." settingKey="apiAccess" />
-                </div>
-              </div>
-            )}
-
-            {activeTab === 'FeatureFlags' && (
-              <div className="animate-in fade-in duration-300">
-                <h3 className="font-headline-sm mb-md pb-xs border-b border-outline-variant">Feature Flags</h3>
+                <h3 className="font-headline-sm mb-md pb-xs border-b border-outline-variant">Authentication & Onboarding</h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-md">
-                  <ToggleRow label="User Registration" description="Allow new user signups." settingKey="enableUserRegistration" />
-                  <ToggleRow label="Org Registration" description="Allow new organization signups." settingKey="enableOrgRegistration" />
-                  <ToggleRow label="Google OAuth" description="Enable Google SSO login." settingKey="enableGoogleAuth" />
-                  <ToggleRow label="GitHub OAuth" description="Enable GitHub SSO login." settingKey="enableGithubAuth" />
-                  <ToggleRow label="Password Login" description="Enable standard email/password authentication." settingKey="enablePasswordAuth" />
-                  <ToggleRow label="Post Creation" description="Allow users to create new content." settingKey="enablePostCreation" />
-                  <ToggleRow label="User Messaging" description="Enable messaging between users." settingKey="enableMessagingBetweenUsers" />
-                  <ToggleRow label="Notifications" description="Enable the in-app notifications system." settingKey="enableNotifications" />
-                  <ToggleRow label="File Uploads" description="Enable file and image uploads." settingKey="enableUploads" />
-                  <ToggleRow label="Search" description="Enable global search functionality." settingKey="enableSearch" />
-                  <ToggleRow label="Public Profiles" description="Make all profiles public (turn off to force private temporarily)." settingKey="enablePublicProfiles" />
+                  <ToggleRow label="User Login" description="If disabled, existing users cannot log in." settingKey="enableUserLogin" danger />
+                  <ToggleRow label="User Signup" description="If disabled, new users cannot create accounts." settingKey="enableUserSignup" danger />
+                  <ToggleRow label="OTP Verification" description="If disabled, bypasses the OTP step." settingKey="requireOtpVerification" />
+                  <ToggleRow label="User Onboarding" description="If disabled, users skip profile setup flow." settingKey="requireOnboarding" />
                 </div>
               </div>
             )}
 
-            {activeTab === 'Moderation' && (
+            {activeTab === 'Feed' && (
               <div className="animate-in fade-in duration-300">
-                <h3 className="font-headline-sm mb-md pb-xs border-b border-outline-variant">Moderation Controls</h3>
-                <div className="grid grid-cols-1 gap-md">
-                  <ToggleRow label="Auto-flag Enforcement" description="Pause the >5 / >15 flag auto-suspend rules." settingKey="enforceAutoFlag" />
-                  <ToggleRow label="New Report Submissions" description="Allow users to file new reports." settingKey="enableNewReports" />
-                  <ToggleRow label="Email Warnings" description="Send email warnings (turn off to queue them without delivering)." settingKey="enableEmailWarnings" />
+                <h3 className="font-headline-sm mb-md pb-xs border-b border-outline-variant">Feed & Post Creation</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-md">
+                  <ToggleRow label="Feed Access" description="Master switch. Hides feed entirely." settingKey="enableFeedAccess" danger />
+                  <ToggleRow label="Post Creation" description="Users cannot create new posts." settingKey="enablePostCreation" />
+                  <ToggleRow label="Feed Interactions" description="Disable likes, comments, and shares in feed." settingKey="enableFeedPostInteractions" />
+                  <ToggleRow label="Trending Now" description="Hide trending topics from the feed." settingKey="enableTrendingNow" />
+                  <ToggleRow label="Report Post" description="Users cannot report posts." settingKey="enablePostReporting" danger />
+                  <ToggleRow label="Not Interested" description="Users cannot mark posts as Not interested." settingKey="enableNotInterested" />
+                  <ToggleRow label="AI Post Enhancement" description="Disable AI text generation for posts." settingKey="enableAiPostEnhancement" />
+                  <ToggleRow label="Media Uploads" description="Users can only post text." settingKey="enableMediaUploads" />
                 </div>
               </div>
             )}
 
-            {activeTab === 'Security' && (
+            {activeTab === 'Networking' && (
               <div className="animate-in fade-in duration-300">
-                <h3 className="font-headline-sm mb-md pb-xs border-b border-outline-variant">Rate Limiting & Security</h3>
-                <div className="grid grid-cols-1 gap-md mb-lg">
-                  <div className="p-md bg-surface border border-outline-variant rounded">
-                    <label className="font-label-md font-bold text-on-surface block mb-xs">Global Rate Limit (requests/min/IP)</label>
-                    <input 
-                      type="number" 
-                      value={settings.globalRateLimit} 
-                      onChange={(e) => handleChange('globalRateLimit', e.target.value)}
-                      className="w-full bg-surface-container-lowest border border-outline-variant rounded px-md py-sm text-body-sm text-on-surface focus:ring-1 focus:ring-primary focus:outline-none"
-                    />
-                  </div>
-                  <ToggleRow label="New Session Creation" description="Allow new logins (turn off to force all logged-in users to stay but block new ones)." settingKey="enableNewSessions" danger />
-                  <ToggleRow label="Block Specific IP Ranges" description="Activate the emergency IP blocklist." settingKey="blockSpecificIps" />
-                  <ToggleRow label="Force Admin 2FA" description="Make two-factor authentication mandatory for all admin accounts." settingKey="force2FA" />
-                </div>
-              </div>
-            )}
-
-            {activeTab === 'Jobs' && (
-              <div className="animate-in fade-in duration-300">
-                <h3 className="font-headline-sm mb-md pb-xs border-b border-outline-variant">Background Jobs & Integrations</h3>
-                <div className="grid grid-cols-1 gap-md mb-lg">
-                  <ToggleRow label="Pause Background Jobs" description="Stop processing jobs without clearing the queue." settingKey="pauseJobQueue" danger />
-                  <ToggleRow label="Email Delivery" description="Send outgoing emails (turn off to queue only)." settingKey="enableEmailDelivery" />
-                  <ToggleRow label="Webhook Delivery" description="Send outgoing webhooks." settingKey="enableWebhookDelivery" />
-                  <ToggleRow label="Stripe Integration" description="Enable Stripe payment processing." settingKey="integrationStripe" />
-                  <ToggleRow label="SendGrid Integration" description="Enable SendGrid for bulk mailing." settingKey="integrationSendgrid" />
-                  
-                  <div className="p-md bg-surface border border-outline-variant rounded flex flex-col md:flex-row items-start md:items-center justify-between gap-md mt-md">
-                    <div>
-                      <p className="font-label-md font-bold text-on-surface">Manual Cache Invalidation</p>
-                      <p className="font-body-sm text-secondary mt-1">Clear specific cache layers without a full restart.</p>
-                    </div>
-                    <button onClick={() => alert('Cache invalidated.')} className="bg-primary text-on-primary px-md py-sm rounded-lg font-label-md shadow-sm active:scale-95 whitespace-nowrap">Clear Cache</button>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {activeTab === 'Data' && (
-              <div className="animate-in fade-in duration-300">
-                <h3 className="font-headline-sm mb-md pb-xs border-b border-outline-variant">Data & Storage</h3>
-                <div className="grid grid-cols-1 gap-md">
-                  <ToggleRow label="Enable Database Writes" description="Emergency read-only lock at the DB level." settingKey="enableDatabaseWrites" danger />
-                  <ToggleRow label="Verbose Logging" description="Turn on detailed logs for debugging without a deployment." settingKey="verboseLogging" />
-                  <ToggleRow label="Audit Logging" description="Keep this ON. Should almost never be turned off." settingKey="enableAuditLogging" danger />
-                  <div className="p-md bg-surface border border-outline-variant rounded">
-                    <label className="font-label-md font-bold text-on-surface block mb-xs">Data Retention Period (Days)</label>
-                    <select 
-                      value={settings.dataRetentionPeriod}
-                      onChange={(e) => handleChange('dataRetentionPeriod', e.target.value)}
-                      className="w-full bg-surface-container-lowest border border-outline-variant rounded px-md py-sm text-body-sm text-on-surface focus:ring-1 focus:ring-primary focus:outline-none"
-                    >
-                      <option value="30">30 Days</option>
-                      <option value="90">90 Days</option>
-                      <option value="180">180 Days</option>
-                      <option value="365">1 Year</option>
-                      <option value="infinite">Indefinite</option>
-                    </select>
-                  </div>
+                <h3 className="font-headline-sm mb-md pb-xs border-b border-outline-variant">Connections & Following</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-md">
+                  <ToggleRow label="Connections Page" description="Master switch for the network page." settingKey="enableConnectionsTab" danger />
+                  <ToggleRow label="Connection Suggestions" description="Hide AI-driven suggestions grid." settingKey="enableConnectionSuggestions" />
+                  <ToggleRow label="Connection Management" description="Disable accept/decline for pending requests." settingKey="enableConnectionManagement" />
+                  <ToggleRow label="Follow Users" description="Disable the Follow button." settingKey="enableUserFollowing" />
                 </div>
               </div>
             )}
 
             {activeTab === 'Messaging' && (
               <div className="animate-in fade-in duration-300">
+                <h3 className="font-headline-sm mb-md pb-xs border-b border-outline-variant">Messaging & Chats</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-md">
+                  <ToggleRow label="Messaging System" description="Master switch to turn off DMs entirely." settingKey="enableMessaging" danger />
+                  <ToggleRow label="Message Requests" description="Disable message requests from non-followers." settingKey="enableMessageRequests" />
+                  <ToggleRow label="New Chat Creation" description="Disable starting new chats." settingKey="enableNewChatCreation" />
+                  <ToggleRow label="Group Chats" description="Users can only start 1-on-1 chats." settingKey="enableGroupChats" />
+                </div>
+              </div>
+            )}
+
+            {activeTab === 'Notifications' && (
+              <div className="animate-in fade-in duration-300">
+                <h3 className="font-headline-sm mb-md pb-xs border-b border-outline-variant">Notifications</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-md">
+                  <ToggleRow label="Notifications System" description="Master switch to hide the entire notification system." settingKey="enableNotifications" danger />
+                </div>
+              </div>
+            )}
+
+            {activeTab === 'Jobs' && (
+              <div className="animate-in fade-in duration-300">
+                <h3 className="font-headline-sm mb-md pb-xs border-b border-outline-variant">Jobs & Careers</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-md">
+                  <ToggleRow label="Jobs Board" description="Master switch for the Jobs portal." settingKey="enableJobsBoard" danger />
+                  <ToggleRow label="Job Applications" description="Users can view but cannot apply to jobs." settingKey="enableJobApplications" />
+                  <ToggleRow label="Application Tracking" description="Users cannot track submitted applications." settingKey="enableApplicationTracking" />
+                  <ToggleRow label="Saved Jobs" description="Users cannot bookmark jobs." settingKey="enableSavedJobs" />
+                  <ToggleRow label="Job Offers" description="Users cannot manage direct job offers." settingKey="enableJobOffers" />
+                  <ToggleRow label="Job Listings Management" description="Users/companies cannot manage their posted jobs." settingKey="enableMyListings" />
+                  <ToggleRow label="Job Creation" description="Users cannot post new jobs." settingKey="enableJobCreation" />
+                  <ToggleRow label="AI Job Description" description="Disable AI generation for job descriptions." settingKey="enableAiJobDescription" />
+                </div>
+              </div>
+            )}
+
+            {activeTab === 'AI' && (
+              <div className="animate-in fade-in duration-300">
+                <h3 className="font-headline-sm mb-md pb-xs border-b border-outline-variant">AI Assistant & Projects</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-md">
+                  <ToggleRow label="AI Assistant Page" description="Master switch to disable Cyphex AI." settingKey="enableAITab" danger />
+                  <ToggleRow label="AI Chat History" description="Users cannot view past AI conversations." settingKey="enableAIChatHistory" />
+                  <ToggleRow label="AI Projects" description="Users cannot manage AI project workspaces." settingKey="enableAIProjects" />
+                </div>
+              </div>
+            )}
+
+            {activeTab === 'Profile' && (
+              <div className="animate-in fade-in duration-300">
+                <h3 className="font-headline-sm mb-md pb-xs border-b border-outline-variant">User Profile</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-md">
+                  <ToggleRow label="Profile Page" description="Master switch to hide all user profiles." settingKey="enableProfileTab" danger />
+                  <ToggleRow label="Profile Editing" description="Users cannot edit basic profile details." settingKey="enableProfileEditing" />
+                  <ToggleRow label="Resume Upload & Parsing" description="Disable uploading resumes." settingKey="enableResumeParsing" />
+                  <ToggleRow label="Cover Image Upload" description="Disable changing profile cover photos." settingKey="enableCoverImageUpload" />
+                  <ToggleRow label="Profile Skills" description="Users cannot modify their skills list." settingKey="enableProfileSkills" />
+                  <ToggleRow label="Profile Education" description="Users cannot modify their educational history." settingKey="enableProfileEducation" />
+                  <ToggleRow label="Profile Experience" description="Users cannot view or modify work experience." settingKey="enableProfileExperience" />
+                  <ToggleRow label="Contact Info" description="Hide email and URLs on profiles." settingKey="enableContactInfo" />
+                  <ToggleRow label="Profile Sharing" description="Disable share/copy link options." settingKey="enableProfileSharing" />
+                  <ToggleRow label="User Reporting" description="Users cannot report other profiles." settingKey="enableUserReporting" danger />
+                  <ToggleRow label="Living Resume Download" description="Users cannot download living resumes." settingKey="enableLivingResumeDownload" />
+                </div>
+              </div>
+            )}
+
+            {activeTab === 'Search' && (
+              <div className="animate-in fade-in duration-300">
+                <h3 className="font-headline-sm mb-md pb-xs border-b border-outline-variant">Global Search</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-md">
+                  <ToggleRow label="Global Search" description="Master switch for the main search bar." settingKey="enableGlobalSearch" />
+                </div>
+              </div>
+            )}
+
+            {activeTab === 'Settings' && (
+              <div className="animate-in fade-in duration-300">
+                <h3 className="font-headline-sm mb-md pb-xs border-b border-outline-variant">Settings & Privacy</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-md">
+                  <ToggleRow label="Saved Posts & Collections" description="Users cannot save posts or create collections." settingKey="enableSavedPosts" />
+                  <ToggleRow label="Activity History" description="Users cannot view or clear interaction history." settingKey="enableActivityHistory" />
+                  <ToggleRow label="User Blocking" description="Users cannot block/unblock accounts." settingKey="enableUserBlocking" danger />
+                  <ToggleRow label="Active Sessions" description="Users cannot view or revoke logged-in devices." settingKey="enableSessionManagement" />
+                  <ToggleRow label="Comment Hiding" description="Users cannot hide specific comments." settingKey="enableCommentHiding" />
+                  <ToggleRow label="Organization Creation" description="Users cannot create Company pages." settingKey="enableOrgCreation" />
+                  <ToggleRow label="Account Deletion" description="Users cannot delete their accounts." settingKey="enableAccountDeletion" danger />
+                </div>
+              </div>
+            )}
+
+            {activeTab === 'Announcements' && (
+              <div className="animate-in fade-in duration-300">
                 <h3 className="font-headline-sm mb-md pb-xs border-b border-outline-variant">User-Facing Messaging</h3>
                 <div className="space-y-md">
                   <div className="p-md bg-surface border border-outline-variant rounded">
                     <label className="font-label-md font-bold text-on-surface block mb-xs">Maintenance Mode Message</label>
                     <textarea 
-                      value={settings.maintenanceMessage}
-                      onChange={(e) => handleChange('maintenanceMessage', e.target.value)}
+                      value={settings.maintenanceModeMessage}
+                      onChange={(e) => handleChange('maintenanceModeMessage', e.target.value)}
                       className="w-full h-24 bg-surface-container-lowest border border-outline-variant rounded px-md py-sm text-body-sm text-on-surface focus:ring-1 focus:ring-primary focus:outline-none"
+                      placeholder="Message shown when a feature is unavailable"
                     ></textarea>
                   </div>
                   
-                  <ToggleRow label="Global Announcement Banner" description="Toggle visibility of the banner across the platform." settingKey="enableGlobalBanner" />
+                  <ToggleRow label="Global Announcement Banner" description="Toggle visibility of the global banner across the platform." settingKey="enableGlobalBanner" />
                   
                   <div className="p-md bg-surface border border-outline-variant rounded">
                     <label className="font-label-md font-bold text-on-surface block mb-xs">Banner Message</label>
                     <input 
                       type="text" 
-                      value={settings.bannerMessage}
+                      value={settings.globalBannerMessage}
                       placeholder="e.g. We are experiencing issues"
-                      onChange={(e) => handleChange('bannerMessage', e.target.value)}
+                      onChange={(e) => handleChange('globalBannerMessage', e.target.value)}
                       className="w-full bg-surface-container-lowest border border-outline-variant rounded px-md py-sm text-body-sm text-on-surface focus:ring-1 focus:ring-primary focus:outline-none"
                     />
                   </div>
@@ -264,25 +355,51 @@ export default function SystemControls() {
                     <label className="font-label-md font-bold text-on-surface block mb-xs">Scheduled Platform Notice</label>
                     <input 
                       type="text" 
-                      value={settings.platformNotice}
+                      value={settings.scheduledPlatformNotice}
                       placeholder="e.g. Scheduled downtime warning"
-                      onChange={(e) => handleChange('platformNotice', e.target.value)}
+                      onChange={(e) => handleChange('scheduledPlatformNotice', e.target.value)}
                       className="w-full bg-surface-container-lowest border border-outline-variant rounded px-md py-sm text-body-sm text-on-surface focus:ring-1 focus:ring-primary focus:outline-none"
                     />
-                  </div>
-
-                  <div className="pt-md flex justify-end">
-                    <button 
-                      onClick={() => alert('Messaging updates confirmed.')}
-                      className="bg-primary text-on-primary px-lg py-sm rounded-lg font-label-md shadow-sm hover:bg-primary/90 transition-colors active:scale-95 flex items-center gap-xs"
-                    >
-                      <span className="material-symbols-outlined text-[18px]">check_circle</span>
-                      Confirm Changes
-                    </button>
                   </div>
                 </div>
               </div>
             )}
+
+            {activeTab === 'System' && (
+              <div className="animate-in fade-in duration-300">
+                <h3 className="font-headline-sm mb-md pb-xs border-b border-outline-variant">System & DB (Legacy)</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-md">
+                  <ToggleRow label="Maintenance Mode" description="Takes the platform offline." settingKey="maintenanceMode" danger />
+                  <ToggleRow label="Read-Only Mode" description="Disables all writes." settingKey="readOnlyMode" danger />
+                  <ToggleRow label="Enable Public API Access" description="Allow external API access." settingKey="apiAccess" />
+                  <ToggleRow label="Auto-flag Enforcement" description="Pause auto-suspend rules." settingKey="enforceAutoFlag" />
+                  <ToggleRow label="Email Delivery" description="Send outgoing emails." settingKey="enableEmailDelivery" />
+                  <ToggleRow label="Webhook Delivery" description="Send outgoing webhooks." settingKey="enableWebhookDelivery" />
+                  <ToggleRow label="Enable Database Writes" description="Emergency read-only DB lock." settingKey="enableDatabaseWrites" danger />
+                  <ToggleRow label="Audit Logging" description="Keep this ON." settingKey="enableAuditLogging" danger />
+                </div>
+                
+                <div className="mt-md p-md bg-surface border border-outline-variant rounded flex flex-col md:flex-row items-start md:items-center justify-between gap-md">
+                  <div>
+                    <p className="font-label-md font-bold text-on-surface">Manual Cache Invalidation</p>
+                    <p className="font-body-sm text-secondary mt-1">Clear specific cache layers without a full restart.</p>
+                  </div>
+                  <button onClick={() => alert('Cache invalidated.')} className="bg-primary text-on-primary px-md py-sm rounded-lg font-label-md shadow-sm active:scale-95 whitespace-nowrap">Clear Cache</button>
+                </div>
+              </div>
+            )}
+
+            {/* Save Buttons (Persistent at bottom of active tab) */}
+            <div className="mt-lg pt-md border-t border-outline-variant flex justify-end">
+              <button 
+                onClick={() => alert('Settings changes confirmed (Frontend only).')}
+                className="bg-primary text-on-primary px-lg py-sm rounded-lg font-label-md shadow-sm hover:bg-primary/90 transition-colors active:scale-95 flex items-center gap-xs"
+              >
+                <span className="material-symbols-outlined text-[18px]">save</span>
+                Save Changes
+              </button>
+            </div>
+            
           </div>
         </div>
       </div>
