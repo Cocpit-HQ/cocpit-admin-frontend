@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../AuthContext';
+import { jsPDF } from "jspdf";
+import autoTable from "jspdf-autotable";
 
 export default function SystemHealth() {
   const [systemMetrics, setSystemMetrics] = useState(null);
@@ -113,6 +115,87 @@ export default function SystemHealth() {
     return `${d}d ${h}h ${m}m`;
   };
 
+  const generatePDFReport = () => {
+    const doc = new jsPDF();
+    
+    // Header
+    doc.setFontSize(22);
+    doc.text("System Health & Infrastructure Snapshot", 14, 20);
+    doc.setFontSize(11);
+    doc.text(`Generated On: ${new Date().toLocaleString()}`, 14, 28);
+    doc.text(`Status: Operational`, 14, 34);
+
+    // Core System Metrics
+    doc.setFontSize(14);
+    doc.text("Core System Metrics", 14, 46);
+    
+    autoTable(doc, {
+      startY: 50,
+      head: [['Metric', 'Value']],
+      body: [
+        ['CPU Usage', `${currentMetrics.cpu_usage_percent}%`],
+        ['RAM Usage', `${currentMetrics.ram_usage_gb} GB / ${currentMetrics.ram_total_gb} GB`],
+        ['Error Rate', `${currentMetrics.error_rate_percent}%`],
+        ['Uptime', formatUptime(currentMetrics.uptime_seconds)],
+      ],
+      theme: 'grid',
+      headStyles: { fillColor: [59, 130, 246] }
+    });
+
+    // Background Tasks
+    let currentY = doc.lastAutoTable.finalY + 15;
+    doc.setFontSize(14);
+    doc.text("Background Task Queue (Dead Letters)", 14, currentY);
+    
+    const taskRows = taskQueue.tasks.map(t => [
+      t.task_name,
+      t.target,
+      t.last_error,
+      `${t.attempt_count}/${t.max_attempts}`
+    ]);
+    
+    if (taskRows.length > 0) {
+      autoTable(doc, {
+        startY: currentY + 4,
+        head: [['Task Name', 'Target', 'Last Error', 'Attempts']],
+        body: taskRows,
+        theme: 'grid',
+        headStyles: { fillColor: [239, 68, 68] }
+      });
+    } else {
+      doc.setFontSize(11);
+      doc.text("No dead letter tasks found. Queue is healthy.", 14, currentY + 6);
+      currentY += 10;
+    }
+
+    // Slow Queries
+    currentY = doc.lastAutoTable ? doc.lastAutoTable.finalY + 15 : currentY + 15;
+    doc.setFontSize(14);
+    doc.text("Database Performance: Slow Queries", 14, currentY);
+    
+    const queryRows = slowQueries.map(q => [
+      q.preview,
+      `${q.duration_ms}ms`,
+      q.execution_count,
+      q.status
+    ]);
+
+    if (queryRows.length > 0) {
+      autoTable(doc, {
+        startY: currentY + 4,
+        head: [['Query Preview', 'Avg Duration', 'Executions', 'Status']],
+        body: queryRows,
+        theme: 'grid',
+        headStyles: { fillColor: [245, 158, 11] }
+      });
+    } else {
+      doc.setFontSize(11);
+      doc.text("No slow queries found.", 14, currentY + 6);
+    }
+
+    doc.save("system-health-report.pdf");
+  };
+
   const currentMetrics = systemMetrics || {
     cpu_usage_percent: 0,
     ram_usage_gb: 0,
@@ -159,7 +242,7 @@ export default function SystemHealth() {
             <p className="font-body-sm text-body-sm text-secondary mt-1">Real-time status monitoring for Core Command cluster nodes and database shards.</p>
           </div>
           <div className="flex gap-sm">
-            <button className="flex items-center gap-2 px-md py-sm bg-surface border border-outline-variant rounded font-label-md text-label-md hover:bg-surface-container-high transition-colors active:scale-95">
+            <button onClick={generatePDFReport} className="flex items-center gap-2 px-md py-sm bg-surface border border-outline-variant rounded font-label-md text-label-md hover:bg-surface-container-high transition-colors active:scale-95">
               <span className="material-symbols-outlined text-[18px]">download</span> Export Report
             </button>
             {role === 'developer' && (
