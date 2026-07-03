@@ -3,6 +3,15 @@ import { formatDistanceToNow } from 'date-fns';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../AuthContext';
 
+// Mapping of audit log action types to UI presentation
+const actionMap = {
+  'ORG_VERIFICATION_VERIFIED': { icon: 'task_alt', color: 'bg-emerald-100 text-emerald-800', label: (name) => `Organization "${name}" approved` },
+  'ORG_VERIFICATION_REJECTED': { icon: 'highlight_off', color: 'bg-red-100 text-red-800', label: (name) => `Organization "${name}" rejected` },
+  'DOCUMENT_REVIEWED': { icon: 'description', color: 'bg-blue-100 text-blue-800', label: (doc) => `Document "${doc}" reviewed` },
+  // fallback for other actions
+  'default': { icon: 'history', color: 'bg-gray-100 text-gray-800', label: (desc) => desc }
+};
+
 export default function RecentActivity() {
   const [logs, setLogs] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -75,16 +84,17 @@ export default function RecentActivity() {
             <div className="absolute left-[34px] top-8 bottom-8 w-px bg-dashed bg-gray-300"></div>
             <div className="space-y-6">
               {logs.map((log, index) => {
-                const { bg, text, icon } = getIconForRole(log.adminRole);
+                const { icon, color, label } = actionMap[log.actionType] || actionMap['default'];
+                const displayLabel = typeof label === 'function' ? label(log.description) : label;
                 return (
                   <div key={log.id} className="relative flex gap-4 items-start group">
-                    <div className={`w-11 h-11 rounded-full flex items-center justify-center shrink-0 z-10 ${bg} ${text} shadow-sm ring-4 ring-surface transition-transform group-hover:scale-105`}>
+                    <div className={`w-11 h-11 rounded-full flex items-center justify-center shrink-0 z-10 ${color} shadow-sm ring-4 ring-surface transition-transform group-hover:scale-105`}> 
                       <span className="material-symbols-outlined text-[20px]">{icon}</span>
                     </div>
                     <div className="flex-1 pt-1 pb-4 border-b border-gray-100 last:border-0">
                       <div className="flex justify-between items-start mb-1 gap-2">
                         <h6 className="font-semibold text-gray-800 text-[15px] leading-tight">
-                          {log.adminRole === 'System' ? 'System' : log.adminName} {formatActionText(log.actionType)}
+                          {displayLabel}
                         </h6>
                         <span className="text-[12px] font-medium text-gray-400 whitespace-nowrap">
                           {formatDistanceToNow(new Date(log.timestamp), { addSuffix: true })}
