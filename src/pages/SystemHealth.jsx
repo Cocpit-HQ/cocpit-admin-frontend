@@ -2,50 +2,129 @@ import React, { useState, useEffect } from 'react';
 import { useAuth } from '../AuthContext';
 
 export default function SystemHealth() {
-  const [cpuUsage, setCpuUsage] = useState(65);
+  const [systemMetrics, setSystemMetrics] = useState(null);
+  const [deployments, setDeployments] = useState([]);
   const [selectedQuery, setSelectedQuery] = useState(null);
 
-  const slowQueries = [
-    {
-      id: 1,
-      preview: "SELECT * FROM app_logs WHERE...",
-      fullQuery: `SELECT l.*, u.email \nFROM app_logs l \nLEFT JOIN users u ON l.user_id = u.id \nWHERE l.created_at >= NOW() - INTERVAL '24 HOURS' \n  AND l.level IN ('ERROR', 'FATAL') \nORDER BY l.created_at DESC;`,
-      duration: "1,420 ms",
-      count: "12,402",
-      status: "Optimizing",
-      statusColor: "bg-amber-100 text-amber-800"
-    },
-    {
-      id: 2,
-      preview: "UPDATE user_profiles SET last_seen...",
-      fullQuery: `UPDATE user_profiles \nSET last_seen_at = NOW(), \n    session_count = session_count + 1 \nWHERE user_id IN (\n  SELECT id FROM users WHERE status = 'active'\n);`,
-      duration: "840 ms",
-      count: "45,102",
-      status: "Stable",
-      statusColor: "bg-emerald-100 text-emerald-800"
-    },
-    {
-      id: 3,
-      preview: "JOIN organizations ON users.org_id...",
-      fullQuery: `SELECT o.name, COUNT(u.id) as user_count \nFROM organizations o \nJOIN users u ON o.id = u.org_id \nWHERE o.subscription_status = 'active' \nGROUP BY o.name \nHAVING COUNT(u.id) > 100;`,
-      duration: "3,105 ms",
-      count: "2,104",
-      status: "Review Required",
-      statusColor: "bg-red-100 text-red-800"
-    }
-  ];
+  const [slowQueries, setSlowQueries] = useState([]);
+  const [taskQueue, setTaskQueue] = useState({ pendingCount: 0, deadLetterCount: 0, tasks: [] });
+
+
+
+  const { role, accessToken } = useAuth();
+  const [alerts, setAlerts] = useState([]);
 
   useEffect(() => {
-    const interval = setInterval(() => {
-      setCpuUsage(prev => {
-        const variation = Math.floor(Math.random() * 3) - 1;
-        return Math.min(Math.max(prev + variation, 60), 75);
-      });
-    }, 3000);
-    return () => clearInterval(interval);
-  }, []);
+    const fetchAlerts = async () => {
+      try {
+        if (!accessToken) return;
+        const response = await fetch('/api/admin/dashboard/system-alerts', {
+          headers: { 'Authorization': `Bearer ${accessToken}` }
+        });
+        if (response.ok) {
+          const data = await response.json();
+          setAlerts(data.alerts || []);
+        }
+      } catch (error) {
+        console.error('Failed to fetch system alerts:', error);
+      }
+    };
+    fetchAlerts();
+  }, [accessToken]);
 
-  const { role } = useAuth();
+  useEffect(() => {
+    const fetchMetrics = async () => {
+      try {
+        if (!accessToken) return;
+        const response = await fetch('/api/admin/dashboard/system-metrics', {
+          headers: { 'Authorization': `Bearer ${accessToken}` }
+        });
+        if (response.ok) {
+          const data = await response.json();
+          setSystemMetrics(data);
+        }
+      } catch (error) {
+        console.error('Failed to fetch system metrics:', error);
+      }
+    };
+    fetchMetrics();
+    // Polling every 10 seconds for real-time feel
+    const interval = setInterval(fetchMetrics, 10000);
+    return () => clearInterval(interval);
+  }, [accessToken]);
+
+  useEffect(() => {
+    const fetchDeployments = async () => {
+      try {
+        if (!accessToken) return;
+        const response = await fetch('/api/admin/dashboard/deployments', {
+          headers: { 'Authorization': `Bearer ${accessToken}` }
+        });
+        if (response.ok) {
+          const data = await response.json();
+          setDeployments(data.deployments || []);
+        }
+      } catch (error) {
+        console.error('Failed to fetch deployments:', error);
+      }
+    };
+    
+    const fetchSlowQueries = async () => {
+      try {
+        if (!accessToken) return;
+        const response = await fetch('/api/admin/dashboard/slow-queries', {
+          headers: { 'Authorization': `Bearer ${accessToken}` }
+        });
+        if (response.ok) {
+          const data = await response.json();
+          setSlowQueries(data.slowQueries || []);
+        }
+      } catch (error) {
+        console.error('Failed to fetch slow queries:', error);
+      }
+    };
+
+    const fetchBackgroundTasks = async () => {
+      try {
+        if (!accessToken) return;
+        const response = await fetch('/api/admin/dashboard/background-tasks', {
+          headers: { 'Authorization': `Bearer ${accessToken}` }
+        });
+        if (response.ok) {
+          const data = await response.json();
+          setTaskQueue(data || { pendingCount: 0, deadLetterCount: 0, tasks: [] });
+        }
+      } catch (error) {
+        console.error('Failed to fetch background tasks:', error);
+      }
+    };
+
+    fetchDeployments();
+    fetchSlowQueries();
+    fetchBackgroundTasks();
+  }, [accessToken]);
+
+  // Format uptime from seconds
+  const formatUptime = (seconds) => {
+    if (!seconds) return '0d 0h 0m';
+    const d = Math.floor(seconds / (3600 * 24));
+    const h = Math.floor((seconds % (3600 * 24)) / 3600);
+    const m = Math.floor((seconds % 3600) / 60);
+    return `${d}d ${h}h ${m}m`;
+  };
+
+  const currentMetrics = systemMetrics || {
+    cpu_usage_percent: 0,
+    ram_usage_gb: 0,
+    ram_total_gb: 8,
+    error_rate_percent: 0,
+    uptime_seconds: 0,
+    rate_limit_triggers_1h: 0,
+    failed_logins_24h_data: []
+  };
+
+  const cpuUsage = currentMetrics.cpu_usage_percent;
+
 
   if (role === 'moderator') {
     return (
@@ -98,22 +177,33 @@ export default function SystemHealth() {
             Active System Alerts
           </h3>
           <div className="space-y-sm">
-            <div className="flex items-start gap-md p-sm bg-surface rounded border border-error/10">
-              <span className="material-symbols-outlined text-error mt-0.5 text-[20px]">security</span>
-              <div>
-                <p className="font-label-md text-on-surface">Failed Logins Spike Detected</p>
-                <p className="font-body-sm text-secondary">Authentication API is receiving an unusually high number of 401s from IP range 192.168.x.x</p>
-              </div>
-              <span className="ml-auto text-xs font-mono-label text-secondary">Just now</span>
-            </div>
-            <div className="flex items-start gap-md p-sm bg-surface rounded border border-orange-500/20">
-              <span className="material-symbols-outlined text-orange-500 mt-0.5 text-[20px]">speed</span>
-              <div>
-                <p className="font-label-md text-on-surface">Elevated Database Latency</p>
-                <p className="font-body-sm text-secondary">PostgreSQL primary node showing p95 latency &gt; 1000ms for last 5 minutes</p>
-              </div>
-              <span className="ml-auto text-xs font-mono-label text-secondary">4m ago</span>
-            </div>
+            {alerts.length > 0 ? alerts.map(alert => {
+              const isSecurity = alert.type === 'security';
+              const icon = isSecurity ? 'security' : 'speed';
+              const iconColor = isSecurity ? 'text-error' : 'text-orange-500';
+              const borderColor = isSecurity ? 'border-error/10' : 'border-orange-500/20';
+              
+              const date = new Date(alert.created_at);
+              const now = new Date();
+              const diffMs = now - date;
+              const diffMins = Math.floor(diffMs / 60000);
+              let timeAgo = 'Just now';
+              if (diffMins > 60) timeAgo = `${Math.floor(diffMins / 60)}h ago`;
+              else if (diffMins > 0) timeAgo = `${diffMins}m ago`;
+
+              return (
+                <div key={alert.id} className={`flex items-start gap-md p-sm bg-surface rounded border ${borderColor}`}>
+                  <span className={`material-symbols-outlined mt-0.5 text-[20px] ${iconColor}`}>{icon}</span>
+                  <div>
+                    <p className="font-label-md text-on-surface">{alert.title}</p>
+                    <p className="font-body-sm text-secondary">{alert.message}</p>
+                  </div>
+                  <span className="ml-auto text-xs font-mono-label text-secondary whitespace-nowrap">{timeAgo}</span>
+                </div>
+              );
+            }) : (
+              <p className="text-body-sm text-secondary p-sm">No active alerts at this time.</p>
+            )}
           </div>
         </div>
 
@@ -127,7 +217,7 @@ export default function SystemHealth() {
               </h3>
               <div className="text-right">
                 <p className="text-secondary font-mono-label text-mono-label uppercase tracking-wider">Server Uptime</p>
-                <p className="font-headline-sm text-headline-sm text-on-surface">14d 6h 22m</p>
+                <p className="font-headline-sm text-headline-sm text-on-surface">{formatUptime(currentMetrics.uptime_seconds)}</p>
               </div>
             </div>
             
@@ -154,62 +244,62 @@ export default function SystemHealth() {
                 <div className="relative w-24 h-24 mb-md">
                   <svg className="w-full h-full" viewBox="0 0 36 36">
                     <path className="text-surface-container-highest stroke-current" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" strokeWidth="3"></path>
-                    <path className="text-tertiary stroke-current" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" strokeDasharray="52, 100" strokeLinecap="round" strokeWidth="3"></path>
+                    <path className="text-tertiary stroke-current" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" strokeDasharray={`${Math.round((currentMetrics.ram_usage_gb / currentMetrics.ram_total_gb) * 100) || 0}, 100`} strokeLinecap="round" strokeWidth="3"></path>
                   </svg>
                   <div className="absolute inset-0 flex items-center justify-center">
-                    <span className="font-headline-sm text-headline-sm">52%</span>
+                    <span className="font-headline-sm text-headline-sm">{Math.round((currentMetrics.ram_usage_gb / currentMetrics.ram_total_gb) * 100) || 0}%</span>
                   </div>
                 </div>
-                <p className="font-label-md text-label-md text-secondary">RAM (4.2GB / 8GB)</p>
+                <p className="font-label-md text-label-md text-secondary">RAM ({currentMetrics.ram_usage_gb}GB / {currentMetrics.ram_total_gb}GB)</p>
                 <p className="font-mono-label text-mono-label text-secondary flex items-center gap-1 mt-1">
                   <span className="material-symbols-outlined text-xs">horizontal_rule</span> Stable
                 </p>
               </div>
 
-              {/* Error Rate */}
+              {/* Heap Usage */}
               <div className="flex flex-col items-center justify-center p-md border border-outline-variant rounded bg-surface">
-                <div className="w-full h-24 flex items-end justify-between gap-1 mb-md">
-                  <div className="w-full bg-primary/20 h-8 rounded-sm"></div>
-                  <div className="w-full bg-primary/20 h-10 rounded-sm"></div>
-                  <div className="w-full bg-primary/20 h-12 rounded-sm"></div>
-                  <div className="w-full bg-primary/20 h-16 rounded-sm"></div>
-                  <div className="w-full bg-error h-4 rounded-sm"></div>
-                  <div className="w-full bg-primary/20 h-14 rounded-sm"></div>
-                  <div className="w-full bg-primary/20 h-10 rounded-sm"></div>
+                <div className="relative w-24 h-24 mb-md">
+                  <svg className="w-full h-full" viewBox="0 0 36 36">
+                    <path className="text-surface-container-highest stroke-current" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" strokeWidth="3"></path>
+                    <path className="text-primary stroke-current" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" strokeDasharray={`${currentMetrics.heap_usage_percent || 0}, 100`} strokeLinecap="round" strokeWidth="3"></path>
+                  </svg>
+                  <div className="absolute inset-0 flex items-center justify-center">
+                    <span className="font-headline-sm text-headline-sm">{currentMetrics.heap_usage_percent || 0}%</span>
+                  </div>
                 </div>
-                <p className="font-label-md text-label-md text-secondary">Error Rate (5xx)</p>
-                <p className="font-headline-sm text-headline-sm text-on-surface">0.04%</p>
+                <p className="font-label-md text-label-md text-secondary">Node.js Heap Usage</p>
+                <p className="font-mono-label text-mono-label text-secondary flex items-center gap-1 mt-1">
+                  {currentMetrics.heap_used_mb}MB / {currentMetrics.heap_total_mb}MB
+                </p>
               </div>
             </div>
           </div>
 
-          {/* Security & Traffic */}
+          {/* Database Health */}
           <div className="col-span-12 lg:col-span-4 bg-surface-container-lowest border border-outline-variant rounded p-lg shadow-sm">
             <h3 className="font-headline-sm text-headline-sm flex items-center gap-sm mb-lg">
-              <span className="material-symbols-outlined text-primary">shield</span>
-              Security & Limits
+              <span className="material-symbols-outlined text-primary">database</span>
+              Database Health
             </h3>
             <div className="space-y-md">
-              <div className="p-md rounded bg-surface border border-outline-variant">
-                <div className="flex justify-between items-center mb-sm">
-                  <span className="font-label-md text-label-md text-secondary">Failed Logins (24h)</span>
-                  <span className="text-error font-bold text-xs uppercase">Spike Detected</span>
+              <div className="p-md rounded bg-surface border border-outline-variant flex justify-between items-center">
+                <div>
+                  <p className="font-label-md text-label-md text-secondary uppercase">Database Storage Size</p>
+                  <p className="font-display-lg text-display-lg font-bold">{currentMetrics.db_size || '0 MB'}</p>
+                  <p className="font-body-sm text-body-sm text-secondary">Total disk space used</p>
                 </div>
-                <div className="h-20 w-full overflow-hidden">
-                  <svg className="w-full h-full" preserveAspectRatio="none" viewBox="0 0 100 40">
-                    <polyline fill="none" points="0,35 10,32 20,38 30,30 40,32 50,5 60,8 70,30 80,33 90,35 100,32" stroke="#ba1a1a" strokeWidth="2"></polyline>
-                    <path d="M0,35 L10,32 L20,38 L30,30 L40,32 L50,5 L60,8 L70,30 L80,33 L90,35 L100,32 V40 H0 Z" fill="rgba(186, 26, 26, 0.1)"></path>
-                  </svg>
+                <div className="w-12 h-12 rounded-full bg-primary-container/30 flex items-center justify-center text-primary">
+                  <span className="material-symbols-outlined">storage</span>
                 </div>
               </div>
               <div className="p-md rounded bg-surface border border-outline-variant flex justify-between items-center">
                 <div>
-                  <p className="font-label-md text-label-md text-secondary uppercase">Rate Limit (429)</p>
-                  <p className="font-display-lg text-display-lg font-bold">1.2k</p>
-                  <p className="font-body-sm text-body-sm text-secondary">triggers / last hour</p>
+                  <p className="font-label-md text-label-md text-secondary uppercase">Active Connections</p>
+                  <p className="font-display-lg text-display-lg font-bold">{currentMetrics.active_db_connections || 0}</p>
+                  <p className="font-body-sm text-body-sm text-secondary">pg_stat_activity count</p>
                 </div>
-                <div className="w-12 h-12 rounded-full bg-tertiary-container/10 flex items-center justify-center text-tertiary">
-                  <span className="material-symbols-outlined">block</span>
+                <div className="w-12 h-12 rounded-full bg-emerald-100 flex items-center justify-center text-emerald-800">
+                  <span className="material-symbols-outlined">cable</span>
                 </div>
               </div>
             </div>
@@ -234,24 +324,34 @@ export default function SystemHealth() {
                   </tr>
                 </thead>
                 <tbody>
-                  <tr className="border-b border-outline-variant/50 hover:bg-surface-container-low transition-colors">
-                    <td className="py-md px-md font-mono-label text-primary hover:underline cursor-pointer">v1.4.2-b8f9e</td>
-                    <td className="py-md px-md flex items-center gap-xs text-sm"><span className="material-symbols-outlined text-[16px]">robot_2</span> GitHub Actions</td>
-                    <td className="py-md px-md text-secondary text-sm">2 hours ago</td>
-                    <td className="py-md px-md"><span className="px-2 py-0.5 rounded-full text-xs bg-emerald-100 text-emerald-800 font-medium border border-emerald-200">Success</span></td>
-                  </tr>
-                  <tr className="border-b border-outline-variant/50 hover:bg-surface-container-low transition-colors">
-                    <td className="py-md px-md font-mono-label text-primary hover:underline cursor-pointer">v1.4.1-c72a1</td>
-                    <td className="py-md px-md flex items-center gap-xs text-sm"><span className="material-symbols-outlined text-[16px]">person</span> @dev_team</td>
-                    <td className="py-md px-md text-secondary text-sm">Yesterday</td>
-                    <td className="py-md px-md"><span className="px-2 py-0.5 rounded-full text-xs bg-orange-100 text-orange-800 font-medium border border-orange-200">Rollback</span></td>
-                  </tr>
-                  <tr className="hover:bg-surface-container-low transition-colors">
-                    <td className="py-md px-md font-mono-label text-primary hover:underline cursor-pointer">v1.4.1-f112x</td>
-                    <td className="py-md px-md flex items-center gap-xs text-sm"><span className="material-symbols-outlined text-[16px]">robot_2</span> GitHub Actions</td>
-                    <td className="py-md px-md text-secondary text-sm">Yesterday</td>
-                    <td className="py-md px-md"><span className="px-2 py-0.5 rounded-full text-xs bg-error-container text-error font-medium border border-error/30">Failed</span></td>
-                  </tr>
+                  {deployments.length > 0 ? deployments.map(dep => {
+                    const date = new Date(dep.created_at);
+                    const now = new Date();
+                    const diffMs = now - date;
+                    const diffMins = Math.floor(diffMs / 60000);
+                    let timeAgo = 'Just now';
+                    if (diffMins > 1440) timeAgo = `${Math.floor(diffMins / 1440)} days ago`;
+                    else if (diffMins > 60) timeAgo = `${Math.floor(diffMins / 60)} hours ago`;
+                    else if (diffMins > 0) timeAgo = `${diffMins} mins ago`;
+
+                    let statusClass = "bg-emerald-100 text-emerald-800 border-emerald-200";
+                    if (dep.status === 'Rollback') statusClass = "bg-orange-100 text-orange-800 border-orange-200";
+                    if (dep.status === 'Failed') statusClass = "bg-error-container text-error border-error/30";
+
+                    return (
+                      <tr key={dep.id} className="border-b border-outline-variant/50 hover:bg-surface-container-low transition-colors">
+                        <td className="py-md px-md font-mono-label text-primary hover:underline cursor-pointer">{dep.version}</td>
+                        <td className="py-md px-md flex items-center gap-xs text-sm">
+                          <span className="material-symbols-outlined text-[16px]">{dep.triggered_by.toLowerCase().includes('github') || dep.triggered_by.toLowerCase().includes('bot') ? 'robot_2' : 'person'}</span> 
+                          {dep.triggered_by}
+                        </td>
+                        <td className="py-md px-md text-secondary text-sm">{timeAgo}</td>
+                        <td className="py-md px-md"><span className={`px-2 py-0.5 rounded-full text-xs font-medium border ${statusClass}`}>{dep.status}</span></td>
+                      </tr>
+                    );
+                  }) : (
+                    <tr><td colSpan="4" className="py-md px-md text-secondary text-center">No deployment history found.</td></tr>
+                  )}
                 </tbody>
               </table>
             </div>
@@ -276,8 +376,8 @@ export default function SystemHealth() {
               </div>
               <div className="flex justify-between items-center p-sm hover:bg-surface-container-low border border-transparent hover:border-outline-variant rounded transition-all">
                 <div>
-                  <p className="font-mono-label text-on-surface text-sm">GET /api/reports</p>
-                  <p className="font-body-sm text-secondary text-[11px]">Core Analytics</p>
+                  <p className="font-mono-label text-on-surface text-sm">GET /api/content/All/feeds</p>
+                  <p className="font-body-sm text-secondary text-[11px]">Main Feed Service</p>
                 </div>
                 <div className="text-right flex gap-lg">
                   <p className="text-sm flex flex-col"><span className="text-secondary text-[10px] uppercase">p95</span> <span className="font-medium text-emerald-600">85ms</span></p>
@@ -286,12 +386,32 @@ export default function SystemHealth() {
               </div>
               <div className="flex justify-between items-center p-sm hover:bg-surface-container-low border border-transparent hover:border-outline-variant rounded transition-all">
                 <div>
-                  <p className="font-mono-label text-on-surface text-sm">POST /api/users/sync</p>
-                  <p className="font-body-sm text-secondary text-[11px]">Background Worker</p>
+                  <p className="font-mono-label text-on-surface text-sm">POST /api/content/post</p>
+                  <p className="font-body-sm text-secondary text-[11px]">Content Creation</p>
                 </div>
                 <div className="text-right flex gap-lg">
-                  <p className="text-sm flex flex-col"><span className="text-secondary text-[10px] uppercase">p95</span> <span className="font-medium text-error">1450ms</span></p>
-                  <p className="text-sm flex flex-col"><span className="text-secondary text-[10px] uppercase">p99</span> <span className="font-medium text-error">2100ms</span></p>
+                  <p className="text-sm flex flex-col"><span className="text-secondary text-[10px] uppercase">p95</span> <span className="font-medium text-orange-500">320ms</span></p>
+                  <p className="text-sm flex flex-col"><span className="text-secondary text-[10px] uppercase">p99</span> <span className="font-medium text-error">850ms</span></p>
+                </div>
+              </div>
+              <div className="flex justify-between items-center p-sm hover:bg-surface-container-low border border-transparent hover:border-outline-variant rounded transition-all">
+                <div>
+                  <p className="font-mono-label text-on-surface text-sm">GET /api/user/search</p>
+                  <p className="font-body-sm text-secondary text-[11px]">Search Service</p>
+                </div>
+                <div className="text-right flex gap-lg">
+                  <p className="text-sm flex flex-col"><span className="text-secondary text-[10px] uppercase">p95</span> <span className="font-medium text-emerald-600">180ms</span></p>
+                  <p className="text-sm flex flex-col"><span className="text-secondary text-[10px] uppercase">p99</span> <span className="font-medium text-orange-500">500ms</span></p>
+                </div>
+              </div>
+              <div className="flex justify-between items-center p-sm hover:bg-surface-container-low border border-transparent hover:border-outline-variant rounded transition-all">
+                <div>
+                  <p className="font-mono-label text-on-surface text-sm">POST /api/report/reports</p>
+                  <p className="font-body-sm text-secondary text-[11px]">Moderation Service</p>
+                </div>
+                <div className="text-right flex gap-lg">
+                  <p className="text-sm flex flex-col"><span className="text-secondary text-[10px] uppercase">p95</span> <span className="font-medium text-emerald-600">90ms</span></p>
+                  <p className="text-sm flex flex-col"><span className="text-secondary text-[10px] uppercase">p99</span> <span className="font-medium text-emerald-600">150ms</span></p>
                 </div>
               </div>
             </div>
@@ -335,9 +455,9 @@ export default function SystemHealth() {
                   {slowQueries.map(query => (
                     <tr key={query.id} className="hover:bg-surface-container-low transition-colors border-b border-outline-variant/50">
                       <td className="py-sm px-md font-mono-label text-mono-label text-primary">{query.preview}</td>
-                      <td className="py-sm px-md">{query.duration}</td>
-                      <td className="py-sm px-md">{query.count}</td>
-                      <td className="py-sm px-md"><span className={`px-2 py-0.5 rounded-full text-xs ${query.statusColor}`}>{query.status}</span></td>
+                      <td className="py-sm px-md">{query.duration_ms} ms</td>
+                      <td className="py-sm px-md">{query.execution_count}</td>
+                      <td className="py-sm px-md"><span className={`px-2 py-0.5 rounded-full text-xs ${query.status_color}`}>{query.status}</span></td>
                       <td className="py-sm px-md text-right">
                         <button onClick={() => setSelectedQuery(query)} className="p-1 text-secondary hover:text-primary transition-colors"><span className="material-symbols-outlined text-[18px]">visibility</span></button>
                       </td>
@@ -359,11 +479,11 @@ export default function SystemHealth() {
             <div className="flex flex-wrap items-center gap-md">
               <div className="px-md py-sm rounded-lg bg-surface border border-outline-variant text-center min-w-[120px]">
                 <p className="text-secondary font-mono-label text-mono-label uppercase">Pending</p>
-                <p className="font-headline-sm text-headline-sm font-bold">4,129</p>
+                <p className="font-headline-sm text-headline-sm font-bold">{taskQueue.pendingCount}</p>
               </div>
               <div className="px-md py-sm rounded-lg bg-error-container/20 border border-error text-center min-w-[120px] relative">
                 <p className="text-error font-mono-label text-mono-label uppercase">Dead Letter</p>
-                <p className="font-headline-sm text-headline-sm font-bold text-error">42</p>
+                <p className="font-headline-sm text-headline-sm font-bold text-error">{taskQueue.deadLetterCount}</p>
                 <span className="absolute -top-2 -right-2 flex h-3 w-3">
                   <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-error opacity-75"></span>
                   <span className="relative inline-flex rounded-full h-3 w-3 bg-error"></span>
@@ -378,62 +498,32 @@ export default function SystemHealth() {
           </div>
           
           <div className="space-y-sm">
-            <div className="flex flex-col md:flex-row md:items-center justify-between p-md bg-surface border-l-4 border-error rounded-r hover:bg-surface-container-low transition-colors gap-md">
-              <div className="flex items-start gap-lg">
-                <span className="material-symbols-outlined text-error">error_outline</span>
-                <div>
-                  <p className="font-label-md text-label-md font-bold">WEBHOOK_PAYMENT_FAILURE</p>
-                  <p className="font-body-sm text-body-sm text-secondary">Target: stripe.api.v3 | Last Error: Connection Timeout (E_TIMEOUT)</p>
+            {taskQueue.tasks.map(task => (
+              <div key={task.id} className="flex flex-col md:flex-row md:items-center justify-between p-md bg-surface border-l-4 border-error rounded-r hover:bg-surface-container-low transition-colors gap-md">
+                <div className="flex items-start gap-lg">
+                  <span className="material-symbols-outlined text-error">error_outline</span>
+                  <div>
+                    <p className="font-label-md text-label-md font-bold">{task.task_name}</p>
+                    <p className="font-body-sm text-body-sm text-secondary">Target: {task.target} | Last Error: {task.last_error}</p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-xl md:ml-auto">
+                  <p className="font-mono-label text-mono-label text-outline">ID: {task.task_id}</p>
+                  <p className="font-label-md text-label-md text-secondary">Attempt {task.attempt_count}/{task.max_attempts}</p>
+                  {role === 'developer' && (
+                    <button className="flex items-center gap-1 text-primary font-label-md text-label-md hover:underline decoration-2">
+                      <span className="material-symbols-outlined text-[16px]">replay</span> Retry
+                    </button>
+                  )}
                 </div>
               </div>
-              <div className="flex items-center gap-xl md:ml-auto">
-                <p className="font-mono-label text-mono-label text-outline">ID: 0xf832...a4</p>
-                <p className="font-label-md text-label-md text-secondary">Attempt 3/3</p>
-                {role === 'developer' && (
-                  <button className="flex items-center gap-1 text-primary font-label-md text-label-md hover:underline decoration-2">
-                    <span className="material-symbols-outlined text-[16px]">replay</span> Retry
-                  </button>
-                )}
+            ))}
+            {taskQueue.tasks.length === 0 && (
+              <div className="p-xl text-center text-secondary border border-dashed border-outline-variant rounded-xl bg-surface">
+                <span className="material-symbols-outlined text-4xl mb-2 opacity-50">check_circle</span>
+                <p>No dead letter tasks.</p>
               </div>
-            </div>
-
-            <div className="flex flex-col md:flex-row md:items-center justify-between p-md bg-surface border-l-4 border-error rounded-r hover:bg-surface-container-low transition-colors gap-md">
-              <div className="flex items-start gap-lg">
-                <span className="material-symbols-outlined text-error">error_outline</span>
-                <div>
-                  <p className="font-label-md text-label-md font-bold">EMAIL_BULK_SEND_QUEUE</p>
-                  <p className="font-body-sm text-body-sm text-secondary">Target: sendgrid.v3 | Last Error: Invalid API Key (Unauthorized)</p>
-                </div>
-              </div>
-              <div className="flex items-center gap-xl md:ml-auto">
-                <p className="font-mono-label text-mono-label text-outline">ID: 0x{Math.random().toString(16).slice(2, 6)}...{Math.random().toString(16).slice(2, 4)}</p>
-                <p className="font-label-md text-label-md text-secondary">Attempt 1/3</p>
-                {role === 'developer' && (
-                  <button className="flex items-center gap-1 text-primary font-label-md text-label-md hover:underline decoration-2">
-                    <span className="material-symbols-outlined text-[16px]">replay</span> Retry
-                  </button>
-                )}
-              </div>
-            </div>
-
-            <div className="flex flex-col md:flex-row md:items-center justify-between p-md bg-surface border-l-4 border-error rounded-r hover:bg-surface-container-low transition-colors gap-md">
-              <div className="flex items-start gap-lg">
-                <span className="material-symbols-outlined text-error">error_outline</span>
-                <div>
-                  <p className="font-label-md text-label-md font-bold">USER_CACHE_INVALIDATION</p>
-                  <p className="font-body-sm text-body-sm text-secondary">Target: redis.cluster.node_1 | Last Error: Node Unreachable</p>
-                </div>
-              </div>
-              <div className="flex items-center gap-xl md:ml-auto">
-                <p className="font-mono-label text-mono-label text-outline">ID: 0x21c4...ff</p>
-                <p className="font-label-md text-label-md text-secondary">Attempt 2/3</p>
-                {role === 'developer' && (
-                  <button className="flex items-center gap-1 text-primary font-label-md text-label-md hover:underline decoration-2">
-                    <span className="material-symbols-outlined text-[16px]">replay</span> Retry
-                  </button>
-                )}
-              </div>
-            </div>
+            )}
           </div>
         </div>
 
@@ -454,15 +544,15 @@ export default function SystemHealth() {
             </div>
             <div className="p-lg bg-[#1e1e1e] overflow-x-auto">
               <pre className="font-mono text-sm text-gray-300 whitespace-pre-wrap leading-relaxed">
-                {selectedQuery.fullQuery}
+                {selectedQuery.full_query}
               </pre>
             </div>
-            <div className="p-md border-t border-outline-variant bg-surface-container-lowest flex justify-between items-center">
-              <div className="flex gap-xl">
-                <span className="text-xs text-secondary font-mono-label uppercase tracking-wide">Avg Duration: <span className="text-on-surface font-medium">{selectedQuery.duration}</span></span>
-                <span className="text-xs text-secondary font-mono-label uppercase tracking-wide">Execution Count: <span className="text-on-surface font-medium">{selectedQuery.count}</span></span>
+            <div className="p-4 bg-surface flex justify-between items-center rounded-b-xl border-t border-outline-variant">
+              <div className="flex gap-lg">
+                <p className="text-sm font-label-md text-secondary uppercase tracking-wider">Avg Duration: <span className="font-bold text-on-surface">{selectedQuery.duration_ms} ms</span></p>
+                <p className="text-sm font-label-md text-secondary uppercase tracking-wider">Execution Count: <span className="font-bold text-on-surface">{selectedQuery.execution_count}</span></p>
               </div>
-              <button onClick={() => { navigator.clipboard.writeText(selectedQuery.fullQuery); alert("Copied to clipboard!"); }} className="px-md py-sm bg-primary text-on-primary rounded hover:bg-primary/90 transition-colors font-label-md flex items-center gap-2">
+              <button onClick={() => { navigator.clipboard.writeText(selectedQuery.full_query); alert("Copied to clipboard!"); }} className="px-md py-sm bg-primary text-on-primary rounded hover:bg-primary/90 transition-colors font-label-md flex items-center gap-2">
                 <span className="material-symbols-outlined text-[18px]">content_copy</span>
                 Copy Query
               </button>

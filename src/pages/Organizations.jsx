@@ -10,7 +10,7 @@ import { useEffect } from 'react';
 export default function Organizations() {
   const { role, accessToken } = useAuth();
   const navigate = useNavigate();
-  const [activeTab, setActiveTab] = useState('VerificationQueue');
+  const [activeTab, setActiveTab] = useState(role === 'developer' ? 'Directory' : 'VerificationQueue');
   const [selectedOrgs, setSelectedOrgs] = useState(new Set());
   const [currentPage, setCurrentPage] = useState(1);
   const [industryFilter, setIndustryFilter] = useState('All');
@@ -295,12 +295,14 @@ export default function Organizations() {
             >
               Organization
             </button>
-            <button
-              onClick={() => setActiveTab('VerificationQueue')}
-              className={`flex-1 sm:flex-none px-5 py-2 rounded-lg text-sm font-semibold transition-all whitespace-nowrap ${activeTab === 'VerificationQueue' ? 'bg-white shadow-sm text-indigo-700' : 'text-on-surface-variant hover:text-on-surface hover:bg-white/50'}`}
-            >
-              Verification Queue
-            </button>
+            {role !== 'developer' && (
+              <button
+                onClick={() => setActiveTab('VerificationQueue')}
+                className={`flex-1 sm:flex-none px-5 py-2 rounded-lg text-sm font-semibold transition-all whitespace-nowrap ${activeTab === 'VerificationQueue' ? 'bg-white shadow-sm text-indigo-700' : 'text-on-surface-variant hover:text-on-surface hover:bg-white/50'}`}
+              >
+                Verification Queue
+              </button>
+            )}
           </div>
 
         </div>
