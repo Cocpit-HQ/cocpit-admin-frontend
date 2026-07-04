@@ -66,8 +66,8 @@ export default function Header({ toggleSidebar }) {
   return (
     <header className="fixed top-0 right-0 w-full md:w-[calc(100%-80px)] h-16 bg-surface-container-lowest flex justify-between items-center px-4 md:px-margin-desktop z-30 transition-all duration-300">
       <div className="flex items-center gap-2 md:gap-xl flex-1 min-w-0">
-        <button 
-          className="md:hidden material-symbols-outlined text-on-surface p-1 rounded hover:bg-surface-container transition-colors shrink-0" 
+        <button
+          className="md:hidden material-symbols-outlined text-on-surface p-1 rounded hover:bg-surface-container transition-colors shrink-0"
           onClick={toggleSidebar}
         >
           menu
@@ -75,22 +75,21 @@ export default function Header({ toggleSidebar }) {
         <h2 className="hidden sm:block font-headline-sm text-headline-sm font-black text-on-surface shrink-0">AdminConsole</h2>
         <div className="relative w-full max-w-[448px] focus-within:ring-2 focus-within:ring-primary rounded-full transition-all min-w-0">
           <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-on-surface-variant">search</span>
-          <input 
-            type="text" 
-            placeholder="Search users..." 
+          <input
+            type="text"
+            placeholder="Search users..."
             className="w-full bg-surface-container-low border border-outline-variant rounded-full py-2 pl-10 pr-4 font-body-md text-body-md text-on-surface placeholder:text-on-surface-variant focus:outline-none min-w-0 truncate"
           />
         </div>
       </div>
       <div className="flex items-center gap-2 md:gap-md shrink-0">
-        
+
         {/* Notifications Dropdown */}
         <div className="relative" ref={dropdownRef}>
-          <button 
+          <button
             onClick={() => setIsNotificationsOpen(!isNotificationsOpen)}
-            className={`relative material-symbols-outlined p-2 rounded-full transition-all ${
-              isNotificationsOpen ? 'bg-primary-container text-on-primary-container' : 'hover:bg-surface-container text-on-surface-variant'
-            }`}
+            className={`relative material-symbols-outlined p-2 rounded-full transition-all ${isNotificationsOpen ? 'bg-primary-container text-on-primary-container' : 'hover:bg-surface-container text-on-surface-variant'
+              }`}
           >
             notifications
             {/* Unread badge indicator */}
@@ -107,7 +106,7 @@ export default function Header({ toggleSidebar }) {
               </div>
               <div className="max-h-96 overflow-y-auto">
                 {notifications.map((notif) => (
-                  <button 
+                  <button
                     key={notif.id}
                     onClick={() => handleNotificationClick(notif.path)}
                     className="w-full text-left p-md border-b border-outline-variant/50 hover:bg-surface-container-low transition-colors flex gap-md items-start"
@@ -130,11 +129,11 @@ export default function Header({ toggleSidebar }) {
           )}
         </div>
 
-        <button className="material-symbols-outlined hover:bg-surface-container p-2 rounded-full transition-all text-on-surface-variant hidden md:block">help</button>
+
         <div className="w-px h-6 bg-outline-variant mx-1 md:mx-2"></div>
         {/* Profile Dropdown */}
         <div className="relative" ref={profileDropdownRef}>
-          <button 
+          <button
             onClick={() => setIsProfileOpen(!isProfileOpen)}
             className="flex items-center focus:outline-none cursor-pointer"
           >
@@ -144,7 +143,7 @@ export default function Header({ toggleSidebar }) {
               src="https://ui-avatars.com/api/?name=Alex+Rivera&background=3525cd&color=fff"
             />
           </button>
-          
+
           {isProfileOpen && (
             <div className="absolute right-0 mt-2 w-48 bg-surface border border-outline-variant rounded-xl shadow-xl overflow-hidden z-50">
               <div className="p-4 border-b border-outline-variant bg-surface-container-lowest">

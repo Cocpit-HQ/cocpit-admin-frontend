@@ -1,107 +1,143 @@
-import React, { useState } from 'react';
-
-const mockOrgs = [
-  {
-    id: 11,
-    title: 'NexuTech Solutions',
-    author: 'Alice Johnson (CEO)',
-    location: 'SAN FRANCISCO, USA',
-    type: 'SOFTWARE & IT',
-    date: 'Jun 20',
-    status: 'Approved',
-    statusBadgeColor: 'bg-green-600',
-    fullLocation: 'San Francisco, CA, USA',
-    salary: '50-200 Employees',
-    experience: '6 Years Active',
-    mode: 'LLC',
-    skills: ['Business License Valid', 'Domain Verified', 'Identity Checked', 'Tax ID Matched'],
-    description: 'NexuTech Solutions is a leading provider of enterprise cloud infrastructure and B2B software tools. We are requesting verification to publish our official integration apps on the platform and to recruit verified developers for our open positions.'
-  },
-  {
-    id: 12,
-    title: 'Quantum Manufacturing',
-    author: 'David Chen (Admin)',
-    location: 'SEOUL, KR',
-    type: 'MANUFACTURING',
-    date: 'Jun 18',
-    status: 'Rejected',
-    statusBadgeColor: 'bg-red-600',
-    fullLocation: 'Seoul, South Korea',
-    salary: '1000+ Employees',
-    experience: '12 Years Active',
-    mode: 'Corporation',
-    skills: ['Domain Verified', 'Business License Expired'],
-    description: 'Quantum Manufacturing produces high-precision components for aerospace and automotive industries. We are applying for verification to manage our global supply chain partnerships through this platform.'
-  },
-  {
-    id: 1,
-    title: 'GreenHorizon Media',
-    author: 'Sarah Smith (HR)',
-    location: 'LONDON, UK',
-    type: 'ADVERTISING',
-    date: 'Jun 28',
-    status: 'Under Review',
-    statusBadgeColor: 'bg-indigo-600',
-    fullLocation: 'London, United Kingdom',
-    salary: '11-50 Employees',
-    experience: '3 Years Active',
-    mode: 'LLC',
-    skills: ['Domain Verified', 'Social Media Linked', 'Tax ID Matched'],
-    description: 'GreenHorizon Media is a digital advertising agency focusing on sustainable and eco-friendly brands. We want to be verified to post verified jobs and access the premium partner directory.'
-  },
-  {
-    id: 2,
-    title: 'FinEdge Analytics',
-    author: 'Mark O. (Founder)',
-    location: 'NEW YORK, USA',
-    type: 'FINANCE',
-    date: 'Jun 28',
-    status: 'Pending',
-    statusBadgeColor: 'bg-surface-variant text-on-surface-variant',
-    fullLocation: 'New York, NY, USA',
-    salary: '1-10 Employees',
-    experience: '1 Year Active',
-    mode: 'Startup',
-    skills: ['Identity Checked', 'Domain Verified'],
-    description: 'A new fintech startup building predictive analytics for retail investors.'
-  },
-  {
-    id: 3,
-    title: 'EcoHealth Partners',
-    author: 'Dr. Emily Chen',
-    location: 'GENEVA, CH',
-    type: 'HEALTHCARE',
-    date: 'Jun 28',
-    status: 'Pending',
-    statusBadgeColor: 'bg-surface-variant text-on-surface-variant',
-    fullLocation: 'Geneva, Switzerland',
-    salary: '200-500 Employees',
-    experience: '8 Years Active',
-    mode: 'Non-Profit',
-    skills: ['NGO Status Verified', 'Domain Verified'],
-    description: 'Global healthcare initiative seeking verification to partner with medical suppliers on the platform.'
-  }
-];
+import React, { useState, useEffect } from 'react';
+import { useAuth } from '../AuthContext';
 
 export default function VerificationQueue() {
+  const { accessToken } = useAuth();
+  const [orgs, setOrgs] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState('Under Review');
   const [documentModalOpen, setDocumentModalOpen] = useState(false);
-  const [activeDocumentStatus, setActiveDocumentStatus] = useState('Pending');
+  const [activeDocument, setActiveDocument] = useState(null);
+  const [activeDocumentStatus, setActiveDocumentStatus] = useState('PENDING');
+  const [documentNotes, setDocumentNotes] = useState('');
   const [zoom, setZoom] = useState(100);
-  const filteredOrgs = mockOrgs.filter(org => 
+
+  // Final decision form states
+  const [rejectionReason, setRejectionReason] = useState('No rejection reason selected');
+  const [reviewerNotes, setReviewerNotes] = useState('');
+  const [activeOrg, setActiveOrg] = useState(null);
+
+  const fetchQueue = async () => {
+    setLoading(true);
+    try {
+      const res = await fetch('/api/admin/organisations/verifications/queue', {
+        headers: {
+          'Authorization': `Bearer ${accessToken}`
+        }
+      });
+      const data = await res.json();
+      if (!data.error) {
+        setOrgs(data);
+      }
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (accessToken) {
+      fetchQueue();
+    }
+  }, [accessToken]);
+
+  const filteredOrgs = orgs.filter(org => 
     filter === 'Under Review' ? (org.status === 'Under Review' || org.status === 'Pending') : org.status === filter
   );
-  const [activeOrg, setActiveOrg] = useState(filteredOrgs[0] || mockOrgs[0]);
 
-  // Update active org when filter changes
-  React.useEffect(() => {
-    setActiveOrg(filteredOrgs[0] || null);
-  }, [filter]);
+  // Update active org when filter changes or when orgs list updates
+  useEffect(() => {
+    if (filteredOrgs.length > 0) {
+      setActiveOrg(filteredOrgs[0]);
+    } else {
+      setActiveOrg(null);
+    }
+  }, [filter, orgs]);
+
+  // Sync rejection reason / reviewer notes when activeOrg changes
+  useEffect(() => {
+    if (activeOrg) {
+      setReviewerNotes(activeOrg.review_notes || '');
+      if (activeOrg.review_notes && activeOrg.review_notes.startsWith('[Reason:')) {
+        const match = activeOrg.review_notes.match(/^\[Reason:\s*([^\]]+)\]/);
+        if (match) {
+          setRejectionReason(match[1]);
+          setReviewerNotes(activeOrg.review_notes.replace(/^\[Reason:\s*([^\]]+)\]\s*/, ''));
+        }
+      } else {
+        setRejectionReason('No rejection reason selected');
+      }
+    }
+  }, [activeOrg]);
 
   const stats = {
-    underReview: mockOrgs.filter(j => j.status === 'Under Review' || j.status === 'Pending').length,
-    approved: mockOrgs.filter(j => j.status === 'Approved').length,
-    rejected: mockOrgs.filter(j => j.status === 'Rejected').length
+    underReview: orgs.filter(j => j.status === 'Under Review' || j.status === 'Pending').length,
+    approved: orgs.filter(j => j.status === 'Approved').length,
+    rejected: orgs.filter(j => j.status === 'Rejected').length
+  };
+
+  const handleFinalReview = async (status) => {
+    if (!activeOrg) return;
+    try {
+      const res = await fetch(`/api/admin/organisations/verifications/${activeOrg.id}/review`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${accessToken}`
+        },
+        body: JSON.stringify({
+          status,
+          notes: reviewerNotes,
+          rejectionReason: status === 'REJECTED' ? rejectionReason : undefined
+        })
+      });
+      if (!res.ok) {
+        const errorText = await res.text();
+        alert(`Error: ${errorText}`);
+        return;
+      }
+      const data = await res.json();
+      if (!data.error) {
+        alert(`Organization verification ${status === 'VERIFIED' ? 'approved' : 'rejected'} successfully.`);
+        if (status === 'VERIFIED') setFilter('Approved');
+        else if (status === 'REJECTED') setFilter('Rejected');
+        fetchQueue();
+      } else {
+        alert(data.error);
+      }
+    } catch (err) {
+      console.error(err);
+      alert('Failed to submit final review.');
+    }
+  };
+
+  const handleDocumentReview = async () => {
+    if (!activeDocument) return;
+    try {
+      const res = await fetch(`/api/admin/organisations/verifications/documents/${activeDocument.id}/review`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${accessToken}`
+        },
+        body: JSON.stringify({
+          status: activeDocumentStatus,
+          notes: documentNotes
+        })
+      });
+      const data = await res.json();
+      if (!data.error) {
+        alert('Document status updated.');
+        setDocumentModalOpen(false);
+        fetchQueue();
+      } else {
+        alert(data.error);
+      }
+    } catch (err) {
+      console.error(err);
+      alert('Failed to update document status.');
+    }
   };
 
   return (
@@ -140,39 +176,52 @@ export default function VerificationQueue() {
         </div>
 
         <div className="flex-1 overflow-y-auto">
-          {filteredOrgs.length === 0 && (
-             <div className="p-6 text-center text-on-surface-variant text-sm">No organizations found.</div>
-          )}
-          {filteredOrgs.map(org => (
-            <div 
-              key={org.id} 
-              onClick={() => setActiveOrg(org)}
-              className={`p-4 cursor-pointer border-b border-outline-variant transition-colors ${activeOrg?.id === org.id ? 'bg-[#4f46e5]/5 border-l-4 border-l-[#4f46e5]' : 'hover:bg-surface-container-low border-l-4 border-l-transparent'}`}
-            >
-              <div className="flex justify-between items-start mb-1">
-                <h4 className="font-bold text-on-surface text-sm">{org.title}</h4>
-                <span className="text-xs text-on-surface-variant">{org.date}</span>
-              </div>
-              <div className="flex items-center gap-1 text-on-surface-variant text-xs mb-3">
-                <span className="material-symbols-outlined text-[14px]">person</span>
-                {org.author}
-              </div>
+          {loading ? (
+            <div className="p-6 text-center text-on-surface-variant text-sm">Loading queue...</div>
+          ) : filteredOrgs.length === 0 ? (
+            <div className="p-6 text-center text-on-surface-variant text-sm">No organizations found.</div>
+          ) : (
+            filteredOrgs.map(org => (
+              <div 
+                key={org.id} 
+                onClick={() => setActiveOrg(org)}
+                className={`p-4 cursor-pointer border-b border-outline-variant transition-colors ${activeOrg?.id === org.id ? 'bg-[#4f46e5]/5 border-l-4 border-l-[#4f46e5]' : 'hover:bg-surface-container-low border-l-4 border-l-transparent'}`}
+              >
+                <div className="flex justify-between items-start mb-1">
+                  <h4 className="font-bold text-on-surface text-sm">{org.title}</h4>
+                  <span className="text-xs text-on-surface-variant">{org.date}</span>
+                </div>
+                <div className="flex items-center gap-1 text-on-surface-variant text-xs mb-3">
+                  <span className="material-symbols-outlined text-[14px]">person</span>
+                  {org.author}
+                </div>
               <div className="flex flex-wrap gap-2">
-                {org.location && (
-                  <span className="bg-surface-container-low border border-outline-variant px-2 py-0.5 rounded text-[10px] text-on-surface-variant flex items-center gap-1 font-semibold uppercase">
-                    <span className="material-symbols-outlined text-[12px]">location_on</span>
-                    {org.location}
-                  </span>
-                )}
-                {org.type && (
-                  <span className="bg-surface-container-low border border-outline-variant px-2 py-0.5 rounded text-[10px] text-on-surface-variant flex items-center gap-1 font-semibold uppercase">
-                    <span className="material-symbols-outlined text-[12px]">domain</span>
-                    {org.type}
-                  </span>
-                )}
-              </div>
-            </div>
-          ))}
+  {org.location && org.location !== 'N/A' && (
+    <span className="bg-surface-container-low border border-outline-variant px-2 py-0.5 rounded text-[10px] text-on-surface-variant flex items-center gap-1 font-semibold uppercase">
+      <span className="material-symbols-outlined text-[12px]">location_on</span>
+      {org.location}
+    </span>
+  )}
+  {org.type && org.type !== 'Other' && (
+    <span className="bg-surface-container-low border border-outline-variant px-2 py-0.5 rounded text-[10px] text-on-surface-variant flex items-center gap-1 font-semibold uppercase">
+      <span className="material-symbols-outlined text-[12px]">domain</span>
+      {org.type}
+    </span>
+  )}
+  {/* Document previews for pending/under review */}
+  {org.documents && org.documents.length > 0 && (org.status === 'Under Review' || org.status === 'Pending') && (
+    <div className="flex flex-wrap gap-1 mt-1">
+      {org.documents.slice(0, 2).map(doc => (
+        <span key={doc.id} className="bg-indigo-50 text-indigo-700 text-[9px] px-1 py-0.5 rounded">
+          {doc.document_name}
+        </span>
+      ))}
+    </div>
+  )}
+</div>
+</div>
+            ))
+          )}
         </div>
       </div>
 
@@ -235,55 +284,47 @@ export default function VerificationQueue() {
                 )}
               </div>
               <div className="p-6 space-y-4">
-                
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between p-4 bg-surface border border-outline-variant rounded-xl shadow-sm hover:shadow-md transition-shadow gap-4">
-                  <div className="flex items-center gap-4">
-                    <div className="w-12 h-12 rounded-lg bg-indigo-50 text-indigo-600 flex items-center justify-center shrink-0">
-                      <span className="material-symbols-outlined text-2xl">description</span>
-                    </div>
-                    <div>
-                      <h4 className="font-bold text-on-surface text-sm mb-1">Business License</h4>
-                      <div className="flex flex-wrap items-center gap-2 text-xs text-on-surface-variant font-medium">
-                        <span>Uploaded recently &bull; PDF</span>
-                        <span className={`${activeOrg.status === 'Approved' ? 'text-green-600' : 'text-orange-600'} font-bold flex items-center gap-1`}>
-                          <span className="material-symbols-outlined text-[14px]">
-                            {activeOrg.status === 'Approved' ? 'check_circle' : 'more_horiz'}
-                          </span>
-                          {activeOrg.status === 'Approved' ? 'APPROVED' : 'PENDING REVIEW'}
-                        </span>
-                      </div>
-                    </div>
+                {(!activeOrg.documents || activeOrg.documents.length === 0) ? (
+                  <div className="text-center p-6 text-sm text-on-surface-variant">
+                    No documents uploaded.
                   </div>
-                  <button onClick={() => setDocumentModalOpen(true)} className="flex items-center justify-center gap-2 px-4 py-2 border border-indigo-200 text-indigo-700 bg-indigo-50 hover:bg-indigo-100 rounded-lg text-sm font-semibold transition-colors shrink-0">
-                    <span className="material-symbols-outlined text-[18px]">visibility</span>
-                    View Document
-                  </button>
-                </div>
-
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between p-4 bg-surface border border-outline-variant rounded-xl shadow-sm hover:shadow-md transition-shadow gap-4">
-                  <div className="flex items-center gap-4">
-                    <div className="w-12 h-12 rounded-lg bg-indigo-50 text-indigo-600 flex items-center justify-center shrink-0">
-                      <span className="material-symbols-outlined text-2xl">request_quote</span>
-                    </div>
-                    <div>
-                      <h4 className="font-bold text-on-surface text-sm mb-1">Tax ID (W-9)</h4>
-                      <div className="flex flex-wrap items-center gap-2 text-xs text-on-surface-variant font-medium">
-                        <span>Uploaded recently &bull; PDF</span>
-                        <span className={`${activeOrg.status === 'Approved' ? 'text-green-600' : 'text-orange-600'} font-bold flex items-center gap-1`}>
-                          <span className="material-symbols-outlined text-[14px]">
-                            {activeOrg.status === 'Approved' ? 'check_circle' : 'more_horiz'}
+                ) : (
+                  activeOrg.documents.map(doc => (
+                    <div key={doc.id} className="flex flex-col sm:flex-row sm:items-center justify-between p-4 bg-surface border border-outline-variant rounded-xl shadow-sm hover:shadow-md transition-shadow gap-4">
+                      <div className="flex items-center gap-4">
+                        <div className="w-12 h-12 rounded-lg bg-indigo-50 text-indigo-600 flex items-center justify-center shrink-0">
+                          <span className="material-symbols-outlined text-2xl">
+                            {doc.document_type === 'TAX_ID' ? 'request_quote' : 'description'}
                           </span>
-                          {activeOrg.status === 'Approved' ? 'APPROVED' : 'PENDING REVIEW'}
-                        </span>
+                        </div>
+                        <div>
+                          <h4 className="font-bold text-on-surface text-sm mb-1">{doc.document_name}</h4>
+                          <div className="flex flex-wrap items-center gap-2 text-xs text-on-surface-variant font-medium">
+                            <span>Uploaded {doc.uploaded_at ? new Date(doc.uploaded_at).toLocaleDateString() : 'recently'} &bull; PDF</span>
+                            <span className={`${doc.status === 'APPROVED' ? 'text-green-600' : doc.status === 'REJECTED' ? 'text-red-600' : 'text-orange-600'} font-bold flex items-center gap-1`}>
+                              <span className="material-symbols-outlined text-[14px]">
+                                {doc.status === 'APPROVED' ? 'check_circle' : doc.status === 'REJECTED' ? 'cancel' : 'more_horiz'}
+                              </span>
+                              {doc.status || 'PENDING REVIEW'}
+                            </span>
+                          </div>
+                        </div>
                       </div>
+                      <button 
+                        onClick={() => {
+                          setActiveDocument(doc);
+                          setActiveDocumentStatus(doc.status || 'PENDING');
+                          setDocumentNotes(doc.review_notes || '');
+                          setDocumentModalOpen(true);
+                        }} 
+                        className="flex items-center justify-center gap-2 px-4 py-2 border border-indigo-200 text-indigo-700 bg-indigo-50 hover:bg-indigo-100 rounded-lg text-sm font-semibold transition-colors shrink-0"
+                      >
+                        <span className="material-symbols-outlined text-[18px]">visibility</span>
+                        View Document
+                      </button>
                     </div>
-                  </div>
-                  <button onClick={() => setDocumentModalOpen(true)} className="flex items-center justify-center gap-2 px-4 py-2 border border-indigo-200 text-indigo-700 bg-indigo-50 hover:bg-indigo-100 rounded-lg text-sm font-semibold transition-colors shrink-0">
-                    <span className="material-symbols-outlined text-[18px]">visibility</span>
-                    View Document
-                  </button>
-                </div>
-
+                  ))
+                )}
               </div>
             </div>
 
@@ -295,7 +336,7 @@ export default function VerificationQueue() {
               </div>
               <div className="p-6">
                 <div className="prose prose-sm max-w-none text-on-surface whitespace-pre-wrap leading-relaxed text-sm">
-                  {activeOrg.description}
+                  {activeOrg.description || 'No overview provided.'}
                 </div>
               </div>
             </div>
@@ -325,7 +366,11 @@ export default function VerificationQueue() {
                   <>
                     <div>
                       <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-2">Rejection Reason</label>
-                      <select className="w-full bg-slate-700 border border-slate-600 text-sm text-slate-200 rounded-lg p-3 focus:outline-none focus:ring-1 focus:ring-indigo-500 appearance-none">
+                      <select 
+                        value={rejectionReason}
+                        onChange={e => setRejectionReason(e.target.value)}
+                        className="w-full bg-slate-700 border border-slate-600 text-sm text-slate-200 rounded-lg p-3 focus:outline-none focus:ring-1 focus:ring-indigo-500 appearance-none"
+                      >
                         <option>No rejection reason selected</option>
                         <option>Missing Document</option>
                         <option>Invalid License</option>
@@ -336,19 +381,27 @@ export default function VerificationQueue() {
                     <div>
                       <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-2">Internal Reviewer Notes</label>
                       <textarea 
+                        value={reviewerNotes}
+                        onChange={e => setReviewerNotes(e.target.value)}
                         className="w-full bg-slate-700 border border-slate-600 text-sm text-slate-200 rounded-lg p-3 h-24 focus:outline-none focus:ring-1 focus:ring-indigo-500 placeholder-slate-400 resize-none"
                         placeholder="Type private observations here..."
                       ></textarea>
                     </div>
 
                     <div className="pt-2 space-y-3">
-                      <button className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 px-4 rounded-lg flex items-center justify-center gap-2 transition-colors">
+                      <button 
+                        disabled
+                        className="w-full bg-indigo-600/50 cursor-not-allowed text-white/50 font-bold py-3 px-4 rounded-lg flex items-center justify-center gap-2 transition-colors"
+                      >
                         <span className="material-symbols-outlined text-[20px]">verified</span>
-                        Approve Organization
+                        Approve Organization (Disabled)
                       </button>
-                      <button className="w-full bg-slate-700 hover:bg-slate-600 text-white font-bold py-3 px-4 rounded-lg flex items-center justify-center gap-2 transition-colors border border-slate-600">
+                      <button 
+                        disabled
+                        className="w-full bg-slate-700/50 cursor-not-allowed text-white/50 font-bold py-3 px-4 rounded-lg flex items-center justify-center gap-2 transition-colors border border-slate-600/50"
+                      >
                         <span className="material-symbols-outlined text-[20px]">block</span>
-                        Deny Application
+                        Deny Application (Disabled)
                       </button>
                     </div>
                   </>
@@ -658,18 +711,32 @@ export default function VerificationQueue() {
 
                   <div className="bg-[#f0f4f8] rounded-xl p-4 border border-indigo-100 mb-4 border-l-4 border-l-indigo-600">
                     <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">FILE NAME</p>
-                    <p className="text-sm font-bold text-[#0f2546] truncate">COI_TechNova_Global_2023.pdf</p>
+                    <p className="text-sm font-bold text-[#0f2546] truncate">{activeDocument?.document_name}</p>
                   </div>
 
                   <div className="grid grid-cols-2 gap-4">
                     <div className="bg-slate-50 rounded-xl p-4">
-                      <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">SIZE</p>
-                      <p className="text-sm font-bold text-[#0f2546]">1.4 MB</p>
+                      <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">TYPE</p>
+                      <p className="text-sm font-bold text-[#0f2546]">{activeDocument?.document_type}</p>
                     </div>
                     <div className="bg-slate-50 rounded-xl p-4">
                       <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">UPLOADED</p>
-                      <p className="text-sm font-bold text-[#0f2546]">Oct 25, 2023</p>
+                      <p className="text-sm font-bold text-[#0f2546]">
+                        {activeDocument?.uploaded_at ? new Date(activeDocument.uploaded_at).toLocaleDateString() : 'N/A'}
+                      </p>
                     </div>
+                  </div>
+                  
+                  <div className="mt-4 bg-slate-50 rounded-xl p-4">
+                    <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">DOCUMENT LINK</p>
+                    <a 
+                      href={activeDocument?.document_url} 
+                      target="_blank" 
+                      rel="noreferrer" 
+                      className="text-sm font-bold text-indigo-600 hover:underline block truncate"
+                    >
+                      Open/Download File
+                    </a>
                   </div>
                 </div>
 
@@ -678,20 +745,20 @@ export default function VerificationQueue() {
                     <p className="text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-4">DOCUMENT STATUS</p>
                     <div className="flex bg-slate-50 p-1 rounded-xl">
                       <button 
-                        onClick={() => setActiveDocumentStatus('Pending')}
-                        className={`flex-1 py-2 text-sm font-bold rounded-lg transition-all ${activeDocumentStatus === 'Pending' ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
+                        onClick={() => setActiveDocumentStatus('PENDING')}
+                        className={`flex-1 py-2 text-sm font-bold rounded-lg transition-all ${activeDocumentStatus === 'PENDING' ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
                       >
                         Pending
                       </button>
                       <button 
-                        onClick={() => setActiveDocumentStatus('Approved')}
-                        className={`flex-1 py-2 text-sm font-bold rounded-lg transition-all ${activeDocumentStatus === 'Approved' ? 'bg-white text-green-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
+                        onClick={() => setActiveDocumentStatus('APPROVED')}
+                        className={`flex-1 py-2 text-sm font-bold rounded-lg transition-all ${activeDocumentStatus === 'APPROVED' ? 'bg-white text-green-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
                       >
                         Approved
                       </button>
                       <button 
-                        onClick={() => setActiveDocumentStatus('Rejected')}
-                        className={`flex-1 py-2 text-sm font-bold rounded-lg transition-all ${activeDocumentStatus === 'Rejected' ? 'bg-white text-error shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
+                        onClick={() => setActiveDocumentStatus('REJECTED')}
+                        className={`flex-1 py-2 text-sm font-bold rounded-lg transition-all ${activeDocumentStatus === 'REJECTED' ? 'bg-white text-error shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
                       >
                         Rejected
                       </button>
@@ -702,6 +769,8 @@ export default function VerificationQueue() {
                     <p className="text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-4">INTERNAL ADMIN NOTES</p>
                     <textarea 
                       placeholder="Add private notes for other auditors..."
+                      value={documentNotes}
+                      onChange={e => setDocumentNotes(e.target.value)}
                       className="w-full h-32 resize-none border border-slate-200 rounded-xl p-4 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 placeholder-slate-400"
                     ></textarea>
                   </div>
@@ -709,7 +778,7 @@ export default function VerificationQueue() {
 
                 <div className="p-6 bg-slate-50 rounded-br-2xl shrink-0">
                   <button 
-                    onClick={() => { setDocumentModalOpen(false); }}
+                    onClick={handleDocumentReview}
                     className="w-full bg-[#4f46e5] hover:bg-[#4338ca] text-white py-3.5 rounded-xl text-sm font-bold shadow-md transition-all flex items-center justify-center gap-2 mb-4"
                   >
                     Submit Decision

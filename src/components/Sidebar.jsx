@@ -13,11 +13,11 @@ export default function Sidebar({ isOpen, setIsOpen }) {
     { name: 'Organizations', path: '/organizations', icon: 'corporate_fare', roles: ['admin', 'developer'], section: 'System' },
     { name: 'System Health', path: '/health', icon: 'analytics', roles: ['admin', 'moderator', 'developer'], section: 'System' },
     { name: 'System Controls', path: '/controls', icon: 'toggle_on', roles: ['developer'], section: 'System' },
+    { name: 'Monetization', path: '/monetization', icon: 'attach_money', roles: ['admin', 'developer'], section: 'System' },
     { name: 'Feed', path: '/detailed-analytics?metric=feed_engagement', icon: 'feed', roles: ['admin', 'developer'], section: 'Core' },
     { name: 'Connection', path: '/detailed-analytics?metric=new_connections', icon: 'people', roles: ['admin', 'developer'], section: 'Core' },
-    { name: 'AI', path: '/detailed-analytics?metric=ai_usage', icon: 'auto_awesome', roles: ['admin', 'developer'], section: 'Core' },
     { name: 'Jobs', path: '/detailed-analytics?metric=active_jobs', icon: 'work', roles: ['admin', 'developer'], section: 'Work' },
-    { name: 'Events', path: '/detailed-analytics?metric=upcoming_events', icon: 'event', roles: ['admin', 'developer'], section: 'Work' }
+    // { name: 'Events', path: '/detailed-analytics?metric=upcoming_events', icon: 'event', roles: ['admin', 'developer'], section: 'Work' }
   ];
 
   const sections = ['System', 'Core', 'Work'];

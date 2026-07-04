@@ -269,7 +269,7 @@ export default function ActiveJobsBreakdown() {
             </div>
           </div>
           
-          <div className="space-y-4">
+          <div className="space-y-4 max-h-[400px] overflow-y-auto pr-2 custom-scrollbar">
             {auditLog.filter(log => activeTab === 'audit' ? log.type !== 'flag' : log.type === 'flag').map((log) => (
               <div 
                 key={log.id} 
@@ -310,7 +310,7 @@ export default function ActiveJobsBreakdown() {
           
           <div className="flex-1 flex flex-col justify-center items-center relative min-h-[250px]">
             <ResponsiveContainer width="100%" height={260}>
-              <RadarChart cx="50%" cy="50%" outerRadius="75%" data={skillsMatrix}>
+              <RadarChart cx="50%" cy="50%" outerRadius="60%" data={skillsMatrix}>
                 <PolarGrid stroke="#f3f4f6" />
                 <PolarAngleAxis dataKey="name" tick={{ fill: '#374151', fontSize: 13, fontWeight: 700 }} />
                 <Tooltip 
