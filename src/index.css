@@ -1,6 +1,8 @@
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
 @import "tailwindcss";
 
+@custom-variant dark (&:where(.dark, .dark *));
+
 @theme {
   --color-surface: #faf8ff;
   --color-surface-dim: #d2d9f4;
@@ -138,3 +140,50 @@ body {
 ::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb { background: var(--color-outline-variant); border-radius: 10px; }
 ::-webkit-scrollbar-thumb:hover { background: var(--color-outline); }
+
+.dark {
+  /* Enterprise Dark Mode Design System */
+  --color-surface: #111827;
+  --color-surface-dim: #0F172A;
+  --color-surface-bright: #212B40;
+  --color-surface-container-lowest: #08111F;
+  --color-surface-container-low: #0A0F1A;
+  --color-surface-container: #111827;
+  --color-surface-container-high: #1A2234;
+  --color-surface-container-highest: #273449;
+  
+  --color-on-surface: #F8FAFC;
+  --color-on-surface-variant: #CBD5E1;
+  
+  --color-inverse-surface: #F8FAFC;
+  --color-inverse-on-surface: #111827;
+  
+  --color-outline: #2C364B;
+  --color-outline-variant: #374151;
+  
+  --color-surface-tint: rgba(79, 140, 255, 0.12);
+  
+  --color-primary: #4F8CFF;
+  --color-on-primary: #FFFFFF;
+  --color-primary-container: rgba(79, 140, 255, 0.25);
+  --color-on-primary-container: #FFFFFF;
+  --color-inverse-primary: #1D4ED8;
+  
+  --color-secondary: #8B5CF6;
+  --color-on-secondary: #FFFFFF;
+  --color-secondary-container: rgba(139, 92, 246, 0.15);
+  --color-on-secondary-container: #FFFFFF;
+  
+  --color-tertiary: #38BDF8;
+  --color-on-tertiary: #082F49;
+  --color-tertiary-container: #082F49;
+  --color-on-tertiary-container: #7DD3FC;
+  
+  --color-error: #EF4444;
+  --color-on-error: #FFFFFF;
+  --color-error-container: #450A0A;
+  --color-on-error-container: #F87171;
+  
+  --color-background: #0A0F1A;
+  --color-on-background: #F8FAFC;
+}

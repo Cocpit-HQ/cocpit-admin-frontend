@@ -12,7 +12,7 @@ export default function ModerationQueue() {
   const [reports, setReports] = useState([]);
   const [escalatedReports, setEscalatedReports] = useState([]);
   const [appeals, setAppeals] = useState([]);
-  const [activeTab, setActiveTab] = useState(location.state?.fromTab || (role === 'admin' ? 'Escalations' : 'Active Reports'));
+  const [activeTab, setActiveTab] = useState(location.state?.fromTab || 'Active Reports');
   const [filterType, setFilterType] = useState('All');
   const [filterReason, setFilterReason] = useState('All');
   const [filterSeverity, setFilterSeverity] = useState('All');
@@ -281,7 +281,7 @@ export default function ModerationQueue() {
     }
   };
 
-  const handleAppealAction = async (id, status) => {
+  const handleAppealAction = async (id, action) => {
     try {
       const res = await fetch(`/api/admin/appeals/${id}`, {
         method: 'PATCH',
@@ -289,14 +289,23 @@ export default function ModerationQueue() {
           'Authorization': `Bearer ${accessToken}`,
           'Content-Type': 'application/json'
         },
-        body: JSON.stringify({ status })
+        body: JSON.stringify({ action })
       });
       if (res.ok) {
-        alert(`Appeal Processed.`);
+        alert(`Appeal processed successfully.`);
         setAppeals(appeals.filter(a => a.id !== id));
+      } else {
+        const data = await res.json().catch(() => ({}));
+        if (res.status === 403) {
+          alert('Permission denied: Only Admins can process appeals.');
+        } else {
+          alert(`Error processing appeal: ${data.error || res.statusText}`);
+        }
+        console.error('Appeal action failed:', res.status, data);
       }
     } catch (e) {
-      console.error(e);
+      console.error('Appeal action error:', e);
+      alert('Network error: Could not process appeal. Please try again.');
     }
   };
 
@@ -368,9 +377,18 @@ export default function ModerationQueue() {
       {/* Page Header & Filters */}
       <div className="flex flex-col gap-lg mb-xl">
         <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-4">
-          <div>
-            <h2 className="font-display-lg text-display-lg text-on-surface">Moderation Queue</h2>
-            <p className="font-body-md text-on-surface-variant mt-xs">Process reports to maintain community standards and safety.</p>
+          <div className="flex gap-3">
+            <button 
+              onClick={() => navigate(-1)}
+              className="w-10 h-10 shrink-0 rounded-xl bg-surface border border-outline-variant flex items-center justify-center text-on-surface hover:bg-slate-50 transition-colors shadow-sm self-start mt-1"
+              title="Go Back"
+            >
+              <span className="material-symbols-outlined text-[20px]">arrow_back</span>
+            </button>
+            <div>
+              <h2 className="font-display-lg text-display-lg text-on-surface">Moderation Queue</h2>
+              <p className="font-body-md text-on-surface-variant mt-xs">Process reports to maintain community standards and safety.</p>
+            </div>
           </div>
           <div className="flex flex-wrap items-center gap-sm md:gap-md w-full md:w-auto">
             <Link 

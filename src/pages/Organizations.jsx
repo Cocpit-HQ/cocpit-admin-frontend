@@ -2,20 +2,37 @@ import React, { useState } from 'react';
 import VerificationQueue from '../components/VerificationQueue';
 
 // Removed mockOrganizations
-
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useLocation, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../AuthContext';
 import { useEffect } from 'react';
 
 export default function Organizations() {
   const { role, accessToken } = useAuth();
   const navigate = useNavigate();
-  const [activeTab, setActiveTab] = useState(role === 'developer' ? 'Directory' : 'VerificationQueue');
+  const [searchParams, setSearchParams] = useSearchParams();
+  
+  const initialStatus = searchParams.get('status') || 'All';
+  const initialPage = parseInt(searchParams.get('page')) || 1;
+  const initialIndustry = searchParams.get('industry') || 'All';
+  const initialSearch = searchParams.get('search') || '';
+
+  const [activeTab, setActiveTab] = useState(searchParams.get('tab') || 'Directory');
   const [selectedOrgs, setSelectedOrgs] = useState(new Set());
-  const [currentPage, setCurrentPage] = useState(1);
-  const [industryFilter, setIndustryFilter] = useState('All');
-  const [statusFilter, setStatusFilter] = useState('All');
-  const [searchQuery, setSearchQuery] = useState('');
+  const [currentPage, setCurrentPage] = useState(initialPage);
+  const [industryFilter, setIndustryFilter] = useState(initialIndustry);
+  const [statusFilter, setStatusFilter] = useState(initialStatus);
+  const [searchQuery, setSearchQuery] = useState(initialSearch);
+
+  useEffect(() => {
+    const params = new URLSearchParams();
+    if (activeTab !== 'Directory') params.set('tab', activeTab);
+    if (currentPage > 1) params.set('page', currentPage);
+    if (industryFilter !== 'All') params.set('industry', industryFilter);
+    if (statusFilter !== 'All') params.set('status', statusFilter);
+    if (searchQuery) params.set('search', searchQuery);
+    
+    setSearchParams(params, { replace: true });
+  }, [activeTab, currentPage, industryFilter, statusFilter, searchQuery, setSearchParams]);
   const orgsPerPage = 8;
 
   const [organizations, setOrganizations] = useState([]);
@@ -24,31 +41,17 @@ export default function Organizations() {
   const [warningModalOpen, setWarningModalOpen] = useState(false);
   const [restrictConfirmModalOpen, setRestrictConfirmModalOpen] = useState(false);
   const [orgToWarn, setOrgToWarn] = useState(null);
-  const [availableIndustries, setAvailableIndustries] = useState([]);
+  const [availableIndustries, setAvailableIndustries] = useState([
+    'Information Technology',
+    'Software & SaaS',
+    'Healthcare',
+    'Finance & Banking'
+  ]);
 
   // Warning State
   const [warningReason, setWarningReason] = useState('Inappropriate Content');
   const [warningMessage, setWarningMessage] = useState('');
   const [warningIsSevere, setWarningIsSevere] = useState(false);
-
-  const fetchIndustries = async () => {
-    try {
-      if (!accessToken) return;
-      const res = await fetch('/api/admin/organisations/industries', {
-        headers: { 'Authorization': `Bearer ${accessToken}` }
-      });
-      if (res.ok) {
-        const data = await res.json();
-        setAvailableIndustries(data);
-      }
-    } catch (error) {
-      console.error('Failed to fetch industries:', error);
-    }
-  };
-
-  useEffect(() => {
-    fetchIndustries();
-  }, [accessToken]);
 
   const fetchOrganizations = async () => {
     try {
@@ -266,12 +269,20 @@ export default function Organizations() {
     <div className="pt-8 pb-12 w-full max-w-[1400px] mx-auto px-4">
       {/* Page Header */}
       <div className="flex flex-col xl:flex-row xl:items-center justify-between mb-xl gap-md">
-        <div className="flex items-start gap-4">
-          <div className="w-12 h-12 rounded-xl flex items-center justify-center bg-indigo-50 border border-indigo-100 shrink-0 shadow-sm">
-            <span className="material-symbols-outlined text-indigo-600 text-[24px]">
-              {activeTab === 'Directory' ? 'domain' : 'verified_user'}
-            </span>
-          </div>
+        <div className="flex gap-3">
+          <button 
+            onClick={() => navigate(-1)}
+            className="w-10 h-10 shrink-0 rounded-xl bg-surface border border-outline-variant flex items-center justify-center text-on-surface hover:bg-slate-50 transition-colors shadow-sm self-start mt-1"
+            title="Go Back"
+          >
+            <span className="material-symbols-outlined text-[20px]">arrow_back</span>
+          </button>
+          <div className="flex items-start gap-4">
+            <div className="w-12 h-12 rounded-xl flex items-center justify-center bg-indigo-50 border border-indigo-100 shrink-0 shadow-sm">
+              <span className="material-symbols-outlined text-indigo-600 text-[24px]">
+                {activeTab === 'Directory' ? 'domain' : 'verified_user'}
+              </span>
+            </div>
           <div className="flex flex-col justify-center min-h-[48px]">
             <div className="flex items-center gap-3 mb-1">
               <h2 className="font-display-lg text-display-lg text-on-background font-bold m-0 leading-none">
@@ -285,20 +296,21 @@ export default function Organizations() {
             </p>
           </div>
         </div>
+        </div>
 
         <div className="flex flex-wrap items-center gap-md w-full xl:w-auto">
           {/* Tab Control */}
           <div className="flex bg-indigo-50/50 p-1 rounded-xl w-full sm:w-auto shadow-inner">
             <button
               onClick={() => setActiveTab('Directory')}
-              className={`flex-1 sm:flex-none px-5 py-2 rounded-lg text-sm font-semibold transition-all whitespace-nowrap ${activeTab === 'Directory' ? 'bg-white shadow-sm text-indigo-700' : 'text-on-surface-variant hover:text-on-surface hover:bg-white/50'}`}
+              className={`flex-1 sm:flex-none px-5 py-2 rounded-lg text-sm font-semibold transition-all whitespace-nowrap ${activeTab === 'Directory' ? 'bg-surface-container-lowest shadow-sm text-indigo-700' : 'text-on-surface-variant hover:text-on-surface hover:bg-white/50'}`}
             >
               Organization
             </button>
             {role !== 'developer' && (
               <button
                 onClick={() => setActiveTab('VerificationQueue')}
-                className={`flex-1 sm:flex-none px-5 py-2 rounded-lg text-sm font-semibold transition-all whitespace-nowrap ${activeTab === 'VerificationQueue' ? 'bg-white shadow-sm text-indigo-700' : 'text-on-surface-variant hover:text-on-surface hover:bg-white/50'}`}
+                className={`flex-1 sm:flex-none px-5 py-2 rounded-lg text-sm font-semibold transition-all whitespace-nowrap ${activeTab === 'VerificationQueue' ? 'bg-surface-container-lowest shadow-sm text-indigo-700' : 'text-on-surface-variant hover:text-on-surface hover:bg-white/50'}`}
               >
                 Verification Queue
               </button>
@@ -528,9 +540,13 @@ export default function Organizations() {
                 </thead>
                 <tbody className="divide-y divide-outline-variant">
                   {currentOrgs.map(org => (
-                    <tr key={org.id} className="hover:bg-surface-container-low transition-colors group">
+                    <tr 
+                      key={org.id} 
+                      className="hover:bg-surface-container-low transition-colors group cursor-pointer"
+                      onClick={() => navigate(`/org-profile/${org.id}`, { state: { from: location.pathname + location.search, label: 'Organizations' } })}
+                    >
                       {role !== 'developer' && (
-                        <td className="p-lg">
+                        <td className="p-lg" onClick={(e) => e.stopPropagation()}>
                           <input
                             type="checkbox"
                             className="rounded border-outline-variant text-primary focus:ring-primary h-4 w-4"
@@ -580,7 +596,11 @@ export default function Organizations() {
                               </button>
                             </>
                           )}
-                          <button onClick={() => navigate(`/org-profile/${org.id}`)} className="w-10 h-10 flex items-center justify-center rounded-lg hover:bg-surface-container text-outline hover:text-primary transition-colors" title="View Profile">
+                          <button 
+                            onClick={(e) => { e.stopPropagation(); navigate(`/org-profile/${org.id}`, { state: { from: location.pathname + location.search, label: 'Organizations' } }); }} 
+                            className="w-10 h-10 flex items-center justify-center rounded-lg hover:bg-surface-container text-outline hover:text-primary transition-colors" 
+                            title="View Profile"
+                          >
                             <span className="material-symbols-outlined">visibility</span>
                           </button>
                         </div>

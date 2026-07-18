@@ -10,6 +10,7 @@ export default function Sidebar({ isOpen, setIsOpen }) {
     { name: 'Dashboard', path: '/', icon: 'dashboard', roles: ['admin', 'moderator', 'developer'], section: 'System' },
     { name: 'Users', path: '/users', icon: 'group', roles: ['admin', 'developer'], section: 'System' },
     { name: 'Moderation', path: '/moderation', icon: 'gavel', roles: ['admin', 'moderator'], section: 'System' },
+    { name: 'Appeals Queue', path: '/appeals', icon: 'pending_actions', roles: ['admin', 'moderator'], section: 'System' },
     { name: 'Organizations', path: '/organizations', icon: 'corporate_fare', roles: ['admin', 'developer'], section: 'System' },
     { name: 'System Health', path: '/health', icon: 'analytics', roles: ['admin', 'moderator', 'developer'], section: 'System' },
     { name: 'System Controls', path: '/controls', icon: 'toggle_on', roles: ['developer'], section: 'System' },
@@ -17,7 +18,7 @@ export default function Sidebar({ isOpen, setIsOpen }) {
     { name: 'Feed', path: '/detailed-analytics?metric=feed_engagement', icon: 'feed', roles: ['admin', 'developer'], section: 'Core' },
     { name: 'Connection', path: '/detailed-analytics?metric=new_connections', icon: 'people', roles: ['admin', 'developer'], section: 'Core' },
     { name: 'Jobs', path: '/detailed-analytics?metric=active_jobs', icon: 'work', roles: ['admin', 'developer'], section: 'Work' },
-    // { name: 'Events', path: '/detailed-analytics?metric=upcoming_events', icon: 'event', roles: ['admin', 'developer'], section: 'Work' }
+    { name: 'Events', path: '/detailed-analytics?metric=upcoming_events', icon: 'event', roles: ['admin', 'developer'], section: 'Work' }
   ];
 
   const sections = ['System', 'Core', 'Work'];

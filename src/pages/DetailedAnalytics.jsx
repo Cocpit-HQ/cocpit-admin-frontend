@@ -236,9 +236,9 @@ export default function DetailedAnalytics() {
   const CustomTooltip = ({ active, payload, label }) => {
     if (active && payload && payload.length) {
       return (
-        <div className="bg-white border border-gray-200 shadow-sm rounded-md p-3 min-w-[120px]">
-          <p className="text-xs font-medium text-gray-500 mb-1">{label}</p>
-          <p className="text-sm font-semibold text-gray-900">
+        <div className="bg-surface border border-outline-variant shadow-sm rounded-md p-3 min-w-[120px]">
+          <p className="text-xs font-medium text-on-surface-variant mb-1">{label}</p>
+          <p className="text-sm font-semibold text-on-surface">
             {payload[0].value.toLocaleString()} {activeMetric.includes('growth') ? '%' : ''}
           </p>
         </div>
@@ -262,8 +262,8 @@ export default function DetailedAnalytics() {
               key={metric.id}
               onClick={() => setActiveMetric(metric.id)}
               className={`flex items-center px-3 py-2.5 rounded-md transition-colors text-left shrink-0 whitespace-nowrap w-[230px] ${activeMetric === metric.id
-                ? 'bg-blue-50 text-blue-700 font-medium'
-                : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
+                ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-700 font-medium'
+                : 'text-on-surface-variant hover:bg-surface-container-lowest hover:text-on-surface'
                 }`}
             >
               <span className="material-symbols-outlined text-[18px] shrink-0">{metric.icon}</span>
@@ -275,16 +275,16 @@ export default function DetailedAnalytics() {
       )}
 
       {/* Main Content Area */}
-      <div className="flex-1 flex flex-col bg-gray-50">
+      <div className="flex-1 flex flex-col bg-surface-container-lowest">
         {isCoreMetric && (
           <>
             {/* Top Header */}
-            <div className="px-8 py-6 border-b border-gray-200 flex justify-between items-center bg-white">
+            <div className="px-8 py-6 border-b border-outline-variant flex justify-between items-center bg-surface">
               <div>
-                <h1 className="text-xl font-semibold text-gray-900 flex items-center gap-2">
+                <h1 className="text-xl font-semibold text-on-surface flex items-center gap-2">
                   {currentMetricObj.label}
                 </h1>
-                <p className="text-sm text-gray-500 mt-1">
+                <p className="text-sm text-on-surface-variant mt-1">
                   Historical performance and trends.
                 </p>
               </div>
@@ -304,10 +304,10 @@ export default function DetailedAnalytics() {
           <div className="flex flex-col gap-8">
             
             {isCoreMetric && (
-              <div className="bg-white border border-gray-100 rounded-2xl p-6 h-[450px] shrink-0 flex flex-col shadow-sm hover:shadow-lg transition-shadow relative overflow-hidden">
+              <div className="bg-surface border border-outline-variant rounded-2xl p-6 h-[450px] shrink-0 flex flex-col shadow-sm hover:shadow-lg transition-shadow relative overflow-hidden">
                 <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-blue-400 via-indigo-500 to-purple-500"></div>
                 <div className="mb-8 flex justify-between items-center relative z-10">
-                  <h2 className="text-base font-semibold text-gray-900">Performance Over Time</h2>
+                  <h2 className="text-base font-semibold text-on-surface">Performance Over Time</h2>
                 </div>
 
                 <div className="flex-1 w-full relative">

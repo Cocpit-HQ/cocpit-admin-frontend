@@ -149,25 +149,25 @@ export default function OrganizationProfile() {
       </div>
 
       {/* Header Section */}
-      <div className="bg-white rounded-xl border border-outline-variant shadow-sm overflow-hidden mb-8 relative">
+      <div className="bg-surface rounded-xl border border-outline-variant shadow-sm overflow-hidden mb-8 relative">
         {/* Cover Image */}
         <div className="h-48 w-full bg-cover bg-center" style={{ backgroundImage: "url('https://images.unsplash.com/photo-1557683316-973673baf926?ixlib=rb-4.0.3&auto=format&fit=crop&w=1200&q=80')" }}></div>
 
         <div className="px-6 pb-6 relative">
           {/* Profile Picture */}
-          <div className="w-[136px] h-[136px] rounded-2xl border-[4px] border-white bg-slate-900 overflow-hidden absolute -top-[68px] shadow-sm flex items-center justify-center">
-             <span className="material-symbols-outlined text-[80px] text-blue-400">all_inclusive</span>
+          <div className="w-[136px] h-[136px] rounded-2xl border-[4px] border-surface bg-surface-container-highest overflow-hidden absolute -top-[68px] shadow-sm flex items-center justify-center">
+             <span className="material-symbols-outlined text-[80px] text-primary">all_inclusive</span>
           </div>
           
           {/* Action buttons */}
           <div className="absolute right-6 top-6 flex gap-3">
-            <button className="flex items-center gap-2 bg-transparent text-slate-700 hover:bg-slate-50 px-4 py-2 rounded-lg font-medium text-[13px] transition-colors border border-slate-300">
+            <button className="flex items-center gap-2 bg-surface text-on-surface-variant hover:text-on-surface hover:bg-surface-container-low px-4 py-2 rounded-lg font-medium text-[13px] transition-colors border border-outline-variant shadow-sm">
               <span className="material-symbols-outlined text-[16px]">notifications</span>
               Warn Organization
             </button>
             <button 
               onClick={() => setSuspendModalOpen(true)}
-              className="flex items-center gap-2 bg-transparent text-[#b91c1c] hover:bg-red-50 px-4 py-2 rounded-lg font-medium text-[13px] transition-colors border border-[#b91c1c]"
+              className="flex items-center gap-2 bg-surface text-error hover:bg-error-container px-4 py-2 rounded-lg font-medium text-[13px] transition-colors border border-error shadow-sm"
             >
               <span className="material-symbols-outlined text-[16px]">gavel</span>
               Suspend Organization
@@ -176,21 +176,21 @@ export default function OrganizationProfile() {
 
           {/* Profile Info */}
           <div className="pt-20 max-w-3xl">
-            <h1 className="text-[26px] font-bold text-slate-900 leading-tight flex items-center gap-2">
+            <h1 className="text-[26px] font-bold text-on-surface leading-tight flex items-center gap-2">
               {mockOrg.name}
-              <span className="material-symbols-outlined text-[#0a66c2] text-[24px]" style={{ fontVariationSettings: "'FILL' 1" }}>verified</span>
+              <span className="material-symbols-outlined text-primary text-[24px]" style={{ fontVariationSettings: "'FILL' 1" }}>verified</span>
               {mockOrg.moderation_flags > 0 && (
-                <span className="ml-2 text-sm bg-orange-100 text-orange-800 px-3 py-1 rounded-full border border-orange-200 flex items-center gap-1 font-semibold">
+                <span className="ml-2 text-sm bg-orange-50 dark:bg-[#451A03] text-orange-700 dark:text-[#FBBF24] px-3 py-1 rounded-full border border-orange-200 dark:border-[#F59E0B]/30 flex items-center gap-1 font-semibold">
                   <span className="material-symbols-outlined text-[16px]">flag</span>
                   {mockOrg.moderation_flags} Moderation Flags
                 </span>
               )}
             </h1>
-            <p className="text-[16px] text-slate-800 mt-2">SaaS and Fintech Solutions</p>
-            <p className="text-[14px] text-slate-500 mt-3">
+            <p className="text-[16px] text-on-surface-variant mt-2">SaaS and Fintech Solutions</p>
+            <p className="text-[14px] text-outline mt-3">
               Technology &bull; Mumbai, Maharashtra, India &bull; 1 - 50 Members
             </p>
-            <a href="https://www.nexsus.com" className="text-[#0a66c2] text-[14px] font-medium hover:underline mt-2 inline-block">
+            <a href="https://www.nexsus.com" className="text-primary text-[14px] font-medium hover:underline mt-2 inline-block">
               https://www.nexsus.com
             </a>
           </div>

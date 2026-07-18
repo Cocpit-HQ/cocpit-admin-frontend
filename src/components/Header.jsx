@@ -1,9 +1,12 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../AuthContext';
+import { useTheme } from '../ThemeContext';
+import GlobalSearch from './GlobalSearch';
 
 export default function Header({ toggleSidebar }) {
   const { logout, role } = useAuth();
+  const { theme, toggleTheme } = useTheme();
   const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const [hasUnread, setHasUnread] = useState(true);
@@ -73,16 +76,18 @@ export default function Header({ toggleSidebar }) {
           menu
         </button>
         <h2 className="hidden sm:block font-headline-sm text-headline-sm font-black text-on-surface shrink-0">AdminConsole</h2>
-        <div className="relative w-full max-w-[448px] focus-within:ring-2 focus-within:ring-primary rounded-full transition-all min-w-0">
-          <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-on-surface-variant">search</span>
-          <input
-            type="text"
-            placeholder="Search users..."
-            className="w-full bg-surface-container-low border border-outline-variant rounded-full py-2 pl-10 pr-4 font-body-md text-body-md text-on-surface placeholder:text-on-surface-variant focus:outline-none min-w-0 truncate"
-          />
-        </div>
+        <GlobalSearch />
       </div>
       <div className="flex items-center gap-2 md:gap-md shrink-0">
+        
+        {/* Theme Toggle */}
+        <button
+          onClick={toggleTheme}
+          className="material-symbols-outlined p-2 rounded-full hover:bg-surface-container text-on-surface-variant transition-all"
+          title="Toggle Theme"
+        >
+          {theme === 'dark' ? 'light_mode' : 'dark_mode'}
+        </button>
 
         {/* Notifications Dropdown */}
         <div className="relative" ref={dropdownRef}>

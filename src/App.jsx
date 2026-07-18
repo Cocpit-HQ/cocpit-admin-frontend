@@ -13,7 +13,9 @@ import Notifications from './pages/Notifications';
 import Login from './pages/Login';
 import ReviewHistory from './pages/ReviewHistory';
 import DetailedAnalytics from './pages/DetailedAnalytics';
+import AppealsQueue from './pages/AppealsQueue';
 import { AuthProvider } from './AuthContext';
+import { ThemeProvider } from './ThemeContext';
 import RoleGuard from './components/RoleGuard';
 
 function AppRoutes() {
@@ -34,6 +36,7 @@ function AppRoutes() {
         
         {/* Admin & Moderator only */}
         <Route path="moderation" element={<RoleGuard allowedRoles={['admin', 'moderator']}><ModerationQueue /></RoleGuard>} />
+        <Route path="appeals" element={<RoleGuard allowedRoles={['admin', 'moderator']}><AppealsQueue /></RoleGuard>} />
         <Route path="review-history" element={<RoleGuard allowedRoles={['admin', 'moderator']}><ReviewHistory /></RoleGuard>} />
         
         {/* All roles */}
@@ -50,10 +53,12 @@ function AppRoutes() {
 
 export default function App() {
   return (
-    <AuthProvider>
-      <BrowserRouter>
-        <AppRoutes />
-      </BrowserRouter>
-    </AuthProvider>
+    <ThemeProvider>
+      <AuthProvider>
+        <BrowserRouter>
+          <AppRoutes />
+        </BrowserRouter>
+      </AuthProvider>
+    </ThemeProvider>
   );
 }

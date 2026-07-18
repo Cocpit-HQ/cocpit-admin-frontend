@@ -188,9 +188,18 @@ export default function Dashboard() {
     <div>
       {/* Page Header */}
       <div className="mb-lg flex flex-col md:flex-row justify-between items-start md:items-end gap-4 relative z-10">
-        <div>
-          <h3 className="font-display-lg text-display-lg text-on-background">System Overview</h3>
-          <p className="text-body-lg text-on-surface-variant">Real-time performance metrics and ecosystem health.</p>
+        <div className="flex gap-3">
+          <button 
+            onClick={() => navigate(-1)}
+            className="w-10 h-10 shrink-0 rounded-xl bg-surface border border-outline-variant flex items-center justify-center text-on-surface hover:bg-slate-50 transition-colors shadow-sm self-start mt-1"
+            title="Go Back"
+          >
+            <span className="material-symbols-outlined text-[20px]">arrow_back</span>
+          </button>
+          <div>
+            <h3 className="font-display-lg text-display-lg text-on-background">System Overview</h3>
+            <p className="text-body-lg text-on-surface-variant">Real-time performance metrics and ecosystem health.</p>
+          </div>
         </div>
         <div className="flex flex-wrap items-center gap-sm md:gap-md w-full md:w-auto">
           {/* Date Picker Modal Trigger */}
@@ -223,7 +232,7 @@ export default function Dashboard() {
           icon="group"
           colorVariant="primary"
           progressWidth={70}
-          onClick={() => navigate('/detailed-analytics?metric=users')}
+          onClick={() => navigate('/users')}
         />
         <KPICard
           title="Active Users"
@@ -233,7 +242,7 @@ export default function Dashboard() {
           icon="bolt"
           colorVariant="secondary"
           progressWidth={45}
-          onClick={() => navigate('/detailed-analytics?metric=active_users')}
+          onClick={() => navigate('/users?status=Active')}
         />
         <KPICard
           title="User Growth %"
@@ -253,7 +262,7 @@ export default function Dashboard() {
           icon="domain"
           colorVariant="primary"
           progressWidth={60}
-          onClick={() => navigate('/detailed-analytics?metric=organizations')}
+          onClick={() => navigate('/organizations')}
         />
         <KPICard
           title="Active Organisations"
@@ -263,7 +272,7 @@ export default function Dashboard() {
           icon="domain_verification"
           colorVariant="secondary"
           progressWidth={80}
-          onClick={() => navigate('/detailed-analytics?metric=active_organizations')}
+          onClick={() => navigate('/organizations?status=Active')}
         />
         <KPICard
           title="Organisation Growth %"

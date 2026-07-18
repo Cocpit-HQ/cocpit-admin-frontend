@@ -21,18 +21,18 @@ const parseMarkdown = (text) => {
     .replace(/>/g, '&gt;');
     
   // Headers (e.g. ## Error Type)
-  html = html.replace(/^##\s+(.+)$/gm, '<h4 class="font-bold text-base text-gray-900 mt-4 mb-2">$1</h4>');
-  html = html.replace(/^###\s+(.+)$/gm, '<h5 class="font-bold text-sm text-gray-800 mt-3 mb-1.5">$1</h5>');
+  html = html.replace(/^##\s+(.+)$/gm, '<h4 class="font-bold text-base text-on-surface mt-4 mb-2">$1</h4>');
+  html = html.replace(/^###\s+(.+)$/gm, '<h5 class="font-bold text-sm text-on-surface mt-3 mb-1.5">$1</h5>');
   
   // Bold: **text**
   html = html.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
   
   // Code block frame lines (e.g. 294 | };)
   html = html.replace(/^&gt;\s*(\d+\s*\|.*)$/gm, '<div class="font-mono text-xs text-red-700 bg-red-50 border-l-4 border-red-500 px-3 py-1 my-1 font-semibold">$1</div>');
-  html = html.replace(/^(\d+\s*\|.*)$/gm, '<div class="font-mono text-xs text-gray-600 bg-gray-50 border-l-4 border-gray-300 px-3 py-0.5 my-0.5">$1</div>');
+  html = html.replace(/^(\d+\s*\|.*)$/gm, '<div class="font-mono text-xs text-on-surface-variant bg-surface-container-lowest border-l-4 border-outline-variant px-3 py-0.5 my-0.5">$1</div>');
 
   // Convert normal blockquotes (like &gt; blockquote text)
-  html = html.replace(/^&gt;\s*(.+)$/gm, '<blockquote class="border-l-4 border-gray-300 pl-4 italic my-2 text-gray-600">$1</blockquote>');
+  html = html.replace(/^&gt;\s*(.+)$/gm, '<blockquote class="border-l-4 border-outline-variant pl-4 italic my-2 text-on-surface-variant">$1</blockquote>');
   
   // Handle newlines
   html = html.replace(/\n/g, '<br />');
@@ -291,7 +291,7 @@ export default function FeedEngagementBreakdown() {
             </button>
             <button 
               onClick={submitTakedown}
-              className="px-4 py-2 bg-error hover:bg-red-700 text-white text-sm font-semibold rounded-lg shadow-sm transition-colors"
+              className="px-4 py-2 bg-error hover:bg-red-700 text-on-primary text-sm font-semibold rounded-lg shadow-sm transition-colors"
             >
               Unlist Post
             </button>
@@ -347,29 +347,29 @@ export default function FeedEngagementBreakdown() {
   const renderCardView = () => (
     <div className="flex flex-col gap-6">
       {posts.length === 0 ? (
-        <div className="bg-white p-8 text-center rounded-xl border border-gray-200 text-gray-500">
+        <div className="bg-surface p-8 text-center rounded-xl border border-outline-variant text-on-surface-variant">
           No posts found matching the current filters.
         </div>
       ) : (
         posts.map(post => (
-          <div key={post.id} className="bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden flex flex-col relative">
+          <div key={post.id} className="bg-surface border border-outline-variant rounded-xl shadow-sm overflow-hidden flex flex-col relative">
             
             {/* Unlisted Status Banner */}
             {post.isUnlisted && (
-              <div className="px-5 py-2.5 bg-gray-100 border-b border-gray-200 flex items-center gap-2">
-                <span className="material-symbols-outlined text-gray-500 text-sm">visibility_off</span>
-                <span className="text-xs font-bold text-gray-700">Unlisted (Soft-Takedown)</span>
+              <div className="px-5 py-2.5 bg-surface-container-low border-b border-outline-variant flex items-center gap-2">
+                <span className="material-symbols-outlined text-on-surface-variant text-sm">visibility_off</span>
+                <span className="text-xs font-bold text-on-surface">Unlisted (Soft-Takedown)</span>
               </div>
             )}
 
             {/* User Appeal Warning Block (Rendered outside the dimmed post data wrapper to keep at 100% full opacity) */}
             {post.appeal && (
-              <div className="px-6 py-4 border-b flex flex-col gap-3 bg-amber-50/80 border-amber-200 shadow-inner">
+              <div className="px-6 py-4 border-b flex flex-col gap-3 bg-orange-50/80 dark:bg-[#451A03]/80 border-orange-200 dark:border-[#F59E0B]/30 shadow-inner">
                 <div className="flex items-start gap-3">
-                  <span className="material-symbols-outlined text-[20px] text-amber-700 mt-0.5">gavel</span>
+                  <span className="material-symbols-outlined text-[20px] text-orange-700 dark:text-[#FBBF24] mt-0.5">gavel</span>
                   <div className="flex-1">
-                    <p className="text-sm font-bold text-amber-900">User Appeal Submitted</p>
-                    <div className="mt-2 bg-white/90 border border-amber-200/60 p-3 rounded-lg text-sm font-medium text-amber-800 shadow-sm leading-relaxed">
+                    <p className="text-sm font-bold text-orange-900 dark:text-[#FBBF24]">User Appeal Submitted</p>
+                    <div className="mt-2 bg-surface/90 border border-orange-200 dark:border-[#F59E0B]/30/60 p-3 rounded-lg text-sm font-medium text-orange-800 dark:text-[#FBBF24] shadow-sm leading-relaxed">
                       {post.appeal.reason}
                     </div>
                   </div>
@@ -377,13 +377,13 @@ export default function FeedEngagementBreakdown() {
                 <div className="flex gap-3 justify-end items-center mt-1">
                   <button 
                     onClick={() => handleRejectAppeal(post.id)}
-                    className="px-3.5 py-1.5 bg-white border border-amber-300 text-xs font-bold rounded-lg hover:bg-amber-100/50 text-amber-900 shadow-sm transition-all"
+                    className="px-3.5 py-1.5 bg-surface border border-orange-300 dark:border-[#F59E0B]/50 text-xs font-bold rounded-lg hover:bg-orange-100/50 dark:bg-[#451A03]/80 text-orange-900 dark:text-[#FBBF24] shadow-sm transition-all"
                   >
                     Reject Appeal
                   </button>
                   <button 
                     onClick={() => handleRestorePost(post.id)}
-                    className="px-3.5 py-1.5 bg-green-600 hover:bg-green-700 active:bg-green-800 text-xs font-bold rounded-lg text-white shadow-sm hover:shadow-md transition-all"
+                    className="px-3.5 py-1.5 bg-green-600 hover:bg-green-700 active:bg-green-800 text-xs font-bold rounded-lg text-on-primary shadow-sm hover:shadow-md transition-all"
                   >
                     Approve & Restore
                   </button>
@@ -392,44 +392,44 @@ export default function FeedEngagementBreakdown() {
             )}
 
             {/* Main Post Data (Dimmed selectively if unlisted, keeping moderation/appeal blocks bright) */}
-            <div className={post.isUnlisted ? 'opacity-50 bg-gray-50/20' : ''}>
+            <div className={post.isUnlisted ? 'opacity-50 bg-surface-container-lowest/20' : ''}>
               {/* Post Header */}
               <div className="p-5 flex justify-between items-start">
               <div className="flex items-center gap-3">
-                <img src={post.avatar} alt={post.author} className="w-12 h-12 rounded-full border border-gray-100" />
+                <img src={post.avatar} alt={post.author} className="w-12 h-12 rounded-full border border-outline-variant" />
                 <div>
                   <div className="flex items-center gap-2">
-                    <h4 className="font-bold text-gray-900 leading-tight">{post.author}</h4>
+                    <h4 className="font-bold text-on-surface leading-tight">{post.author}</h4>
                   </div>
-                  <p className="text-xs text-gray-600 mt-0.5">
+                  <p className="text-xs text-on-surface-variant mt-0.5">
                     {post.title && post.company ? (
                       <>
-                        <span className="font-medium text-gray-800">{post.title}</span>
+                        <span className="font-medium text-on-surface">{post.title}</span>
                         {" @ "}
                         <span className="text-blue-600 font-semibold">{post.company}</span>
                       </>
                     ) : post.title ? (
-                      <span className="font-medium text-gray-800">{post.title}</span>
+                      <span className="font-medium text-on-surface">{post.title}</span>
                     ) : post.company ? (
                       <span className="text-blue-600 font-semibold">{post.company}</span>
                     ) : (
-                      <span className="text-gray-400 font-medium">Platform Member</span>
+                      <span className="text-outline font-medium">Platform Member</span>
                     )}
                   </p>
-                  <p className="text-xs text-gray-400 mt-0.5 flex items-center gap-1">
+                  <p className="text-xs text-outline mt-0.5 flex items-center gap-1">
                     <span className="material-symbols-outlined text-[12px]">location_on</span> {post.location}
                   </p>
                 </div>
               </div>
               
               {/* Post Moderation Actions */}
-              <div className="flex items-center gap-1 bg-gray-50 border border-gray-200 rounded-lg p-1">
+              <div className="flex items-center gap-1 bg-surface-container-lowest border border-outline-variant rounded-lg p-1">
                 {post.isUnlisted ? (
-                  <button onClick={() => handleRestorePost(post.id)} className="p-1.5 text-gray-400 hover:text-green-600 hover:bg-green-50 rounded transition-colors" title="Restore Post">
+                  <button onClick={() => handleRestorePost(post.id)} className="p-1.5 text-outline hover:text-green-600 hover:bg-green-50 dark:bg-green-900/20 rounded transition-colors" title="Restore Post">
                     <span className="material-symbols-outlined text-[18px]">settings_backup_restore</span>
                   </button>
                 ) : (
-                  <button onClick={() => handleTakedownPost(post.id)} className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded transition-colors" title="Takedown Post">
+                  <button onClick={() => handleTakedownPost(post.id)} className="p-1.5 text-outline hover:text-red-600 hover:bg-red-50 rounded transition-colors" title="Takedown Post">
                     <span className="material-symbols-outlined text-[18px]">visibility_off</span>
                   </button>
                 )}
@@ -449,7 +449,7 @@ export default function FeedEngagementBreakdown() {
 
 
             {/* Post Content */}
-            <div className="p-5 pt-3 text-sm text-gray-800">
+            <div className="p-5 pt-3 text-sm text-on-surface">
               {post.content && post.content.includes('<') ? (
                 <div className="whitespace-pre-wrap" dangerouslySetInnerHTML={{ __html: post.content }} />
               ) : (
@@ -459,27 +459,27 @@ export default function FeedEngagementBreakdown() {
 
             {/* Media Content */}
             {post.mediaUrl && (
-              <div className="w-full bg-gray-100">
+              <div className="w-full bg-surface-container-low">
                 <img src={post.mediaUrl} alt="Post media" className="w-full h-auto max-h-[400px] object-cover" />
               </div>
             )}
 
             {/* Interactive Metric Analytics Overlay */}
-            <div className="bg-slate-50 border-t border-gray-100 p-4 flex items-center justify-between">
+            <div className="bg-surface-container-lowest border-t border-outline-variant p-4 flex items-center justify-between">
               <div className="flex gap-4">
-                <div className="flex items-center gap-1.5 text-blue-600 bg-blue-50 px-2 py-1 rounded-full" title="Likes">
+                <div className="flex items-center gap-1.5 text-blue-600 bg-blue-50 dark:bg-blue-900/20 px-2 py-1 rounded-full" title="Likes">
                   <span className="material-symbols-outlined text-[16px]">thumb_up</span>
                   <span className="text-xs font-bold">{post.metrics.likes.toLocaleString()}</span>
                 </div>
                 <button 
                   onClick={() => toggleComments(post.id)}
-                  className="flex items-center gap-1.5 text-indigo-600 bg-indigo-50 px-3 py-1 rounded-full hover:bg-indigo-100 transition-colors"
+                  className="flex items-center gap-1.5 text-indigo-600 bg-indigo-50 dark:bg-indigo-900/20 px-3 py-1 rounded-full hover:bg-indigo-100 transition-colors"
                   title="View Comments"
                 >
                   <span className="material-symbols-outlined text-[16px]">chat_bubble</span>
                   <span className="text-xs font-bold">{post.metrics.comments.toLocaleString()}</span>
                 </button>
-                <div className="flex items-center gap-1.5 text-green-600 bg-green-50 px-2 py-1 rounded-full" title="Reposts">
+                <div className="flex items-center gap-1.5 text-green-600 bg-green-50 dark:bg-green-900/20 px-2 py-1 rounded-full" title="Reposts">
                   <span className="material-symbols-outlined text-[16px]">repeat</span>
                   <span className="text-xs font-bold">{post.metrics.shares.toLocaleString()}</span>
                 </div>
@@ -488,24 +488,24 @@ export default function FeedEngagementBreakdown() {
 
             {/* Collapsible Comments Section */}
             {expandedComments[post.id] && (
-              <div className="border-t border-gray-100 bg-gray-50/50 px-5 py-4 flex flex-col gap-3">
-                <h5 className="text-xs font-bold text-gray-500 uppercase tracking-wider">Comments ({expandedComments[post.id].length})</h5>
+              <div className="border-t border-outline-variant bg-surface-container-lowest/50 px-5 py-4 flex flex-col gap-3">
+                <h5 className="text-xs font-bold text-on-surface-variant uppercase tracking-wider">Comments ({expandedComments[post.id].length})</h5>
                 {expandedComments[post.id].length === 0 ? (
-                  <p className="text-xs text-gray-400 italic">No comments on this post yet.</p>
+                  <p className="text-xs text-outline italic">No comments on this post yet.</p>
                 ) : (
                   <div className="flex flex-col gap-3 max-h-[250px] overflow-y-auto pr-1">
                     {expandedComments[post.id].map(comment => (
-                      <div key={comment.id} className="flex gap-2.5 items-start bg-white p-2.5 rounded-lg border border-gray-100 shadow-xs">
-                        <img src={comment.avatar} alt={comment.author} className="w-8 h-8 rounded-full border border-gray-50 shrink-0" />
+                      <div key={comment.id} className="flex gap-2.5 items-start bg-surface p-2.5 rounded-lg border border-outline-variant shadow-xs">
+                        <img src={comment.avatar} alt={comment.author} className="w-8 h-8 rounded-full border border-outline-variant shrink-0" />
                         <div className="flex-1 min-w-0">
                           <div className="flex justify-between items-baseline mb-0.5">
-                            <span className="text-xs font-bold text-gray-900">{comment.author}</span>
-                            <span className="text-[10px] text-gray-400">
+                            <span className="text-xs font-bold text-on-surface">{comment.author}</span>
+                            <span className="text-[10px] text-outline">
                               {new Date(comment.created_at).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
                             </span>
                           </div>
-                          <p className="text-xs text-gray-500 mb-1">{comment.title} @ <span className="text-blue-500 font-semibold">{comment.company}</span></p>
-                          <p className="text-xs text-gray-700 leading-snug break-words">{comment.content}</p>
+                          <p className="text-xs text-on-surface-variant mb-1">{comment.title} @ <span className="text-blue-500 font-semibold">{comment.company}</span></p>
+                          <p className="text-xs text-on-surface leading-snug break-words">{comment.content}</p>
                         </div>
                       </div>
                     ))}
@@ -514,7 +514,7 @@ export default function FeedEngagementBreakdown() {
               </div>
             )}
             {loadingComments[post.id] && (
-              <div className="border-t border-gray-100 bg-gray-50/50 px-5 py-4 flex items-center justify-center">
+              <div className="border-t border-outline-variant bg-surface-container-lowest/50 px-5 py-4 flex items-center justify-center">
                 <div className="w-5 h-5 border-2 border-indigo-600 border-t-transparent rounded-full animate-spin"></div>
               </div>
             )}
@@ -526,53 +526,53 @@ export default function FeedEngagementBreakdown() {
   );
 
   const renderListView = () => (
-    <div className="bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden">
+    <div className="bg-surface border border-outline-variant rounded-xl shadow-sm overflow-hidden">
       <div className="overflow-x-auto">
         <table className="w-full text-left border-collapse">
           <thead>
-            <tr className="bg-gray-50 border-b border-gray-200 text-xs uppercase tracking-wider text-gray-500">
+            <tr className="bg-surface-container-lowest border-b border-outline-variant text-xs uppercase tracking-wider text-on-surface-variant">
               <th className="p-4 font-semibold w-[220px]">Author</th>
               <th className="p-4 font-semibold">Content Snippet</th>
               <th className="p-4 font-semibold text-center w-[120px]">Metrics</th>
               <th className="p-4 font-semibold text-right w-[100px]">Action</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-gray-100">
+          <tbody className="divide-y divide-outline-variant">
             {posts.length === 0 ? (
               <tr>
-                <td colSpan="4" className="p-8 text-center text-gray-500">
+                <td colSpan="4" className="p-8 text-center text-on-surface-variant">
                   No posts found matching the current filters.
                 </td>
               </tr>
             ) : (
               posts.map(post => (
-                <tr key={post.id} className={`hover:bg-gray-50 transition-colors group ${post.isUnlisted ? 'opacity-60 bg-gray-50/50' : ''}`}>
+                <tr key={post.id} className={`hover:bg-surface-container-lowest transition-colors group ${post.isUnlisted ? 'opacity-60 bg-surface-container-lowest/50' : ''}`}>
                   <td className="p-4">
-                    <p className="font-bold text-gray-900 text-sm truncate">{post.author}</p>
-                    <p className="text-xs text-gray-500 truncate" title={`${post.title} @ ${post.company}`}>
+                    <p className="font-bold text-on-surface text-sm truncate">{post.author}</p>
+                    <p className="text-xs text-on-surface-variant truncate" title={`${post.title} @ ${post.company}`}>
                       {post.title} @ <span className="text-blue-600">{post.company}</span>
                     </p>
                   </td>
                   <td className="p-4">
-                    <p className="text-sm text-gray-700 truncate max-w-md">{stripHtml(post.content)}</p>
-                    {post.mediaUrl && <span className="text-[10px] bg-gray-200 text-gray-600 px-1.5 py-0.5 rounded font-bold mt-1 inline-block mr-2">Has Media</span>}
+                    <p className="text-sm text-on-surface truncate max-w-md">{stripHtml(post.content)}</p>
+                    {post.mediaUrl && <span className="text-[10px] bg-surface-container text-on-surface-variant px-1.5 py-0.5 rounded font-bold mt-1 inline-block mr-2">Has Media</span>}
                     {post.aiFlag && <span className="text-[10px] px-1.5 py-0.5 rounded font-bold mt-1 inline-block bg-red-100 text-red-700 mr-2">Flagged</span>}
-                    {post.isUnlisted && <span className="text-[10px] px-1.5 py-0.5 rounded font-bold mt-1 inline-block bg-gray-150 text-gray-700">Unlisted</span>}
+                    {post.isUnlisted && <span className="text-[10px] px-1.5 py-0.5 rounded font-bold mt-1 inline-block bg-surface-container text-on-surface">Unlisted</span>}
                   </td>
                   <td className="p-4">
                     <div className="flex flex-col gap-1 items-center">
-                      <span className="text-[10px] font-bold text-blue-600 bg-blue-50 px-2 py-0.5 rounded-full w-full text-center">👍 {post.metrics.likes}</span>
-                      <span className="text-[10px] font-bold text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded-full w-full text-center">💬 {post.metrics.comments}</span>
+                      <span className="text-[10px] font-bold text-blue-600 bg-blue-50 dark:bg-blue-900/20 px-2 py-0.5 rounded-full w-full text-center">👍 {post.metrics.likes}</span>
+                      <span className="text-[10px] font-bold text-indigo-600 bg-indigo-50 dark:bg-indigo-900/20 px-2 py-0.5 rounded-full w-full text-center">💬 {post.metrics.comments}</span>
                     </div>
                   </td>
                   <td className="p-4 text-right">
                     <div className="flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                       {post.isUnlisted ? (
-                        <button onClick={() => handleRestorePost(post.id)} className="p-1 text-gray-400 hover:text-green-600 hover:bg-green-50 rounded transition-colors" title="Restore Post">
+                        <button onClick={() => handleRestorePost(post.id)} className="p-1 text-outline hover:text-green-600 hover:bg-green-50 dark:bg-green-900/20 rounded transition-colors" title="Restore Post">
                           <span className="material-symbols-outlined text-[16px]">settings_backup_restore</span>
                         </button>
                       ) : (
-                        <button onClick={() => handleTakedownPost(post.id)} className="p-1 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded transition-colors" title="Takedown Post">
+                        <button onClick={() => handleTakedownPost(post.id)} className="p-1 text-outline hover:text-red-600 hover:bg-red-50 rounded transition-colors" title="Takedown Post">
                           <span className="material-symbols-outlined text-[16px]">visibility_off</span>
                         </button>
                       )}
@@ -592,7 +592,7 @@ export default function FeedEngagementBreakdown() {
       
       {/* Toast Notification */}
       {toastMessage && (
-        <div className="fixed bottom-8 right-8 z-50 bg-gray-900 text-white px-6 py-3 rounded-lg shadow-2xl flex items-center gap-3 animate-slide-up">
+        <div className="fixed bottom-8 right-8 z-50 bg-surface-container-highest text-on-primary px-6 py-3 rounded-lg shadow-2xl flex items-center gap-3 animate-slide-up">
           <span className="material-symbols-outlined text-green-400">check_circle</span>
           <p className="font-medium text-sm">{toastMessage}</p>
         </div>
@@ -600,60 +600,60 @@ export default function FeedEngagementBreakdown() {
 
       {/* KPI Metrics */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <div className="bg-white border border-gray-200 rounded-xl p-6 shadow-sm flex items-center gap-4">
-          <div className="w-12 h-12 rounded-full bg-blue-50 flex items-center justify-center shrink-0">
+        <div className="bg-surface border border-outline-variant rounded-xl p-6 shadow-sm flex items-center gap-4">
+          <div className="w-12 h-12 rounded-full bg-blue-50 dark:bg-blue-900/20 flex items-center justify-center shrink-0">
             <span className="material-symbols-outlined text-blue-600 text-2xl">favorite</span>
           </div>
           <div>
-            <p className="text-sm font-bold text-gray-500 uppercase tracking-wider mb-1">Engagement Rate</p>
+            <p className="text-sm font-bold text-on-surface-variant uppercase tracking-wider mb-1">Engagement Rate</p>
             <div className="flex items-end gap-2">
-              <span className="text-2xl font-black text-gray-900">{metrics.engagementRate}%</span>
+              <span className="text-2xl font-black text-on-surface">{metrics.engagementRate}%</span>
             </div>
           </div>
         </div>
 
-        <div className="bg-white border border-gray-200 rounded-xl p-6 shadow-sm flex items-center gap-4">
-          <div className="w-12 h-12 rounded-full bg-indigo-50 flex items-center justify-center shrink-0">
+        <div className="bg-surface border border-outline-variant rounded-xl p-6 shadow-sm flex items-center gap-4">
+          <div className="w-12 h-12 rounded-full bg-indigo-50 dark:bg-indigo-900/20 flex items-center justify-center shrink-0">
             <span className="material-symbols-outlined text-indigo-600 text-2xl">analytics</span>
           </div>
           <div>
-            <p className="text-sm font-bold text-gray-500 uppercase tracking-wider mb-1">Avg. Engagement / Post</p>
+            <p className="text-sm font-bold text-on-surface-variant uppercase tracking-wider mb-1">Avg. Engagement / Post</p>
             <div className="flex items-end gap-2">
-              <span className="text-2xl font-black text-gray-900">{metrics.avgEngagementPerPost}</span>
-              <span className="text-xs text-gray-500 font-medium mb-1">interactions</span>
+              <span className="text-2xl font-black text-on-surface">{metrics.avgEngagementPerPost}</span>
+              <span className="text-xs text-on-surface-variant font-medium mb-1">interactions</span>
             </div>
           </div>
         </div>
 
-        <div className="bg-white border border-gray-200 rounded-xl p-6 shadow-sm flex items-center gap-4">
-          <div className="w-12 h-12 rounded-full bg-green-50 flex items-center justify-center shrink-0">
+        <div className="bg-surface border border-outline-variant rounded-xl p-6 shadow-sm flex items-center gap-4">
+          <div className="w-12 h-12 rounded-full bg-green-50 dark:bg-green-900/20 flex items-center justify-center shrink-0">
             <span className="material-symbols-outlined text-green-600 text-2xl">post_add</span>
           </div>
           <div>
-            <p className="text-sm font-bold text-gray-500 uppercase tracking-wider mb-1">Daily Activity Volume</p>
+            <p className="text-sm font-bold text-on-surface-variant uppercase tracking-wider mb-1">Daily Activity Volume</p>
             <div className="flex items-end gap-2">
-              <span className="text-2xl font-black text-gray-900">{metrics.dailyActivityVolume}</span>
-              <span className="text-xs text-gray-500 font-medium mb-1">Posts today</span>
+              <span className="text-2xl font-black text-on-surface">{metrics.dailyActivityVolume}</span>
+              <span className="text-xs text-on-surface-variant font-medium mb-1">Posts today</span>
             </div>
           </div>
         </div>
       </div>
 
       {/* Top Bar: Controls + Dual-View Toggle */}
-      <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-200 flex flex-col md:flex-row justify-between items-center gap-4">
+      <div className="bg-surface p-4 rounded-xl shadow-sm border border-outline-variant flex flex-col md:flex-row justify-between items-center gap-4">
         
         <div className="flex items-center gap-4">
-          <div className="bg-gray-100 p-1 rounded-lg flex">
+          <div className="bg-surface-container-low p-1 rounded-lg flex">
             <button 
               onClick={() => setViewMode('active')}
-              className={`flex items-center gap-2 px-4 py-2 rounded-md text-sm font-semibold transition-all ${viewMode === 'active' ? 'bg-white shadow-sm text-blue-600' : 'text-gray-500 hover:text-gray-800'}`}
+              className={`flex items-center gap-2 px-4 py-2 rounded-md text-sm font-semibold transition-all ${viewMode === 'active' ? 'bg-surface shadow-sm text-blue-600' : 'text-on-surface-variant hover:text-on-surface'}`}
             >
               <span className="material-symbols-outlined text-[18px]">rss_feed</span>
               Active Feed
             </button>
             <button 
               onClick={() => setViewMode('unlisted')}
-              className={`flex items-center gap-2 px-4 py-2 rounded-md text-sm font-semibold transition-all ${viewMode === 'unlisted' ? 'bg-white shadow-sm text-blue-600' : 'text-gray-500 hover:text-gray-800'}`}
+              className={`flex items-center gap-2 px-4 py-2 rounded-md text-sm font-semibold transition-all ${viewMode === 'unlisted' ? 'bg-surface shadow-sm text-blue-600' : 'text-on-surface-variant hover:text-on-surface'}`}
             >
               <span className="material-symbols-outlined text-[18px]">visibility_off</span>
               Unlisted Posts
@@ -665,7 +665,7 @@ export default function FeedEngagementBreakdown() {
           <select 
             value={filterSort}
             onChange={(e) => setFilterSort(e.target.value)}
-            className="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block px-3 py-2 font-medium"
+            className="bg-surface-container-lowest border border-outline-variant text-on-surface text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block px-3 py-2 font-medium"
           >
             <option>Recently Created</option>
             <option>Most Liked</option>
@@ -687,21 +687,21 @@ export default function FeedEngagementBreakdown() {
 
           {/* Pagination Controls */}
           {totalPages > 1 && (
-            <div className="flex items-center justify-between bg-white border border-gray-200 rounded-xl p-4 shadow-sm shrink-0">
+            <div className="flex items-center justify-between bg-surface border border-outline-variant rounded-xl p-4 shadow-sm shrink-0">
               <button
                 disabled={currentPage <= 1}
                 onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
-                className="px-4 py-2 border border-gray-300 text-sm font-semibold rounded-lg hover:bg-gray-50 text-gray-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                className="px-4 py-2 border border-outline-variant text-sm font-semibold rounded-lg hover:bg-surface-container-lowest text-on-surface disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
               >
                 Previous
               </button>
-              <span className="text-sm font-medium text-gray-700">
+              <span className="text-sm font-medium text-on-surface">
                 Page {currentPage} of {totalPages}
               </span>
               <button
                 disabled={currentPage >= totalPages}
                 onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
-                className="px-4 py-2 border border-gray-300 text-sm font-semibold rounded-lg hover:bg-gray-50 text-gray-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                className="px-4 py-2 border border-outline-variant text-sm font-semibold rounded-lg hover:bg-surface-container-lowest text-on-surface disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
               >
                 Next
               </button>
@@ -713,45 +713,45 @@ export default function FeedEngagementBreakdown() {
         <div ref={rightColumnRef} className="w-full lg:w-1/3 flex flex-col gap-6 sticky top-6">
           
           {/* Viral Content Leaderboard */}
-          <div className="bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden">
-            <div className="bg-amber-50 p-5 border-b border-amber-100 flex items-center justify-between">
-              <h3 className="text-base font-bold text-amber-900 flex items-center gap-2">
-                <span className="material-symbols-outlined text-amber-600">local_fire_department</span>
+          <div className="bg-surface border border-outline-variant rounded-xl shadow-sm overflow-hidden">
+            <div className="bg-orange-50 dark:bg-[#451A03] p-5 border-b border-orange-200 dark:border-[#F59E0B]/30 flex items-center justify-between">
+              <h3 className="text-base font-bold text-orange-700 dark:text-[#FBBF24] flex items-center gap-2">
+                <span className="material-symbols-outlined text-orange-600 dark:text-[#F59E0B]">local_fire_department</span>
                 Viral Content Leaderboard
               </h3>
             </div>
             <div className="p-0">
-              <ul className="divide-y divide-gray-100">
+              <ul className="divide-y divide-outline-variant">
                 {leaderboard.length === 0 ? (
-                  <li className="p-4 text-center text-gray-500 text-sm">No viral content.</li>
+                  <li className="p-4 text-center text-on-surface-variant text-sm">No viral content.</li>
                 ) : (
                   leaderboard.map((item, index) => {
                     const getRankStyle = (idx) => {
                       switch (idx) {
-                        case 0: return 'bg-amber-100 text-amber-700 ring-2 ring-amber-300';
-                        case 1: return 'bg-slate-100 text-slate-700 ring-2 ring-slate-300';
+                        case 0: return 'bg-orange-100 dark:bg-[#451A03] text-orange-700 dark:text-[#FBBF24] ring-2 ring-amber-300';
+                        case 1: return 'bg-surface-container-low text-on-surface-variant ring-2 ring-slate-300';
                         case 2: return 'bg-orange-100 text-orange-700 ring-2 ring-orange-300';
-                        default: return 'bg-gray-50 text-gray-400 border border-gray-200';
+                        default: return 'bg-surface-container-lowest text-outline border border-outline-variant';
                       }
                     };
                     return (
-                      <li key={item.id} className="p-4 hover:bg-gray-50 transition-colors flex items-center gap-4">
+                      <li key={item.id} className="p-4 hover:bg-surface-container-lowest transition-colors flex items-center gap-4">
                         <span className={`w-6 h-6 rounded-full flex items-center justify-center font-bold text-xs shrink-0 ${getRankStyle(index)}`}>
                           {index + 1}
                         </span>
                         <div className="flex-1 min-w-0">
-                          <p className="font-bold text-gray-900 text-sm leading-tight line-clamp-2">{stripHtml(item.title)}</p>
+                          <p className="font-bold text-on-surface text-sm leading-tight line-clamp-2">{stripHtml(item.title)}</p>
                           <div className="flex items-center justify-between mt-2">
-                            <p className="text-xs text-gray-500">by {item.author}</p>
+                            <p className="text-xs text-on-surface-variant">by {item.author}</p>
                             <div className="flex items-center gap-2">
-                              <span className="flex items-center gap-1 text-[10px] font-extrabold text-blue-600 bg-blue-50/60 px-1.5 py-0.5 rounded-md" title="Likes">
+                              <span className="flex items-center gap-1 text-[10px] font-extrabold text-blue-600 bg-blue-50 dark:bg-blue-900/20 dark:bg-blue-900/30 px-1.5 py-0.5 rounded-md" title="Likes">
                                 <span className="material-symbols-outlined text-[12px]">thumb_up</span> {item.likes.toLocaleString()}
                               </span>
-                              <span className="flex items-center gap-1 text-[10px] font-extrabold text-indigo-600 bg-indigo-50/60 px-1.5 py-0.5 rounded-md" title="Comments">
+                              <span className="flex items-center gap-1 text-[10px] font-extrabold text-indigo-600 bg-indigo-50 dark:bg-indigo-900/20 dark:bg-indigo-900/30 px-1.5 py-0.5 rounded-md" title="Comments">
                                 <span className="material-symbols-outlined text-[12px]">chat_bubble</span> {item.comments.toLocaleString()}
                               </span>
                               {item.shares > 0 && (
-                                <span className="flex items-center gap-1 text-[10px] font-extrabold text-green-600 bg-green-50/60 px-1.5 py-0.5 rounded-md" title="Shares">
+                                <span className="flex items-center gap-1 text-[10px] font-extrabold text-green-600 bg-green-50 dark:bg-green-900/20 dark:bg-green-900/30 px-1.5 py-0.5 rounded-md" title="Shares">
                                   <span className="material-symbols-outlined text-[12px]">repeat</span> {item.shares.toLocaleString()}
                                 </span>
                               )}
@@ -767,24 +767,24 @@ export default function FeedEngagementBreakdown() {
           </div>
 
           {/* Trending Hashtags */}
-          <div className="bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden">
-            <div className="bg-gradient-to-r from-indigo-50 to-purple-50 p-5 border-b border-indigo-100 flex justify-between items-center">
+          <div className="bg-surface border border-outline-variant rounded-xl shadow-sm overflow-hidden">
+            <div className="bg-surface-container p-5 border-b border-outline-variant flex justify-between items-center">
               <div>
-                <h3 className="text-base font-bold text-indigo-900 flex items-center gap-2">
+                <h3 className="text-base font-bold text-primary flex items-center gap-2">
                   <span className="material-symbols-outlined text-indigo-600">tag</span>
                   Trending Hashtags
                 </h3>
               </div>
             </div>
             <div className="p-0">
-              <ul className="divide-y divide-gray-100">
+              <ul className="divide-y divide-outline-variant">
                 {hashtags.length === 0 ? (
-                  <li className="p-4 text-center text-gray-500 text-sm">No hashtags found.</li>
+                  <li className="p-4 text-center text-on-surface-variant text-sm">No hashtags found.</li>
                 ) : (
                   hashtags.map(tag => (
-                    <li key={tag.id} className="p-4 flex items-center justify-between hover:bg-gray-50 transition-colors">
+                    <li key={tag.id} className="p-4 flex items-center justify-between hover:bg-surface-container-lowest transition-colors">
                       <div>
-                        <p className="font-bold text-gray-900 text-sm">{tag.tag}</p>
+                        <p className="font-bold text-on-surface text-sm">{tag.tag}</p>
                         <p className="text-xs text-green-600 font-semibold mt-0.5">{tag.velocity}</p>
                       </div>
                     </li>

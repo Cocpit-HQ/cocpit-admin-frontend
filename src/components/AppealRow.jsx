@@ -10,7 +10,7 @@ export default function AppealRow({ appeal, onAction }) {
       </td>
       <td className="px-lg py-md align-top max-w-[200px]">
         <div className="flex flex-col gap-xs">
-          <Link to={appeal.type === 'Account' ? "/profile" : "/org-profile"} state={{ from: '/moderation', label: 'Moderation Queue' }} className="font-body-sm text-primary font-medium hover:underline">
+          <Link to="/profile" state={{ from: '/moderation', label: 'Moderation Queue' }} className="font-body-sm text-primary font-medium hover:underline">
             {appeal.user}
           </Link>
           <p className="text-[11px] text-on-surface-variant mt-1">
@@ -34,25 +34,21 @@ export default function AppealRow({ appeal, onAction }) {
         <div className="bg-surface-container-highest p-sm rounded-lg border border-outline-variant relative">
           <span className="material-symbols-outlined text-[16px] text-on-surface-variant absolute top-sm right-sm">format_quote</span>
           <p className="font-body-sm text-on-surface leading-snug italic pr-lg">
-            "{appeal.appealText}"
+            &ldquo;{appeal.appealText}&rdquo;
           </p>
         </div>
       </td>
       <td className="px-lg py-md align-top text-right min-w-[150px]">
-        <div className="grid grid-cols-2 gap-2 min-w-[160px]">
-          <button onClick={() => onAction(appeal.id, 'approved')} className="flex flex-col items-center justify-center gap-1 p-2 bg-surface hover:bg-green-50 border border-outline-variant hover:border-green-300 text-on-surface-variant hover:text-green-700 rounded-xl transition-all shadow-sm hover:shadow-md" title="Reinstate">
+        <div className="grid grid-cols-3 gap-2 min-w-[200px]">
+          <button onClick={() => onAction(appeal.id, 'reinstate')} className="flex flex-col items-center justify-center gap-1 p-2 bg-surface hover:bg-green-50 border border-outline-variant hover:border-green-300 text-on-surface-variant hover:text-green-700 rounded-xl transition-all shadow-sm hover:shadow-md" title="Reinstate Post">
             <span className="material-symbols-outlined text-[18px]">undo</span>
             <span className="text-[10px] font-bold uppercase tracking-wider">Reinstate</span>
           </button>
-          <button onClick={() => onAction(appeal.id, 'approved')} className="flex flex-col items-center justify-center gap-1 p-2 bg-surface hover:bg-yellow-50 border border-outline-variant hover:border-yellow-300 text-on-surface-variant hover:text-yellow-700 rounded-xl transition-all shadow-sm hover:shadow-md" title="Reinstate with Warning">
+          <button onClick={() => onAction(appeal.id, 'reinstate_with_warning')} className="flex flex-col items-center justify-center gap-1 p-2 bg-surface hover:bg-yellow-50 border border-outline-variant hover:border-yellow-300 text-on-surface-variant hover:text-yellow-700 rounded-xl transition-all shadow-sm hover:shadow-md" title="Reinstate with Warning">
             <span className="material-symbols-outlined text-[18px]">warning</span>
             <span className="text-[10px] font-bold uppercase tracking-wider">Warning</span>
           </button>
-          <button onClick={() => onAction(appeal.id, 'rejected')} className="flex flex-col items-center justify-center gap-1 p-2 bg-surface hover:bg-orange-50 border border-outline-variant hover:border-orange-300 text-on-surface-variant hover:text-orange-700 rounded-xl transition-all shadow-sm hover:shadow-md" title="Extend Suspension">
-            <span className="material-symbols-outlined text-[18px]">update</span>
-            <span className="text-[10px] font-bold uppercase tracking-wider">Extend</span>
-          </button>
-          <button onClick={() => onAction(appeal.id, 'rejected')} className="flex flex-col items-center justify-center gap-1 p-2 bg-surface hover:bg-red-50 border border-outline-variant hover:border-red-300 text-on-surface-variant hover:text-red-700 rounded-xl transition-all shadow-sm hover:shadow-md" title="Uphold (Permanent)">
+          <button onClick={() => onAction(appeal.id, 'uphold')} className="flex flex-col items-center justify-center gap-1 p-2 bg-surface hover:bg-red-50 border border-outline-variant hover:border-red-300 text-on-surface-variant hover:text-red-700 rounded-xl transition-all shadow-sm hover:shadow-md" title="Uphold Removal">
             <span className="material-symbols-outlined text-[18px]">gavel</span>
             <span className="text-[10px] font-bold uppercase tracking-wider">Uphold</span>
           </button>

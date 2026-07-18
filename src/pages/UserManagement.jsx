@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import PaginationBar from '../components/PaginationBar';
 import SearchInput from '../components/SearchInput';
 import FilterDropdown from '../components/FilterDropdown';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../AuthContext';
 import DangerModal from '../components/DangerModal';
 import WarningModal from '../components/WarningModal';
@@ -10,18 +10,36 @@ import WarningModal from '../components/WarningModal';
 
 export default function UserManagement() {
   const { role, accessToken } = useAuth();
+  const [searchParams, setSearchParams] = useSearchParams();
+  
+  const initialStatus = searchParams.get('status') || 'All';
+  const initialPage = parseInt(searchParams.get('page')) || 1;
+  const initialRole = searchParams.get('role') || 'All';
+  const initialSearch = searchParams.get('search') || '';
+
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [debugError, setDebugError] = useState(null);
   
   const [stats, setStats] = useState({ totalUsers: 0, activeUsers: 0, suspendedUsers: 0 });
   const [totalPages, setTotalPages] = useState(1);
   const [totalCount, setTotalCount] = useState(0);
-  const [currentPage, setCurrentPage] = useState(1);
+  const [currentPage, setCurrentPage] = useState(initialPage);
 
   const [selectedUsers, setSelectedUsers] = useState(new Set());
-  const [roleFilter, setRoleFilter] = useState('All');
-  const [statusFilter, setStatusFilter] = useState('All');
-  const [searchQuery, setSearchQuery] = useState('');
+  const [roleFilter, setRoleFilter] = useState(initialRole);
+  const [statusFilter, setStatusFilter] = useState(initialStatus);
+  const [searchQuery, setSearchQuery] = useState(initialSearch);
+
+  useEffect(() => {
+    const params = new URLSearchParams();
+    if (currentPage > 1) params.set('page', currentPage);
+    if (roleFilter !== 'All') params.set('role', roleFilter);
+    if (statusFilter !== 'All') params.set('status', statusFilter);
+    if (searchQuery) params.set('search', searchQuery);
+    
+    setSearchParams(params, { replace: true });
+  }, [currentPage, roleFilter, statusFilter, searchQuery, setSearchParams]);
   
   const [availableRoles, setAvailableRoles] = useState([]);
 
@@ -67,9 +85,13 @@ export default function UserManagement() {
           setTotalPages(resData.totalPages || 1);
           setTotalCount(resData.total || 0);
           if (resData.stats) setStats(resData.stats);
+        } else {
+          const errText = await response.text();
+          setDebugError(`Status: ${response.status}, Error: ${errText}`);
         }
       } catch (err) {
         console.error('Failed to fetch users:', err);
+        setDebugError('Network Error: ' + err.message);
       } finally {
         setLoading(false);
       }
@@ -255,18 +277,28 @@ export default function UserManagement() {
   return (
     <div>
       {/* Page Header & Filters */}
+      {debugError && <div className="p-4 bg-red-100 text-red-800 mb-4">{debugError}</div>}
       <div className="flex flex-col md:flex-row md:items-end justify-between gap-lg mb-xl">
-        <div className="flex flex-col gap-xs">
-          <h1 className="font-display-lg text-display-lg text-on-background">User Management</h1>
-          <p className="text-body-lg text-on-surface-variant">Review, manage, and moderate your platform's user base.</p>
+        <div className="flex gap-3">
+          <button 
+            onClick={() => navigate(-1)}
+            className="w-10 h-10 shrink-0 rounded-xl bg-surface border border-outline-variant flex items-center justify-center text-on-surface hover:bg-slate-50 transition-colors shadow-sm self-start mt-1"
+            title="Go Back"
+          >
+            <span className="material-symbols-outlined text-[20px]">arrow_back</span>
+          </button>
+          <div className="flex flex-col gap-xs">
+            <h1 className="font-display-lg text-display-lg text-on-background">User Management</h1>
+            <p className="text-body-lg text-on-surface-variant">Review, manage, and moderate your platform's user base.</p>
+          </div>
         </div>
       </div>
 
       {/* Stat Cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-md mb-xl">
-        <div className="bg-indigo-50 border border-indigo-100 p-md rounded-xl flex items-center gap-md">
-          <div className="w-10 h-10 rounded-lg bg-indigo-100 flex items-center justify-center">
-            <span className="material-symbols-outlined text-indigo-600">groups</span>
+        <div className="bg-indigo-50 dark:bg-[#111827] border border-indigo-100 dark:border-[#2C364B] p-md rounded-xl flex items-center gap-md transition-colors">
+          <div className="w-10 h-10 rounded-lg bg-indigo-100 dark:bg-[rgba(79,140,255,0.12)] flex items-center justify-center transition-colors">
+            <span className="material-symbols-outlined text-indigo-600 dark:text-[#4F8CFF]">groups</span>
           </div>
           <div>
             <p className="text-[11px] font-semibold text-on-surface-variant uppercase tracking-wider">Total Users</p>
@@ -274,9 +306,9 @@ export default function UserManagement() {
           </div>
         </div>
 
-        <div className="bg-green-50 border border-green-100 p-md rounded-xl flex items-center gap-md">
-          <div className="w-10 h-10 rounded-lg bg-green-100 flex items-center justify-center">
-            <span className="material-symbols-outlined text-green-600">check_circle</span>
+        <div className="bg-green-50 dark:bg-[#111827] border border-green-100 dark:border-[#2C364B] p-md rounded-xl flex items-center gap-md transition-colors">
+          <div className="w-10 h-10 rounded-lg bg-green-100 dark:bg-[rgba(34,197,94,0.12)] flex items-center justify-center transition-colors">
+            <span className="material-symbols-outlined text-green-600 dark:text-[#22C55E]">check_circle</span>
           </div>
           <div>
             <p className="text-[11px] font-semibold text-on-surface-variant uppercase tracking-wider">Active Users</p>
@@ -284,9 +316,9 @@ export default function UserManagement() {
           </div>
         </div>
 
-        <div className="bg-orange-50 border border-orange-100 p-md rounded-xl flex items-center gap-md">
-          <div className="w-10 h-10 rounded-lg bg-orange-100 flex items-center justify-center">
-            <span className="material-symbols-outlined text-orange-600">gavel</span>
+        <div className="bg-orange-50 dark:bg-[#111827] border border-orange-100 dark:border-[#2C364B] p-md rounded-xl flex items-center gap-md transition-colors">
+          <div className="w-10 h-10 rounded-lg bg-orange-100 dark:bg-[rgba(245,158,11,0.12)] flex items-center justify-center transition-colors">
+            <span className="material-symbols-outlined text-orange-600 dark:text-[#F59E0B]">gavel</span>
           </div>
           <div>
             <p className="text-[11px] font-semibold text-on-surface-variant uppercase tracking-wider">Suspended Users</p>
@@ -400,13 +432,10 @@ export default function UserManagement() {
                 <tr 
                   key={user.id} 
                   className="data-row hover:bg-surface-container-low transition-colors group cursor-pointer"
-                  onClick={(e) => {
-                    if (e.target.closest('button, input')) return;
-                    navigate(`/profile/${user.id}`);
-                  }}
+                  onClick={() => navigate(`/profile/${user.id}`, { state: { from: location.pathname + location.search, label: 'Users' } })}
                 >
                   {role !== 'developer' && (
-                    <td className="px-lg py-md">
+                    <td className="px-lg py-md" onClick={(e) => e.stopPropagation()}>
                       <input
                         type="checkbox"
                         className="rounded border-outline-variant text-primary focus:ring-primary h-4 w-4"
@@ -479,7 +508,11 @@ export default function UserManagement() {
                           </button>
                         </>
                       )}
-                      <button onClick={() => navigate(`/profile/${user.id}`)} className="p-xs text-outline hover:text-primary transition-colors hover:bg-surface-container rounded-lg" title="View Profile">
+                      <button 
+                        onClick={(e) => { e.stopPropagation(); navigate(`/profile/${user.id}`, { state: { from: location.pathname + location.search, label: 'Users' } }); }} 
+                        className="p-xs text-outline hover:text-primary transition-colors hover:bg-surface-container rounded-lg" 
+                        title="View Profile"
+                      >
                         <span className="material-symbols-outlined text-[20px]">visibility</span>
                       </button>
                     </div>
