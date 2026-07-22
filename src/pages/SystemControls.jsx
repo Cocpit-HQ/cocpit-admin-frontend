@@ -1,9 +1,23 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { useAuth } from '../AuthContext';
 
 export default function SystemControls() {
-  const [activeTab, setActiveTab] = useState('Authentication');
+  const { accessToken } = useAuth();
+  const [activeTab, setActiveTab] = useState(() => {
+    return localStorage.getItem('systemControlsTab') || 'Authentication';
+  });
 
   const [settings, setSettings] = useState({
+    // Master Module Kill-Switches
+    enableJobsModule: true,
+    enableFeedModule: true,
+    enableNetworkingModule: true,
+    enableMessagingModule: true,
+    enableProfileModule: true,
+    enableAIModule: true,
+    enableAuthModule: true,
+    enableOrganizationsModule: true,
+
     // Authentication & Onboarding
     enableUserLogin: true,
     enableUserSignup: true,
@@ -117,9 +131,51 @@ export default function SystemControls() {
     dataRetentionPeriod: '90',
   });
 
+  const [isSaving, setIsSaving] = useState(false);
+
+  useEffect(() => {
+    // Fetch initial feature flags from the backend
+    const fetchFlags = async () => {
+      try {
+        const res = await fetch('/api/config');
+        const data = await res.json();
+        if (data && data.features) {
+          // Map backend flags to frontend settings
+          // Backend keys are snake_case (e.g. saved_jobs, jobs_board)
+          // Since the settings state uses camelCase, we need to map or just add the snake_case keys
+          // For simplicity, we merge the backend features into our settings.
+          // Note: The UI checkboxes will need to use the snake_case keys if we map them directly, 
+          // or we can just map the specific ones. 
+          // Let's use the backend features directly and append to our settings state.
+          const mappedSettings = { ...settings };
+          Object.keys(data.features).forEach(key => {
+            // we will just use the backend keys natively in our settings object
+            mappedSettings[key] = data.features[key];
+          });
+          setSettings(mappedSettings);
+        }
+      } catch (err) {
+        console.error("Failed to fetch config:", err);
+      }
+    };
+    fetchFlags();
+  }, []);
+
   const handleToggle = (key) => {
-    setSettings({ ...settings, [key]: !settings[key] });
+    const newValue = !settings[key];
+    const newSettings = { ...settings, [key]: newValue };
+
+    // Sync master module keys with section switches
+    if (key === 'enableJobsBoard') newSettings.enableJobsModule = newValue;
+    if (key === 'enableFeedAccess') newSettings.enableFeedModule = newValue;
+    if (key === 'enableConnectionsTab') newSettings.enableNetworkingModule = newValue;
+    if (key === 'enableMessaging') newSettings.enableMessagingModule = newValue;
+    if (key === 'enableProfileTab') newSettings.enableProfileModule = newValue;
+    if (key === 'enableAITab') newSettings.enableAIModule = newValue;
+
+    setSettings(newSettings);
   };
+
 
   const handleChange = (key, value) => {
     setSettings({ ...settings, [key]: value });
@@ -132,6 +188,7 @@ export default function SystemControls() {
     { id: 'Messaging', icon: 'chat', label: 'Messaging & Chats' },
     { id: 'Notifications', icon: 'notifications', label: 'Notifications' },
     { id: 'Jobs', icon: 'work', label: 'Jobs & Careers' },
+    { id: 'Organizations', icon: 'corporate_fare', label: 'Organizations & Companies' },
     { id: 'AI', icon: 'robot_2', label: 'AI Assistant' },
     { id: 'Profile', icon: 'person', label: 'User Profile' },
     { id: 'Search', icon: 'search', label: 'Global Search' },
@@ -140,32 +197,63 @@ export default function SystemControls() {
     { id: 'System', icon: 'memory', label: 'System & DB (Legacy)' },
   ];
 
-  const ToggleRow = ({ label, description, settingKey, danger = false }) => (
-    <div className="flex items-center justify-between p-md bg-surface border border-outline-variant rounded hover:border-primary/30 transition-colors">
-      <div>
-        <p className="font-label-md font-bold text-on-surface">{label}</p>
-        <p className="font-body-sm text-secondary mt-1">{description}</p>
+  const ToggleRow = ({ label, description, settingKey, danger = false }) => {
+    const isEnabled = Boolean(settings[settingKey]);
+    return (
+      <div className={`flex items-center justify-between p-4 rounded-xl border transition-all ${
+        isEnabled 
+          ? 'bg-emerald-500/5 border-emerald-500/20' 
+          : 'bg-rose-500/5 border-rose-500/20'
+      }`}>
+        <div className="flex-1 pr-4">
+          <div className="flex items-center gap-2">
+            <p className="font-bold text-sm text-on-surface">{label}</p>
+            <span className={`px-2 py-0.5 text-[10px] font-black rounded-full tracking-wider uppercase ${
+              isEnabled 
+                ? 'bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30' 
+                : 'bg-rose-500/20 text-rose-600 dark:text-rose-400 border border-rose-500/30'
+            }`}>
+              {isEnabled ? '● ON' : '○ OFF'}
+            </span>
+          </div>
+          <p className="text-xs text-secondary mt-1">{description}</p>
+        </div>
+
+        <button
+          onClick={() => handleToggle(settingKey)}
+          className={`relative inline-flex h-7 w-12 shrink-0 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 cursor-pointer ${
+            isEnabled ? (danger ? 'bg-error' : 'bg-emerald-600') : 'bg-gray-300 dark:bg-gray-700'
+          }`}
+        >
+          <span className={`inline-block h-5 w-5 transform rounded-full bg-white transition-transform shadow-md ${
+            isEnabled ? 'translate-x-6' : 'translate-x-1'
+          }`} />
+        </button>
       </div>
-      <button 
-        onClick={() => handleToggle(settingKey)}
-        className={`relative inline-flex h-6 w-11 shrink-0 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 ${
-          settings[settingKey] ? (danger ? 'bg-error' : 'bg-primary') : 'bg-gray-300'
-        }`}
-      >
-        <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform shadow-sm ${settings[settingKey] ? 'translate-x-6' : 'translate-x-1'}`} />
-      </button>
-    </div>
-  );
+    );
+  };
 
   return (
     <div className="flex-1 flex flex-col max-w-7xl mx-auto w-full pb-xl px-4 sm:px-6 lg:px-8 pt-8">
       {/* Page Header */}
-      <div className="mb-lg">
+      <div className="mb-md">
         <h2 className="font-display-lg text-display-lg text-on-surface flex items-center gap-sm">
           <span className="material-symbols-outlined text-[32px] text-primary">admin_panel_settings</span>
           System Controls
         </h2>
         <p className="font-body-md text-on-surface-variant mt-xs">Developer-exclusive platform configuration and emergency controls.</p>
+      </div>
+
+      {/* Explanatory Feature Toggle Note Card */}
+      <div className="mb-lg p-4 bg-blue-50/80 dark:bg-blue-950/40 border border-blue-200 dark:border-blue-800 rounded-2xl flex items-start gap-3 shadow-sm">
+        <span className="material-symbols-outlined text-[24px] text-blue-600 dark:text-blue-400 shrink-0 mt-0.5">info</span>
+        <div className="text-xs leading-relaxed text-blue-900 dark:text-blue-200">
+          <p className="font-bold text-sm mb-1 text-blue-950 dark:text-blue-100">📌 How Feature Toggles Work (Master vs Sub-Features):</p>
+          <ul className="list-disc pl-4 space-y-1">
+            <li><strong>Master Switches (e.g. Jobs Board, Feed Access):</strong> Turning <strong>OFF</strong> a master switch puts the <u>entire portal/page</u> under maintenance for both Candidates and Employers.</li>
+            <li><strong>Sub-Feature Switches (e.g. Job Applications, Job Creation, Saved Jobs):</strong> Turning <strong>OFF</strong> a sub-feature keeps the page open, but <u>degrades specific action buttons & tabs</u> into a disabled state with a maintenance tooltip.</li>
+          </ul>
+        </div>
       </div>
 
       <div className="flex flex-col lg:flex-row gap-lg">
@@ -175,12 +263,14 @@ export default function SystemControls() {
             {tabs.map((tab) => (
               <button
                 key={tab.id}
-                onClick={() => setActiveTab(tab.id)}
-                className={`w-full flex items-center gap-md px-md py-sm text-left font-label-md text-label-md transition-colors border-l-4 ${
-                  activeTab === tab.id 
-                    ? 'bg-primary-container text-on-primary-container border-primary' 
+                onClick={() => {
+                  setActiveTab(tab.id);
+                  localStorage.setItem('systemControlsTab', tab.id);
+                }}
+                className={`w-full flex items-center gap-md px-md py-sm text-left font-label-md text-label-md transition-colors border-l-4 ${activeTab === tab.id
+                    ? 'bg-primary-container text-on-primary-container border-primary'
                     : 'text-on-surface-variant hover:bg-surface-container-low border-transparent hover:text-on-surface'
-                }`}
+                  }`}
               >
                 <span className="material-symbols-outlined text-[20px]">{tab.icon}</span>
                 {tab.label}
@@ -192,7 +282,7 @@ export default function SystemControls() {
         {/* Tab Content */}
         <div className="flex-1">
           <div className="bg-surface-container-lowest border border-outline-variant rounded-xl p-lg shadow-sm min-h-[500px]">
-            
+
             {activeTab === 'Authentication' && (
               <div className="animate-in fade-in duration-300">
                 <h3 className="font-headline-sm mb-md pb-xs border-b border-outline-variant">Authentication & Onboarding</h3>
@@ -261,11 +351,23 @@ export default function SystemControls() {
                   <ToggleRow label="Jobs Board" description="Master switch for the Jobs portal." settingKey="enableJobsBoard" danger />
                   <ToggleRow label="Job Applications" description="Users can view but cannot apply to jobs." settingKey="enableJobApplications" />
                   <ToggleRow label="Application Tracking" description="Users cannot track submitted applications." settingKey="enableApplicationTracking" />
-                  <ToggleRow label="Saved Jobs" description="Users cannot bookmark jobs." settingKey="enableSavedJobs" />
+                  <ToggleRow label="Saved Jobs" description="Users cannot bookmark jobs." settingKey="saved_jobs" />
                   <ToggleRow label="Job Offers" description="Users cannot manage direct job offers." settingKey="enableJobOffers" />
+
                   <ToggleRow label="Job Listings Management" description="Users/companies cannot manage their posted jobs." settingKey="enableMyListings" />
                   <ToggleRow label="Job Creation" description="Users cannot post new jobs." settingKey="enableJobCreation" />
                   <ToggleRow label="AI Job Description" description="Disable AI generation for job descriptions." settingKey="enableAiJobDescription" />
+                </div>
+              </div>
+            )}
+
+            {activeTab === 'Organizations' && (
+              <div className="animate-in fade-in duration-300">
+                <h3 className="font-headline-sm mb-md pb-xs border-b border-outline-variant">Organizations & Companies</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-md">
+                  <ToggleRow label="Organizations Module" description="Master switch to hide all company features." settingKey="enableOrganizationsModule" danger />
+                  <ToggleRow label="Organization Showcases" description="Users cannot view public company pages." settingKey="enableOrganizations" />
+                  <ToggleRow label="Organization Creation" description="Users cannot create Company pages." settingKey="enableOrgCreation" />
                 </div>
               </div>
             )}
@@ -318,7 +420,6 @@ export default function SystemControls() {
                   <ToggleRow label="User Blocking" description="Users cannot block/unblock accounts." settingKey="enableUserBlocking" danger />
                   <ToggleRow label="Active Sessions" description="Users cannot view or revoke logged-in devices." settingKey="enableSessionManagement" />
                   <ToggleRow label="Comment Hiding" description="Users cannot hide specific comments." settingKey="enableCommentHiding" />
-                  <ToggleRow label="Organization Creation" description="Users cannot create Company pages." settingKey="enableOrgCreation" />
                   <ToggleRow label="Account Deletion" description="Users cannot delete their accounts." settingKey="enableAccountDeletion" danger />
                 </div>
               </div>
@@ -330,31 +431,31 @@ export default function SystemControls() {
                 <div className="space-y-md">
                   <div className="p-md bg-surface border border-outline-variant rounded">
                     <label className="font-label-md font-bold text-on-surface block mb-xs">Maintenance Mode Message</label>
-                    <textarea 
+                    <textarea
                       value={settings.maintenanceModeMessage}
                       onChange={(e) => handleChange('maintenanceModeMessage', e.target.value)}
                       className="w-full h-24 bg-surface-container-lowest border border-outline-variant rounded px-md py-sm text-body-sm text-on-surface focus:ring-1 focus:ring-primary focus:outline-none"
                       placeholder="Message shown when a feature is unavailable"
                     ></textarea>
                   </div>
-                  
+
                   <ToggleRow label="Global Announcement Banner" description="Toggle visibility of the global banner across the platform." settingKey="enableGlobalBanner" />
-                  
+
                   <div className="p-md bg-surface border border-outline-variant rounded">
                     <label className="font-label-md font-bold text-on-surface block mb-xs">Banner Message</label>
-                    <input 
-                      type="text" 
+                    <input
+                      type="text"
                       value={settings.globalBannerMessage}
                       placeholder="e.g. We are experiencing issues"
                       onChange={(e) => handleChange('globalBannerMessage', e.target.value)}
                       className="w-full bg-surface-container-lowest border border-outline-variant rounded px-md py-sm text-body-sm text-on-surface focus:ring-1 focus:ring-primary focus:outline-none"
                     />
                   </div>
-                  
+
                   <div className="p-md bg-surface border border-outline-variant rounded">
                     <label className="font-label-md font-bold text-on-surface block mb-xs">Scheduled Platform Notice</label>
-                    <input 
-                      type="text" 
+                    <input
+                      type="text"
                       value={settings.scheduledPlatformNotice}
                       placeholder="e.g. Scheduled downtime warning"
                       onChange={(e) => handleChange('scheduledPlatformNotice', e.target.value)}
@@ -378,7 +479,7 @@ export default function SystemControls() {
                   <ToggleRow label="Enable Database Writes" description="Emergency read-only DB lock." settingKey="enableDatabaseWrites" danger />
                   <ToggleRow label="Audit Logging" description="Keep this ON." settingKey="enableAuditLogging" danger />
                 </div>
-                
+
                 <div className="mt-md p-md bg-surface border border-outline-variant rounded flex flex-col md:flex-row items-start md:items-center justify-between gap-md">
                   <div>
                     <p className="font-label-md font-bold text-on-surface">Manual Cache Invalidation</p>
@@ -391,15 +492,67 @@ export default function SystemControls() {
 
             {/* Save Buttons (Persistent at bottom of active tab) */}
             <div className="mt-lg pt-md border-t border-outline-variant flex justify-end">
-              <button 
-                onClick={() => alert('Settings changes confirmed (Frontend only).')}
-                className="bg-primary text-on-primary px-lg py-sm rounded-lg font-label-md shadow-sm hover:bg-primary/90 transition-colors active:scale-95 flex items-center gap-xs"
+              <button
+                onClick={async () => {
+                  setIsSaving(true);
+                  try {
+                    let token = accessToken || localStorage.getItem('accessToken') || localStorage.getItem('token');
+                    
+                    let res = await fetch('/api/admin/feature-flags', {
+                      method: 'PUT',
+                      headers: {
+                        'Content-Type': 'application/json',
+                        ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+                      },
+                      body: JSON.stringify({ features: settings })
+                    });
+
+                    // If token is expired or missing, auto-refresh session and retry
+                    if (res.status === 401 || res.status === 403) {
+                      try {
+                        const refreshRes = await fetch('/api/auth/refresh', { method: 'POST' });
+                        if (refreshRes.ok) {
+                          const refreshData = await refreshRes.json();
+                          if (refreshData?.accessToken) {
+                            token = refreshData.accessToken;
+                            localStorage.setItem('accessToken', token);
+                            res = await fetch('/api/admin/feature-flags', {
+                              method: 'PUT',
+                              headers: {
+                                'Content-Type': 'application/json',
+                                'Authorization': `Bearer ${token}`
+                              },
+                              body: JSON.stringify({ features: settings })
+                            });
+                          }
+                        }
+                      } catch (refreshErr) {
+                        console.error("Auto refresh failed:", refreshErr);
+                      }
+                    }
+
+                    if (res.ok) {
+                      alert('All feature flags and module controls saved to backend successfully.');
+                    } else {
+                      const data = await res.json().catch(() => ({}));
+                      alert(`Failed to save settings: ${data.message || data.error || 'Unauthorized or Forbidden'}. Please ensure you are logged in as Admin.`);
+                    }
+                  } catch (err) {
+                    console.error("Error saving flags:", err);
+                    alert("Failed to save settings to backend.");
+                  } finally {
+                    setIsSaving(false);
+                  }
+                }}
+                disabled={isSaving}
+                className={`bg-primary text-on-primary px-lg py-sm rounded-lg font-label-md shadow-sm hover:bg-primary/90 transition-colors active:scale-95 flex items-center gap-xs ${isSaving ? 'opacity-50 cursor-not-allowed' : ''}`}
               >
                 <span className="material-symbols-outlined text-[18px]">save</span>
-                Save Changes
+                {isSaving ? 'Saving...' : 'Save Changes'}
               </button>
             </div>
-            
+
+
           </div>
         </div>
       </div>

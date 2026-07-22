@@ -4,28 +4,6 @@ import { format, formatDistanceToNow } from 'date-fns';
 import { useAuth } from '../AuthContext';
 import DangerModal from '../components/DangerModal';
 
-const baseActivity = [
-  { id: 1, text: 'posted a new photo in Urban Photography', time: '12 minutes ago', icon: 'photo', color: 'bg-primary text-white ring-0', type: 'post' },
-  { id: 2, text: 'updated his professional bio', time: '4 hours ago', icon: 'person', color: 'bg-surface-container-highest text-primary ring-2 ring-surface', type: 'profile' },
-  { id: 3, text: 'joined the Tech Discussions group', time: 'Yesterday at 11:30 PM', icon: 'group_add', color: 'bg-surface-container-highest text-primary ring-2 ring-surface', type: 'group' },
-  { id: 4, text: 'Account received a Spam Flag from a moderator', time: 'Oct 24, 2023', icon: 'warning', color: 'bg-error-container text-error ring-2 ring-surface', type: 'moderation' },
-  { id: 41, text: 'Appeal Decision: Account Reinstated', time: 'Oct 23, 2023', icon: 'gavel', color: 'bg-green-100 text-green-700 ring-2 ring-surface', type: 'moderation' },
-  { id: 42, text: 'Submitted an Appeal: "My account was hacked..."', time: 'Oct 23, 2023', icon: 'edit_document', color: 'bg-surface-container-highest text-primary ring-2 ring-surface', type: 'moderation' },
-  { id: 43, text: 'Suspended (Short Temporary) by Admin', time: 'Oct 22, 2023', icon: 'block', color: 'bg-error text-white ring-0', type: 'moderation' },
-  { id: 5, text: 'liked a comment on "The Future of AI"', time: 'Oct 21, 2023', icon: 'thumb_up', color: 'bg-surface-container-highest text-primary ring-2 ring-surface', type: 'engagement' },
-  { id: 6, text: 'commented: "Great insights!"', time: 'Oct 22, 2023', icon: 'comment', color: 'bg-surface-container-highest text-primary ring-2 ring-surface', type: 'engagement' },
-  { id: 7, text: 'shared a post from TechCrunch', time: 'Oct 21, 2023', icon: 'share', color: 'bg-surface-container-highest text-primary ring-2 ring-surface', type: 'post' },
-  { id: 8, text: 'applied for a job at Google', time: 'Oct 20, 2023', icon: 'work', color: 'bg-surface-container-highest text-primary ring-2 ring-surface', type: 'job' },
-  { id: 9, text: 'connected with Jane Doe', time: 'Oct 19, 2023', icon: 'handshake', color: 'bg-surface-container-highest text-primary ring-2 ring-surface', type: 'network' },
-  { id: 10, text: 'published an article: "React best practices"', time: 'Oct 18, 2023', icon: 'article', color: 'bg-primary text-white ring-0', type: 'post' },
-];
-
-const mockAllActivity = [
-  ...baseActivity,
-  ...baseActivity.map(a => ({ ...a, id: a.id + 10, time: 'Older' })),
-  ...baseActivity.map(a => ({ ...a, id: a.id + 20, time: 'Even Older' }))
-];
-
 export default function UserProfile() {
   const { role, accessToken } = useAuth();
   const navigate = useNavigate();
@@ -43,6 +21,14 @@ export default function UserProfile() {
   const [visibleCount, setVisibleCount] = useState(5);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
+  const [reportsOnUser, setReportsOnUser] = useState([]);
+  const [reportsSubmitted, setReportsSubmitted] = useState([]);
+  const [reportsLoading, setReportsLoading] = useState(true);
+  const [activeReportTab, setActiveReportTab] = useState('onUser');
+  const [reportModalOpen, setReportModalOpen] = useState(false);
+  const [selectedReport, setSelectedReport] = useState(null);
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [activeMainTab, setActiveMainTab] = useState('Activity');
   React.useEffect(() => {
     if (!id || !accessToken) return;
     const fetchUser = async () => {
@@ -54,10 +40,27 @@ export default function UserProfile() {
           const data = await response.json();
           setUserData(data);
         }
+
+        const reportsOnRes = await fetch(`/api/admin/reports?targetUserId=${id}&status=all&limit=50`, {
+          headers: { 'Authorization': 'Bearer ' + accessToken }
+        });
+        if (reportsOnRes.ok) {
+          const onData = await reportsOnRes.json();
+          setReportsOnUser(onData.reports || []);
+        }
+
+        const reportsSubRes = await fetch(`/api/admin/reports?reporterId=${id}&status=all&limit=50`, {
+          headers: { 'Authorization': 'Bearer ' + accessToken }
+        });
+        if (reportsSubRes.ok) {
+          const subData = await reportsSubRes.json();
+          setReportsSubmitted(subData.reports || []);
+        }
       } catch (err) {
         console.error(err);
       } finally {
         setLoading(false);
+        setReportsLoading(false);
       }
     };
     fetchUser();
@@ -125,9 +128,11 @@ export default function UserProfile() {
       };
     });
 
+  const activitySource = realAllActivity;
+
   const filteredActivity = activityFilter === 'All' 
-    ? realAllActivity 
-    : realAllActivity.filter(a => {
+    ? activitySource 
+    : activitySource.filter(a => {
         if (activityFilter === 'Posts') return a.type === 'post';
         if (activityFilter === 'Engagement') return a.type === 'engagement';
         if (activityFilter === 'Moderation') return a.type === 'moderation';
@@ -213,318 +218,473 @@ export default function UserProfile() {
     setDeleteModalOpen(false);
   };
 
+  const handleDismissReport = async () => {
+    try {
+      const res = await fetch(`/api/admin/reports/${selectedReport.id}`, {
+        method: 'PATCH',
+        headers: { 'Authorization': `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: 'dismissed' })
+      });
+      if (res.ok) {
+        const updateList = (list) => list.map(r => r.id === selectedReport.id ? { ...r, status: 'dismissed' } : r);
+        setReportsOnUser(updateList);
+        setReportsSubmitted(updateList);
+        setSelectedReport(prev => ({ ...prev, status: 'dismissed' }));
+        alert("Report dismissed.");
+      }
+    } catch (e) { console.error(e); }
+  };
+
+  const handleDeleteContent = async () => {
+    if (window.confirm("Are you sure you want to delete this content?")) {
+      try {
+        const endpoint = (selectedReport.type === 'Content' || selectedReport.rawType === 'POST') 
+          ? `/api/admin/feed/posts/${selectedReport.postId}` : null;
+        if (!endpoint) { alert('Deletion not implemented for this type.'); return; }
+        const res = await fetch(endpoint, {
+          method: 'DELETE',
+          headers: { 'Authorization': `Bearer ${accessToken}` }
+        });
+        if (res.ok) {
+          alert("Content deleted.");
+          setReportModalOpen(false);
+        } else {
+          const data = await res.json();
+          alert(`Error deleting content: ${data.error}`);
+        }
+      } catch (e) { console.error(e); }
+    }
+  };
+
   try {
     return (
-    <div className="max-w-[1440px] mx-auto pb-xl">
-      {/* Top Navigation Bar */}
-      <div className="flex justify-between items-center mb-6">
-        <button 
-          onClick={() => navigate(from)} 
-          className="flex items-center gap-2 text-on-surface-variant hover:text-primary font-medium transition-colors"
-        >
-          <span className="material-symbols-outlined text-[20px]">arrow_back</span>
-          Back to {backLabel}
-        </button>
-      </div>
+    <div className="w-full min-h-screen bg-transparent relative px-4 md:px-8">
+      
 
-      {/* Header Profile Section */}
-      <section className="flex flex-col md:flex-row md:items-end justify-between gap-lg mb-xl">
-        <div className="flex items-center gap-lg">
-          <div className="relative">
-            <img 
-              alt="${userData.name} Avatar" 
-              className="w-32 h-32 rounded-xl border-4 border-surface shadow-sm object-cover" 
-              src={userData.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(userData.name || 'User')}&background=3525cd&color=fff&size=256`} 
-            />
-            <span className="absolute -bottom-2 -right-2 bg-green-500 border-4 border-surface w-6 h-6 rounded-full" title="Status: Active"></span>
-          </div>
-          <div>
-            <div className="flex items-center gap-sm mb-xs">
-              <h2 className="font-display-lg text-display-lg text-on-surface">{userData.name}</h2>
-              <span className="bg-primary-container text-on-primary-container font-label-md text-label-md px-sm py-xs rounded-lg">{userData.role}</span>
-              <span className={`font-label-md text-label-md px-sm py-xs rounded-lg flex items-center gap-1 ${userData.status === 'Active' ? 'bg-green-100 text-green-700' : 'bg-error-container text-error'}`}>
-    <span className="material-symbols-outlined text-[14px]" style={{ fontVariationSettings: "'FILL' 1" }}>{userData.status === 'Active' ? 'check_circle' : 'cancel'}</span>
-    {userData.status}
-  </span>
-            </div>
-            <p className="text-on-surface-variant font-body-md text-body-md">User ID: #{userData.id.split('-')[0]} • Joined {userData.joined ? format(new Date(userData.joined), 'MMM d, yyyy') : 'Unknown'}</p>
-          </div>
-        </div>
-        <div className="flex items-center gap-md">
-          {role !== 'developer' && (
-            <>
-              <button 
-                onClick={() => setWarningModalOpen(true)}
-                className="flex items-center gap-xs border border-outline text-on-surface font-label-md text-label-md px-lg py-md rounded-xl hover:bg-surface-container-high transition-all active:scale-95"
-              >
-                <span className="material-symbols-outlined text-[20px]">notifications</span>
-                Notify User
-              </button>
-              {userData.status === 'Suspended' ? (
-                <button 
-                  onClick={handleUnsuspendUser}
-                  className="flex items-center gap-xs border border-green-600 text-green-600 font-label-md text-label-md px-lg py-md rounded-xl hover:bg-green-50 hover:border-transparent transition-all active:scale-95"
-                >
-                  <span className="material-symbols-outlined text-[20px]">undo</span>
-                  Unsuspend User
-                </button>
-              ) : (
-                <button 
-                  onClick={() => setSuspendConfirmModalOpen(true)}
-                  className="flex items-center gap-xs border border-error text-error font-label-md text-label-md px-lg py-md rounded-xl hover:bg-error-container hover:border-transparent transition-all active:scale-95"
-                >
-                  <span className="material-symbols-outlined text-[20px]">gavel</span>
-                  Suspend User
-                </button>
-              )}
-              <button 
-                onClick={() => setDeleteModalOpen(true)}
-                className="flex items-center gap-xs border border-error text-error font-label-md text-label-md px-lg py-md rounded-xl hover:bg-error-container hover:border-transparent transition-all active:scale-95"
-              >
-                <span className="material-symbols-outlined text-[20px]">delete_forever</span>
-                Delete Account
-              </button>
-            </>
-          )}
-        </div>
-      </section>
-
-      {/* Bento Grid Layout */}
-      <div className="grid grid-cols-12 gap-lg">
+      <div className="w-full max-w-full mx-auto pt-8 flex flex-col items-start gap-6 bg-transparent z-10 pb-20">
         
-        {/* ── Metrics Grid ─────────────────────────────────────── */}
-        <div className="col-span-12 space-y-lg">
-
-          {/* Row 1 – Activity Metrics */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-lg">
-            {/* Total Posts */}
-            <div className="bg-surface border border-outline-variant rounded-2xl p-lg flex items-center gap-lg hover:shadow-md transition-all group">
-              <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center shrink-0 group-hover:bg-primary/20 transition-colors">
-                <span className="material-symbols-outlined text-primary text-[22px]" style={{ fontVariationSettings: "'FILL' 1" }}>newsmode</span>
-              </div>
-              <div className="flex-1 min-w-0">
-                <p className="text-xs font-semibold uppercase tracking-widest text-on-surface-variant mb-0.5">Total Posts</p>
-                <p className="text-3xl font-black text-on-surface leading-none">{userData.stats.posts}</p>
-              </div>
-              <span className="text-xs font-bold text-green-600 bg-green-50 px-2 py-1 rounded-full flex items-center gap-0.5 shrink-0">
-                <span className="material-symbols-outlined text-[13px]">trending_up</span>+12%
-              </span>
-            </div>
-
-            {/* Followers */}
-            <div className="bg-surface border border-outline-variant rounded-2xl p-lg flex items-center gap-lg hover:shadow-md transition-all group">
-              <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center shrink-0 group-hover:bg-primary/20 transition-colors">
-                <span className="material-symbols-outlined text-primary text-[22px]" style={{ fontVariationSettings: "'FILL' 1" }}>group</span>
-              </div>
-              <div className="flex-1 min-w-0">
-                <p className="text-xs font-semibold uppercase tracking-widest text-on-surface-variant mb-0.5">Followers</p>
-                <p className="text-3xl font-black text-on-surface leading-none">{userData.stats.followers}</p>
-              </div>
-              <span className="text-xs font-bold text-green-600 bg-green-50 px-2 py-1 rounded-full flex items-center gap-0.5 shrink-0">
-                <span className="material-symbols-outlined text-[13px]">trending_up</span>+5%
-              </span>
-            </div>
-
-            {/* Following */}
-            <div className="bg-surface border border-outline-variant rounded-2xl p-lg flex items-center gap-lg hover:shadow-md transition-all group">
-              <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center shrink-0 group-hover:bg-primary/20 transition-colors">
-                <span className="material-symbols-outlined text-primary text-[22px]" style={{ fontVariationSettings: "'FILL' 1" }}>person_add</span>
-              </div>
-              <div className="flex-1 min-w-0">
-                <p className="text-xs font-semibold uppercase tracking-widest text-on-surface-variant mb-0.5">Following</p>
-                <p className="text-3xl font-black text-on-surface leading-none">{userData.stats.following}</p>
-              </div>
-              <span className="text-xs font-bold text-on-surface-variant bg-surface-container px-2 py-1 rounded-full flex items-center gap-0.5 shrink-0">
-                <span className="material-symbols-outlined text-[13px]">horizontal_rule</span>Stable
-              </span>
-            </div>
+        {/* Header */}
+        <div className="flex flex-row items-center gap-4 w-full h-[48px]">
+          <button 
+            onClick={() => navigate(from)}
+            className="box-border flex flex-row justify-center items-center p-2 gap-[10px] w-[48px] h-[48px] rounded-[100px] border border-[#DADADA] bg-white bg-opacity-50 backdrop-blur-[12px] hover:bg-surface-container"
+          >
+            <span className="material-symbols-outlined text-[#6B7280]">arrow_back</span>
+          </button>
+          
+          <div className="flex flex-col items-start w-[159px] h-[42px]">
+            <h1 className="w-[107px] font-medium text-[18px] leading-[26px] text-center text-black whitespace-nowrap">User Details</h1>
+            <p className="w-[159px] font-normal text-[12px] leading-[16px] text-center text-[#6B7280] whitespace-nowrap">View, manage user details</p>
           </div>
-
-          {/* Row 2 – Moderation Metrics */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-lg">
-            {/* Moderation Flags */}
-            <div className="bg-surface border border-outline-variant rounded-2xl p-lg flex items-center gap-lg hover:shadow-md transition-all group">
-              <div className="w-12 h-12 rounded-xl bg-amber-500/10 flex items-center justify-center shrink-0 group-hover:bg-amber-500/20 transition-colors">
-                <span className="material-symbols-outlined text-amber-600 text-[22px]" style={{ fontVariationSettings: "'FILL' 1" }}>flag</span>
-              </div>
-              <div className="flex-1 min-w-0">
-                <p className="text-xs font-semibold uppercase tracking-widest text-on-surface-variant mb-0.5">Moderation Flags</p>
-                <p className="text-3xl font-black text-on-surface leading-none">{userData.stats.moderation_flags}</p>
-              </div>
-              <span className="text-xs font-bold text-amber-700 bg-amber-50 px-2 py-1 rounded-full shrink-0">
-                Active
-              </span>
-            </div>
-
-            {/* Linked Accounts */}
-            <div className="bg-surface border border-outline-variant rounded-2xl p-lg flex items-center gap-lg hover:shadow-md transition-all group">
-              <div className="w-12 h-12 rounded-xl bg-blue-500/10 flex items-center justify-center shrink-0 group-hover:bg-blue-500/20 transition-colors">
-                <span className="material-symbols-outlined text-blue-600 text-[22px]" style={{ fontVariationSettings: "'FILL' 1" }}>link</span>
-              </div>
-              <div className="flex-1 min-w-0">
-                <p className="text-xs font-semibold uppercase tracking-widest text-on-surface-variant mb-0.5">Linked Accounts</p>
-                <p className="text-3xl font-black text-on-surface leading-none">
-                  {userData.socialAccounts && userData.socialAccounts.length > 0 ? userData.socialAccounts.length : 0}
-                </p>
-              </div>
-              <span className="text-xs font-bold text-blue-700 bg-blue-50 px-2 py-1 rounded-full shrink-0">
-                Connected
-              </span>
-            </div>
-
-            {/* Suspensions */}
-            <div className={`rounded-2xl p-lg flex items-center gap-lg hover:shadow-md transition-all group border ${(userData.suspensionCount || 0) > 0 ? 'bg-error-container/30 border-error/30' : 'bg-surface border-outline-variant'}`}>
-              <div className={`w-12 h-12 rounded-xl flex items-center justify-center shrink-0 transition-colors ${(userData.suspensionCount || 0) > 0 ? 'bg-error/15 group-hover:bg-error/25' : 'bg-surface-container group-hover:bg-surface-container-high'}`}>
-                <span className={`material-symbols-outlined text-[22px] ${(userData.suspensionCount || 0) > 0 ? 'text-error' : 'text-on-surface-variant'}`} style={{ fontVariationSettings: "'FILL' 1" }}>gavel</span>
-              </div>
-              <div className="flex-1 min-w-0">
-                <p className="text-xs font-semibold uppercase tracking-widest text-on-surface-variant mb-0.5">Suspensions</p>
-                <p className={`text-3xl font-black leading-none ${(userData.suspensionCount || 0) > 0 ? 'text-error' : 'text-on-surface'}`}>
-                  {userData.suspensionCount || 0}
-                </p>
-              </div>
-              <span className={`text-xs font-bold px-2 py-1 rounded-full shrink-0 ${(userData.suspensionCount || 0) > 0 ? 'text-error bg-error/10' : 'text-on-surface-variant bg-surface-container'}`}>
-                {(userData.suspensionCount || 0) > 0 ? 'History' : 'Clean'}
-              </span>
-            </div>
-          </div>
-
         </div>
 
-        {/* User Details Section */}
-        <div className="col-span-12 lg:col-span-4 bg-surface border border-outline-variant rounded-xl overflow-hidden flex flex-col lg:h-[650px]">
-          <div className="px-lg py-md border-b border-outline-variant bg-surface-container-low flex items-center gap-xs shrink-0">
-            <span className="material-symbols-outlined text-on-surface-variant">info</span>
-            <h4 className="font-headline-sm text-headline-sm">User Details</h4>
-          </div>
-          <div className="p-lg space-y-md flex-1 overflow-y-auto">
-            <div className="flex flex-col gap-xs">
-              <p className="font-label-md text-label-md text-on-surface-variant">Full Name</p>
-              <p className="font-body-md text-body-md font-semibold">{userData.name}</p>
+        {/* Profile Card Area */}
+        <div className="flex flex-col md:flex-row justify-between items-start py-2 gap-6 w-full min-h-[152px]">
+          <div className="flex flex-col sm:flex-row items-start gap-4 mr-auto w-auto max-w-full">
+            {/* Avatar */}
+            <div className="w-[136px] h-[136px] rounded-[24px] relative">
+              <img 
+                alt={`${userData.name} Avatar`} 
+                className="w-full h-full rounded-[24px] object-cover" 
+                src={userData.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(userData.name || 'User')}&background=3525cd&color=fff&size=256`} 
+              />
             </div>
-            <div className="flex flex-col gap-xs">
-              <p className="font-label-md text-label-md text-on-surface-variant">Email Address</p>
-              <p className="font-body-md text-body-md font-semibold">{userData.email}</p>
-            </div>
-            <div className="flex flex-col gap-xs">
-              <p className="font-label-md text-label-md text-on-surface-variant">Phone Number</p>
-              <p className="font-body-md text-body-md font-semibold">{userData.phone || 'Not provided'}</p>
-            </div>
-            <div className="flex flex-col gap-xs">
-              <p className="font-label-md text-label-md text-on-surface-variant">Location</p>
-              <p className="font-body-md text-body-md font-semibold">{userData.location || 'Unknown'}</p>
-            </div>
-            <div className="flex flex-col gap-xs">
-              <p className="font-label-md text-label-md text-on-surface-variant">Last Login</p>
-              <p className="font-body-md text-body-md font-semibold">{userData.lastActive ? formatDistanceToNow(new Date(userData.lastActive), { addSuffix: true }) : 'Unknown'}</p>
-            </div>
-            <div className="pt-md">
-              <div className="bg-surface-container-high rounded-xl p-md">
-                <p className="font-label-md text-label-md text-on-surface-variant mb-sm">Location Data</p>
-                <div className="w-full h-40 rounded-lg overflow-hidden relative group border border-outline-variant">
-                  {userData.coordinates?.lat && userData.coordinates?.lng ? (
-                    <iframe
-                      width="100%"
-                      height="100%"
-                      frameBorder="0"
-                      style={{ border: 0 }}
-                      src={`https://maps.google.com/maps?q=${userData.coordinates.lat},${userData.coordinates.lng}&z=13&output=embed`}
-                      allowFullScreen
-                      title="User Location Map"
-                    ></iframe>
-                  ) : userData.location && userData.location !== 'Unknown' ? (
-                    <iframe
-                      width="100%"
-                      height="100%"
-                      frameBorder="0"
-                      style={{ border: 0 }}
-                      src={`https://maps.google.com/maps?q=${encodeURIComponent(userData.location)}&z=11&output=embed`}
-                      allowFullScreen
-                      title="User Location Map"
-                    ></iframe>
-                  ) : (
-                    <div className="absolute inset-0 flex flex-col items-center justify-center bg-surface-variant grayscale opacity-70 z-20">
-                      <span className="material-symbols-outlined text-on-surface-variant text-4xl mb-2" style={{ fontVariationSettings: "'FILL' 1" }}>location_off</span>
-                      <p className="text-sm font-medium text-on-surface-variant">Location unavailable</p>
-                    </div>
-                  )}
+            
+            {/* Profile Info */}
+            <div className="flex flex-col items-start gap-2 w-full max-w-full">
+              <h2 className="w-[180px] font-semibold text-[24px] leading-[32px] text-black whitespace-nowrap">{userData.name}</h2>
+              
+              <div className="flex flex-row items-center gap-2 h-[16px]">
+                <p className="font-normal text-[12px] leading-[16px] flex items-center text-[#6B7280]">Account Status</p>
+                <div className="flex flex-row items-center gap-2">
+                  <div className={`w-[6px] h-[6px] rounded-full ${userData.status === 'Active' ? 'bg-[#22C55E]' : 'bg-red-500'}`}></div>
+                  <p className={`font-normal text-[12px] leading-[16px] flex items-center ${userData.status === 'Active' ? 'text-[#22C55E]' : 'text-red-500'}`}>{userData.status}</p>
                 </div>
               </div>
-            </div>
-          </div>
-        </div>
 
-        {/* Activity Feed */}
-        <div className="col-span-12 lg:col-span-5 bg-surface border border-outline-variant rounded-xl overflow-hidden flex flex-col lg:h-[650px]">
-          <div className="px-lg py-md border-b border-outline-variant bg-surface-container-low flex items-center justify-between shrink-0">
-            <div className="flex items-center gap-xs">
-              <span className="material-symbols-outlined text-on-surface-variant">history</span>
-              <h4 className="font-headline-sm text-headline-sm">Activity Feed</h4>
+              <div className="flex flex-row items-center gap-2 h-[16px] whitespace-nowrap">
+                <p className="font-normal text-[12px] leading-[16px] text-center text-[#6B7280]">Following {userData.stats?.following || 0}</p>
+                <div className="w-[4px] h-[4px] bg-[#DADADA] rounded-full"></div>
+                <p className="font-normal text-[12px] leading-[16px] text-center text-[#6B7280]">Followers {userData.stats?.followers || 0}</p>
+                <div className="w-[4px] h-[4px] bg-[#DADADA] rounded-full"></div>
+                <p className="font-normal text-[12px] leading-[16px] text-center text-[#6B7280]">Connections {userData.stats?.connections || 0}</p>
+              </div>
+
+              <div className="flex flex-row justify-center items-center gap-2 h-[20px] whitespace-nowrap">
+                <p className="font-normal text-[14px] leading-[20px] text-[#6B7280]">User ID: #{userData.id?.split('-')[0]}</p>
+                <div className="w-[6px] h-[6px] bg-[#DADADA] rounded-full"></div>
+                <p className="font-normal text-[14px] leading-[20px] text-[#6B7280]">Joined {userData.joined ? format(new Date(userData.joined), 'MMM d, yyyy') : 'Unknown'}</p>
+              </div>
+
+              <div className="flex flex-row items-center gap-2 w-full md:w-auto md:min-w-[300px] h-[20px] whitespace-nowrap">
+                <p className="font-normal text-[14px] leading-[20px] text-center text-black">{userData.email}</p>
+                <div className="w-[6px] h-[6px] bg-[#DADADA] rounded-full"></div>
+                <p className="font-normal text-[14px] leading-[20px] text-center text-black">{userData.phone || 'Not provided'}</p>
+                <div className="w-[6px] h-[6px] bg-[#DADADA] rounded-full"></div>
+                <p className="font-normal text-[14px] leading-[20px] text-center text-black">{userData.location || 'Unknown'}</p>
+              </div>
             </div>
-            <button onClick={() => setActivityModalOpen(true)} className="text-primary font-label-md text-label-md hover:underline">View All</button>
           </div>
-          <div className={`p-lg space-y-lg relative flex-1 overflow-y-auto ${realAllActivity.length === 0 ? 'flex flex-col items-center justify-center' : ''}`}>
-            {realAllActivity.length > 0 && <div className="absolute left-lg top-[3.5rem] bottom-lg w-[2px] bg-outline-variant ml-[11px]"></div>}
-            
-            {realAllActivity.length > 0 ? (
-              realAllActivity.slice(0, 10).map((activity) => {
-                return (
-                  <div key={activity.id} className="flex gap-md relative">
-                    <div className={`w-8 h-8 rounded-full flex items-center justify-center z-10 mt-0.5 shadow-sm ${activity.color}`}>
-                      <span className="material-symbols-outlined text-[16px]" style={{ fontVariationSettings: "'FILL' 1" }}>{activity.icon}</span>
-                    </div>
-                    <div className="flex-1 pb-1">
-                      <p className="font-body-md text-body-md"><span className="font-bold">{userData.name}</span> {activity.text}.</p>
-                      <p className="text-xs text-on-surface-variant mt-0.5">{activity.time}</p>
-                    </div>
-                  </div>
-                );
-              })
-            ) : (
-              <div className="text-center">
-                <span className="material-symbols-outlined text-4xl text-on-surface-variant mb-2">history</span>
-                <p className="text-headline-sm text-on-surface-variant font-medium">No recent activity.</p>
+
+          <div className="relative">
+            <button 
+              onClick={() => setMenuOpen(!menuOpen)}
+              className="box-border flex flex-row items-center justify-center mx-auto w-[40px] h-[40px] border border-[#C7D2FE] rounded-[8px] hover:bg-[#EEF2FF] transition-colors"
+            >
+              <span className="material-symbols-outlined text-black rotate-90 w-[24px] h-[24px] flex items-center justify-center">more_vert</span>
+            </button>
+            {menuOpen && (
+              <div className="absolute right-0 top-12 bg-white border border-[#EEF2FF] rounded-xl shadow-lg p-2 w-[160px] z-50 flex flex-col gap-1">
+                <button onClick={() => { setMenuOpen(false); setWarningModalOpen(true); }} className="text-left px-3 py-2 text-sm text-[#000000] hover:bg-[#F3EDF7] rounded-md">Warn User</button>
+                <button onClick={() => { setMenuOpen(false); setSuspendConfirmModalOpen(true); }} className="text-left px-3 py-2 text-sm text-[#000000] hover:bg-[#F3EDF7] rounded-md">Suspend User</button>
+                <button onClick={() => { setMenuOpen(false); setDeleteModalOpen(true); }} className="text-left px-3 py-2 text-sm text-[#FF6B6B] hover:bg-red-50 rounded-md">Delete Account</button>
               </div>
             )}
           </div>
         </div>
 
-        {/* Action History Section */}
-        <div className="col-span-12 lg:col-span-3 bg-surface border border-outline-variant rounded-xl overflow-hidden flex flex-col lg:h-[650px]">
-          <div className="px-lg py-md border-b border-outline-variant bg-surface-container-low flex items-center gap-xs shrink-0">
-            <span className="material-symbols-outlined text-on-surface-variant">assignment_late</span>
-            <h4 className="font-headline-sm text-headline-sm">Action History</h4>
+        {/* Stats Grid */}
+        <div className="flex flex-col md:flex-row items-stretch md:items-center gap-4 w-full min-h-[94px]">
+          <div className="box-border flex flex-col justify-center items-start p-4 gap-2 w-full flex-1 h-[94px] bg-white border border-[#EEF2FF] rounded-[24px]">
+            <div className="flex flex-col items-start w-full h-[32px]">
+              <p className="font-semibold text-[24px] leading-[32px] flex items-center text-[#FF6B6B]">{userData.stats?.moderation_flags || 0}</p>
+            </div>
+            <div className="flex flex-col items-start w-full h-[20px]">
+              <p className="w-full font-normal text-[14px] leading-[20px] flex items-center text-black">Moderation Flags</p>
+            </div>
           </div>
-          <div className={`p-lg space-y-lg relative flex-1 overflow-y-auto ${(!userData.actionHistory || userData.actionHistory.length === 0) ? 'flex flex-col items-center justify-center' : ''}`}>
-              {userData.actionHistory && userData.actionHistory.length > 0 && (
-                <div className="absolute left-lg top-[3.5rem] bottom-lg w-[2px] bg-outline-variant ml-[11px]"></div>
-              )}
-              
-              {userData.actionHistory && userData.actionHistory.length > 0 ? (
-                userData.actionHistory.map((action) => {
-                  return (
-                    <div key={action.id} className="flex gap-md relative w-full">
-                      <div className={`w-8 h-8 rounded-full flex items-center justify-center z-10 mt-0.5 shadow-sm ${action.is_severe ? 'bg-error-container text-error ring-2 ring-surface' : 'bg-orange-100 text-orange-600 ring-2 ring-surface'}`}>
+
+          <div className="box-border flex flex-col justify-center items-start p-4 gap-2 w-full flex-1 h-[94px] bg-white border border-[#EEF2FF] rounded-[24px]">
+            <div className="flex flex-col items-start w-full h-[32px]">
+              <p className="font-semibold text-[24px] leading-[32px] flex items-center text-[#FBBF24]">{userData.suspensionCount || 0}</p>
+            </div>
+            <div className="flex flex-col items-start w-full h-[20px]">
+              <p className="w-full font-normal text-[14px] leading-[20px] flex items-center text-black">Suspensions</p>
+            </div>
+          </div>
+
+          <div className="box-border flex flex-col justify-center items-start p-4 gap-2 w-full flex-1 h-[94px] bg-white border border-[#EEF2FF] rounded-[24px]">
+            <div className="flex flex-col items-start w-full h-[32px]">
+              <p className="font-semibold text-[24px] leading-[32px] flex items-center text-[#6366F1]">{userData.socialAccounts?.length || 0}</p>
+            </div>
+            <div className="flex flex-col items-start w-full h-[20px]">
+              <p className="w-full font-normal text-[14px] leading-[20px] flex items-center text-black">Linked Accounts</p>
+            </div>
+          </div>
+        </div>
+
+        {/* Chips */}
+        <div className="flex flex-row justify-between items-center w-full h-[40px]">
+          <div className="flex flex-row items-center gap-4 mx-auto w-auto h-[40px] overflow-x-auto pb-2 px-2 max-w-full">
+            <button 
+              onClick={() => setActiveMainTab('Activity')}
+              className={`box-border flex flex-row justify-center items-center px-4 py-[6px] h-[32px] rounded-[24px] transition-colors ${activeMainTab === 'Activity' ? 'bg-[#EEF2FF] border-[#EEF2FF]' : 'bg-white border-[#818CF8]'} border`}
+            >
+              <p className={`h-[20px] font-medium text-[14px] leading-[20px] flex items-center text-center ${activeMainTab === 'Activity' ? 'text-[#6366F1]' : 'text-[#818CF8]'}`}>Activity</p>
+            </button>
+            <button 
+              onClick={() => setActiveMainTab('Reports')}
+              className={`box-border flex flex-row justify-center items-center px-4 py-[6px] h-[32px] rounded-[24px] transition-colors ${activeMainTab === 'Reports' ? 'bg-[#EEF2FF] border-[#EEF2FF]' : 'bg-white border-[#818CF8]'} border`}
+            >
+              <p className={`font-normal text-[14px] leading-[20px] flex items-center text-center ${activeMainTab === 'Reports' ? 'text-[#6366F1]' : 'text-[#818CF8]'}`}>Reports</p>
+            </button>
+            <button 
+              onClick={() => setActiveMainTab('Admin Action History')}
+              className={`box-border flex flex-row justify-center items-center px-4 py-[6px] h-[32px] rounded-[24px] transition-colors ${activeMainTab === 'Admin Action History' ? 'bg-[#EEF2FF] border-[#EEF2FF]' : 'bg-white border-[#818CF8]'} border`}
+            >
+              <p className={`font-normal text-[14px] leading-[20px] flex items-center text-center ${activeMainTab === 'Admin Action History' ? 'text-[#6366F1]' : 'text-[#818CF8]'}`}>Admin Action History</p>
+            </button>
+          </div>
+        </div>
+
+        {/* Tab Content Area */}
+        {activeMainTab === 'Activity' && (
+          <div className="flex flex-col items-start gap-4 w-full min-h-[522px]">
+            <div className="flex flex-row items-center gap-2 w-full h-[26px]">
+              <div className="flex flex-col items-start gap-1 w-[636px] h-[26px]">
+                <h3 className="w-[135px] font-medium text-[18px] leading-[26px] flex items-center text-black">Activity History</h3>
+              </div>
+            </div>
+
+            <div className="flex flex-col items-start gap-4 w-full h-[36px]">
+              <div className="flex flex-row items-start gap-4 h-[36px]">
+                <button 
+                  onClick={() => { setActivityFilter('All'); setVisibleCount(10); }} 
+                  className={`box-border flex flex-row justify-center items-center px-4 py-2 gap-[10px] h-[36px] ${activityFilter === 'All' ? 'border-b border-[#6366F1]' : ''}`}
+                  style={{ filter: activityFilter === 'All' ? 'drop-shadow(0px 1px 4px rgba(99, 102, 241, 0.08))' : 'none' }}
+                >
+                  <p className={`h-[20px] font-semibold text-[14px] leading-[20px] ${activityFilter === 'All' ? 'text-[#6366F1]' : 'text-black'}`}>All</p>
+                </button>
+                <button 
+                  onClick={() => { setActivityFilter('Posts'); setVisibleCount(10); }} 
+                  className={`flex flex-row justify-center items-center px-4 py-2 gap-[10px] h-[36px] rounded-[24px] hover:bg-surface-container ${activityFilter === 'Posts' ? 'border-b border-[#6366F1] rounded-none' : ''}`}
+                >
+                  <p className={`font-normal text-[14px] leading-[20px] ${activityFilter === 'Posts' ? 'text-[#6366F1]' : 'text-black'}`}>Posts</p>
+                </button>
+                <button 
+                  onClick={() => { setActivityFilter('Engagement'); setVisibleCount(10); }} 
+                  className={`flex flex-row justify-center items-center px-4 py-2 gap-[10px] h-[36px] rounded-[24px] hover:bg-surface-container ${activityFilter === 'Engagement' ? 'border-b border-[#6366F1] rounded-none' : ''}`}
+                >
+                  <p className={`font-normal text-[14px] leading-[20px] ${activityFilter === 'Engagement' ? 'text-[#6366F1]' : 'text-black'}`}>Engagement</p>
+                </button>
+              </div>
+            </div>
+
+            <div className="flex flex-row items-start gap-4 w-full h-[428px] md:h-auto md:flex-1 min-h-[300px]">
+              <div className="w-full h-[428px] bg-[#F5F5F5] rounded-[24px] p-6 overflow-y-auto">
+                {filteredActivity.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center py-10">
+                    <span className="material-symbols-outlined text-4xl text-[#6B7280] mb-2">inbox</span>
+                    <p className="text-[#6B7280] font-medium">No activity found.</p>
+                  </div>
+                ) : (
+                  <div className="flex flex-col gap-6 relative">
+                    {/* Activity Line */}
+                    <div className="absolute left-[15px] top-4 bottom-4 w-[2px] bg-[#DADADA] z-0"></div>
+                    {filteredActivity.slice(0, visibleCount).map((activity) => (
+                      <div key={activity.id} className="flex gap-4 relative items-start z-10">
+                        <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 shadow-sm border-2 border-[#F5F5F5] ${activity.color}`}>
+                          <span className="material-symbols-outlined text-[16px]" style={{ fontVariationSettings: "'FILL' 1" }}>{activity.icon}</span>
+                        </div>
+                        <div className="flex-1 pb-2">
+                          <p className="font-normal text-[14px] leading-[20px] text-black"><span className="font-semibold">{userData.name}</span> {activity.text}.</p>
+                          <time className="text-[12px] text-[#6B7280] mt-1 block">{activity.time}</time>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {activeMainTab === 'Reports' && (
+          <div className="flex flex-col items-start gap-4 w-full min-h-[522px]">
+            <div className="w-full bg-[#F5F5F5] rounded-[24px] p-6 flex flex-col">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="font-medium text-[18px] text-black">Reports Associated with User</h3>
+                <div className="flex bg-white rounded-lg p-1 border border-[#EEF2FF]">
+                  <button 
+                    onClick={() => setActiveReportTab('onUser')}
+                    className={`px-4 py-1.5 text-sm font-medium rounded-md transition-colors ${activeReportTab === 'onUser' ? 'bg-[#EEF2FF] text-[#6366F1]' : 'text-[#6B7280] hover:text-black'}`}
+                  >
+                    Reports on User ({reportsOnUser.length})
+                  </button>
+                  <button 
+                    onClick={() => setActiveReportTab('submitted')}
+                    className={`px-4 py-1.5 text-sm font-medium rounded-md transition-colors ${activeReportTab === 'submitted' ? 'bg-[#EEF2FF] text-[#6366F1]' : 'text-[#6B7280] hover:text-black'}`}
+                  >
+                    Submitted by User ({reportsSubmitted.length})
+                  </button>
+                </div>
+              </div>
+              <div className="overflow-x-auto">
+                {reportsLoading ? (
+                  <div className="flex justify-center p-10"><span className="material-symbols-outlined animate-spin text-4xl text-[#6366F1]">progress_activity</span></div>
+                ) : (
+                  <table className="w-full text-left border-collapse min-w-[800px]">
+                    <thead>
+                      <tr className="border-b border-[#DADADA] text-[#6B7280] text-sm font-medium">
+                        <th className="pb-3 pr-4 font-semibold">Date</th>
+                        <th className="pb-3 pr-4 font-semibold">Target / Reporter</th>
+                        <th className="pb-3 pr-4 font-semibold">Reason</th>
+                        <th className="pb-3 pr-4 font-semibold">Severity</th>
+                        <th className="pb-3 font-semibold">Status</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {(activeReportTab === 'onUser' ? reportsOnUser : reportsSubmitted).length === 0 ? (
+                        <tr>
+                          <td colSpan="5" className="text-center py-10 text-[#6B7280]">
+                            No reports found.
+                          </td>
+                        </tr>
+                      ) : (
+                        (activeReportTab === 'onUser' ? reportsOnUser : reportsSubmitted).map(report => (
+                          <tr key={report.id} className="border-b border-[#DADADA]/50 hover:bg-white transition-colors cursor-pointer" onClick={() => { setSelectedReport(report); setReportModalOpen(true); }}>
+                            <td className="py-4 pr-4 text-sm text-[#6B7280] whitespace-nowrap">
+                              {report.postTime ? format(new Date(report.postTime), 'MMM d, yyyy') : 'Unknown'}
+                            </td>
+                            <td className="py-4 pr-4">
+                              <div className="flex items-center gap-3">
+                                <div className="w-9 h-9 rounded-full bg-[#EEF2FF] flex items-center justify-center text-[#6366F1] font-bold text-sm shrink-0">
+                                  {(activeReportTab === 'onUser' ? report.reportedBy : report.targetUserName)?.charAt(0).toUpperCase() || '?'}
+                                </div>
+                                <div>
+                                  <p className="text-sm font-medium text-black">
+                                    {activeReportTab === 'onUser' ? report.reportedBy : report.targetUserName}
+                                  </p>
+                                  <p className="text-xs text-[#6B7280]">
+                                    {activeReportTab === 'onUser' ? 'Reporter' : 'Target'}
+                                  </p>
+                                </div>
+                              </div>
+                            </td>
+                            <td className="py-4 pr-4 max-w-[300px]">
+                              <p className="text-sm font-medium text-black">{report.reason}</p>
+                              <p className="text-xs text-[#6B7280] truncate" title={report.contentPreview}>{report.contentPreview || 'No additional content'}</p>
+                            </td>
+                            <td className="py-4 pr-4">
+                              <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
+                                report.severity === 'High' ? 'bg-red-100 text-red-700' :
+                                report.severity === 'Medium' ? 'bg-orange-100 text-orange-700' :
+                                'bg-gray-100 text-gray-700'
+                              }`}>
+                                {report.severity || 'Low'}
+                              </span>
+                            </td>
+                            <td className="py-4">
+                              <span className={`inline-flex items-center px-2 py-1 rounded-md text-xs font-medium ${
+                                report.status === 'resolved' ? 'bg-green-100 text-green-700' :
+                                report.status === 'dismissed' ? 'bg-gray-100 text-gray-700' :
+                                'bg-blue-100 text-blue-700'
+                              } capitalize`}>
+                                {report.status || 'Active'}
+                              </span>
+                            </td>
+                          </tr>
+                        ))
+                      )}
+                    </tbody>
+                  </table>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {activeMainTab === 'Admin Action History' && (
+          <div className="flex flex-col items-start gap-4 w-full min-h-[522px]">
+            <div className="w-full bg-[#F5F5F5] rounded-[24px] p-6 overflow-y-auto relative">
+              <h3 className="font-medium text-[18px] text-black mb-6">Admin Action History</h3>
+              {(!userData.actionHistory || userData.actionHistory.length === 0) ? (
+                <div className="flex flex-col items-center justify-center py-10">
+                  <span className="material-symbols-outlined text-4xl text-[#6B7280] mb-2">assignment_late</span>
+                  <p className="text-[#6B7280] font-medium">No past actions.</p>
+                </div>
+              ) : (
+                <div className="flex flex-col gap-6 relative">
+                  <div className="absolute left-[15px] top-2 bottom-2 w-[2px] bg-[#DADADA] z-0"></div>
+                  {userData.actionHistory.map((action) => (
+                    <div key={action.id} className="flex gap-4 relative items-start z-10">
+                      <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 shadow-sm border-2 border-[#F5F5F5] ${action.is_severe ? 'bg-red-100 text-red-600' : 'bg-orange-100 text-orange-600'}`}>
                         <span className="material-symbols-outlined text-[16px]" style={{ fontVariationSettings: "'FILL' 1" }}>{action.is_severe ? 'gavel' : 'warning'}</span>
                       </div>
                       <div className="flex-1 pb-1">
-                        <p className="font-body-md text-body-md font-bold">{action.reason}</p>
-                        <p className="text-sm text-on-surface mb-1">{action.message || 'No additional message provided.'}</p>
-                        <p className="text-xs text-on-surface-variant">{formatDistanceToNow(new Date(action.created_at), { addSuffix: true })}</p>
+                        <p className="font-semibold text-[14px] text-black">{action.reason}</p>
+                        <p className="text-[13px] text-[#6B7280] mb-1">{action.message || 'No additional message provided.'}</p>
+                        <time className="text-[12px] text-[#6B7280] block">{formatDistanceToNow(new Date(action.created_at), { addSuffix: true })}</time>
                       </div>
                     </div>
-                  );
-                })
-              ) : (
-                <div className="text-center">
-                  <span className="material-symbols-outlined text-4xl text-on-surface-variant mb-2">assignment_late</span>
-                  <p className="text-headline-sm text-on-surface-variant font-medium">No past actions.</p>
+                  ))}
                 </div>
               )}
             </div>
-        </div>
-
+          </div>
+        )}
       </div>
+
+      {/* Report Details Modal */}
+      {reportModalOpen && selectedReport && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 animate-in fade-in duration-200">
+          <div className="bg-surface border border-outline-variant w-[550px] max-w-[90vw] rounded-xl shadow-xl p-6 animate-in zoom-in-95 duration-200 max-h-[90vh] flex flex-col">
+            <div className="flex justify-between items-center mb-4 shrink-0">
+              <h3 className="text-lg font-semibold text-on-surface flex items-center gap-2">
+                <span className="material-symbols-outlined text-primary">description</span>
+                Report Details
+              </h3>
+              <button onClick={() => setReportModalOpen(false)} className="material-symbols-outlined text-on-surface-variant hover:text-on-surface transition-colors">close</button>
+            </div>
+            
+            <div className="overflow-y-auto pr-2 space-y-4">
+              <div className="flex items-center gap-4 border-b border-outline-variant pb-4">
+                <div className="flex-1">
+                  <p className="text-[11px] font-mono-label text-on-surface-variant mb-1 uppercase">Reported By</p>
+                  <p className="font-medium text-sm">{selectedReport.reportedBy || 'Unknown'}</p>
+                </div>
+                <div className="flex-1">
+                  <p className="text-[11px] font-mono-label text-on-surface-variant mb-1 uppercase">Target User</p>
+                  <p className="font-medium text-sm">{selectedReport.targetUserName || 'Unknown'}</p>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <p className="text-[11px] font-mono-label text-on-surface-variant mb-1 uppercase">Date Filed</p>
+                  <p className="text-sm">{selectedReport.postTime ? format(new Date(selectedReport.postTime), 'MMM d, yyyy h:mm a') : 'Unknown'}</p>
+                </div>
+                <div>
+                  <p className="text-[11px] font-mono-label text-on-surface-variant mb-1 uppercase">Status</p>
+                  <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${
+                    selectedReport.status === 'resolved' ? 'bg-green-100 text-green-700' :
+                    selectedReport.status === 'dismissed' ? 'bg-surface-container text-on-surface-variant' :
+                    'bg-blue-100 text-blue-700'
+                  } capitalize`}>
+                    {selectedReport.status || 'Active'}
+                  </span>
+                </div>
+                <div>
+                  <p className="text-[11px] font-mono-label text-on-surface-variant mb-1 uppercase">Reason</p>
+                  <p className="text-sm font-medium">{selectedReport.reason}</p>
+                </div>
+                <div>
+                  <p className="text-[11px] font-mono-label text-on-surface-variant mb-1 uppercase">Severity</p>
+                  <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${
+                    selectedReport.severity === 'High' ? 'bg-error-container text-error' :
+                    selectedReport.severity === 'Medium' ? 'bg-orange-100 text-orange-700' :
+                    'bg-surface-container-high text-on-surface'
+                  }`}>
+                    {selectedReport.severity || 'Low'}
+                  </span>
+                </div>
+              </div>
+
+              <div className="bg-surface-container-lowest border border-outline-variant rounded-lg p-3">
+                <p className="text-[11px] font-mono-label text-on-surface-variant mb-1 uppercase">Reported Content Preview</p>
+                <p className="text-sm whitespace-pre-wrap text-on-surface">{selectedReport.contentPreview || 'No preview available.'}</p>
+              </div>
+
+              {selectedReport.image && (
+                <div className="mt-4">
+                  <p className="text-[11px] font-mono-label text-on-surface-variant mb-2 uppercase">Attached Image</p>
+                  <img src={selectedReport.image} alt="Report attachment" className="w-full rounded-lg border border-outline-variant max-h-[200px] object-cover" />
+                </div>
+              )}
+            </div>
+
+            <div className="flex flex-col gap-3 pt-4 mt-4 border-t border-outline-variant shrink-0">
+              <button 
+                onClick={() => setReportModalOpen(false)}
+                className="w-full py-2 rounded-lg text-sm font-semibold border border-outline-variant text-on-surface hover:bg-surface-container transition-colors shadow-sm"
+              >
+                Close
+              </button>
+              <div className="grid grid-cols-3 gap-3">
+                <button 
+                  onClick={handleDismissReport}
+                  className="bg-[#310bba] text-white py-2.5 rounded-lg text-sm font-bold shadow-sm active:scale-95 transition-all flex flex-col items-center justify-center leading-tight hover:brightness-110"
+                >
+                  <span>Dismiss All</span>
+                  <span>Reports</span>
+                </button>
+                <button 
+                  onClick={() => { setReportModalOpen(false); setWarningModalOpen(true); }}
+                  className="bg-[#ff6f00] text-white py-2.5 rounded-lg text-sm font-bold shadow-sm active:scale-95 transition-all flex items-center justify-center hover:brightness-110"
+                >
+                  Warn User
+                </button>
+                <button 
+                  onClick={handleDeleteContent}
+                  className="bg-[#b30000] text-white py-2.5 rounded-lg text-sm font-bold shadow-sm active:scale-95 transition-all flex items-center justify-center hover:brightness-110"
+                >
+                  Delete Content
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Warning Modal */}
       {warningModalOpen && (
