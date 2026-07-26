@@ -14,6 +14,8 @@ import Login from './pages/Login';
 import ReviewHistory from './pages/ReviewHistory';
 import DetailedAnalytics from './pages/DetailedAnalytics';
 import AppealsQueue from './pages/AppealsQueue';
+import Thoughts from './pages/Thoughts';
+import AiAnalytics from './pages/AiAnalytics';
 import { AuthProvider } from './AuthContext';
 import { ThemeProvider } from './ThemeContext';
 import RoleGuard from './components/RoleGuard';
@@ -30,6 +32,7 @@ function AppRoutes() {
         {/* Admin & Developer only */}
         <Route path="users" element={<RoleGuard allowedRoles={['admin', 'developer']}><UserManagement /></RoleGuard>} />
         <Route path="organizations" element={<RoleGuard allowedRoles={['admin', 'developer']}><Organizations /></RoleGuard>} />
+        <Route path="ai-analytics" element={<RoleGuard allowedRoles={['admin', 'developer']}><AiAnalytics /></RoleGuard>} />
 
         {/* Developer only */}
         <Route path="controls" element={<RoleGuard allowedRoles={['developer']}><SystemControls /></RoleGuard>} />
@@ -40,6 +43,7 @@ function AppRoutes() {
         <Route path="review-history" element={<RoleGuard allowedRoles={['admin', 'moderator']}><ReviewHistory /></RoleGuard>} />
         
         {/* All roles */}
+        <Route path="thoughts" element={<Thoughts />} />
         <Route path="health" element={<SystemHealth />} />
         <Route path="notifications" element={<Notifications />} />
         <Route path="profile/:id" element={<UserProfile />} />

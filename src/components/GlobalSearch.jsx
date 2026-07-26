@@ -5,7 +5,7 @@ import { useAuth } from '../AuthContext';
 export default function GlobalSearch() {
   const { accessToken } = useAuth();
   const [query, setQuery] = useState('');
-  const [results, setResults] = useState({ users: [], organizations: [] });
+  const [results, setResults] = useState({ users: [], organizations: [], jobs: [] });
   const [loading, setLoading] = useState(false);
   const [isOpen, setIsOpen] = useState(false);
   const [error, setError] = useState(null);
@@ -41,7 +41,7 @@ export default function GlobalSearch() {
   useEffect(() => {
     const fetchResults = async () => {
       if (!query || query.trim().length < 2) {
-        setResults({ users: [], organizations: [] });
+        setResults({ users: [], organizations: [], jobs: [] });
         setIsOpen(false);
         return;
       }
@@ -84,7 +84,7 @@ export default function GlobalSearch() {
         placeholder="Search Users or Organizations (Cmd+K)..."
         value={query}
         onChange={(e) => setQuery(e.target.value)}
-        onFocus={() => { if (results.users.length > 0 || results.organizations.length > 0) setIsOpen(true) }}
+        onFocus={() => { if (results.users.length > 0 || results.organizations.length > 0 || (results.jobs && results.jobs.length > 0)) setIsOpen(true) }}
         className="w-full bg-surface-container-low border border-outline-variant rounded-full py-2 pl-10 pr-10 font-body-md text-body-md text-on-surface placeholder:text-on-surface-variant focus:outline-none min-w-0 truncate"
       />
       {/* Loading Spinner Indicator */}
@@ -95,7 +95,7 @@ export default function GlobalSearch() {
       )}
 
       {/* Dropdown Results */}
-      {isOpen && !loading && (results.users.length > 0 || results.organizations.length > 0) && (
+      {isOpen && !loading && (results.users.length > 0 || results.organizations.length > 0 || (results.jobs && results.jobs.length > 0)) && (
         <div className="absolute top-full left-0 mt-2 w-full max-h-[400px] overflow-y-auto bg-surface border border-outline-variant rounded-xl shadow-xl z-50">
           
           {results.users.length > 0 && (
@@ -138,10 +138,31 @@ export default function GlobalSearch() {
               ))}
             </div>
           )}
+
+          {results.jobs && results.jobs.length > 0 && (
+            <div className="p-2 border-t border-outline-variant">
+              <h3 className="px-3 py-1 text-xs font-bold text-on-surface-variant uppercase tracking-wider">Jobs</h3>
+              {results.jobs.map(job => (
+                <button
+                  key={job.job_id}
+                  onClick={() => handleNavigate(`/detailed-analytics?metric=active_jobs&jobId=${job.job_id}`)}
+                  className="w-full text-left flex items-center gap-3 px-3 py-2 hover:bg-surface-container rounded-lg transition-colors"
+                >
+                  <div className="w-8 h-8 rounded-md bg-blue-50 flex items-center justify-center shrink-0">
+                    <span className="material-symbols-outlined text-blue-600 text-[18px]">work</span>
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <p className="font-label-md text-on-surface truncate">{job.title}</p>
+                    <p className="text-xs text-on-surface-variant truncate">{job.company_name} • {job.status}</p>
+                  </div>
+                </button>
+              ))}
+            </div>
+          )}
         </div>
       )}
 
-      {isOpen && !loading && results.users.length === 0 && results.organizations.length === 0 && query.trim().length >= 2 && (
+      {isOpen && !loading && results.users.length === 0 && results.organizations.length === 0 && (!results.jobs || results.jobs.length === 0) && query.trim().length >= 2 && (
         <div className="absolute top-full left-0 mt-2 w-full p-4 bg-surface border border-outline-variant rounded-xl shadow-xl z-50 text-center">
           <p className="text-body-sm text-on-surface-variant">No results found for "{query}"</p>
         </div>

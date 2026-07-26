@@ -141,6 +141,11 @@ body {
 ::-webkit-scrollbar-thumb { background: var(--color-outline-variant); border-radius: 10px; }
 ::-webkit-scrollbar-thumb:hover { background: var(--color-outline); }
 
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--color-outline-variant) transparent;
+}
+
 .dark {
   /* Enterprise Dark Mode Design System */
   --color-surface: #111827;

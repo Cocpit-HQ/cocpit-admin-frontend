@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Radar, RadarChart, PolarGrid, PolarAngleAxis, Tooltip, ResponsiveContainer } from 'recharts';
 import { useAuth } from '../../AuthContext';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import JobVerificationQueue from './JobVerificationQueue';
 import Modal from '../Modal';
 import JobDetailCard from '../JobDetailCard';
@@ -43,6 +43,8 @@ const trendingJobs = [
 export default function ActiveJobsBreakdown() {
   const { accessToken } = useAuth();
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const jobIdFromUrl = searchParams.get('jobId');
   const [mainTab, setMainTab] = useState('Overview');
   const [activeTab, setActiveTab] = useState('audit');
   const [liveJobsList, setLiveJobsList] = useState([]);
@@ -123,6 +125,18 @@ export default function ActiveJobsBreakdown() {
     fetchLiveJobs();
     fetchJobsMetrics();
   }, [accessToken]);
+
+  // Handle opening job from URL parameter
+  useEffect(() => {
+    if (jobIdFromUrl && accessToken && !isModalOpen) {
+      handleJobClick(jobIdFromUrl);
+      
+      // Clean up the URL so it doesn't reopen if they close it and refresh
+      const newParams = new URLSearchParams(searchParams);
+      newParams.delete('jobId');
+      setSearchParams(newParams, { replace: true });
+    }
+  }, [jobIdFromUrl, accessToken]);
 
   return (
     <div className="flex flex-col gap-6 h-full">

@@ -459,8 +459,10 @@ export default function ModerationQueue() {
             >
               <option value="All">Type: All</option>
               <option value="Content">Content</option>
+              <option value="Comment">Thought / Comment</option>
               <option value="Account">Account</option>
               <option value="Organization">Organization</option>
+              <option value="Job">Job</option>
             </select>
             <select
               value={filterReason}

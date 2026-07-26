@@ -24,10 +24,11 @@ export default function Dashboard() {
 
   const [metrics, setMetrics] = useState({
     totalUsers: '...',
-    activeUsers: '...',
+    suspendedUsers: '...',
     userGrowth: '...',
+    totalThoughts: '...',
     totalOrgs: '...',
-    activeOrgs: '...',
+    suspendedOrgs: '...',
     orgGrowth: '...',
     hasPrevData: true,
     chartData: []
@@ -56,10 +57,11 @@ export default function Dashboard() {
           };
           setMetrics({
             totalUsers: formatNumber(data.totalUsers),
-            activeUsers: formatNumber(data.activeUsers),
+            suspendedUsers: formatNumber(data.suspendedUsers || 0),
             userGrowth: (data.userGrowth > 0 ? '+' : '') + data.userGrowth + '%',
+            totalThoughts: formatNumber(data.totalThoughts || 0),
             totalOrgs: formatNumber(data.totalOrgs),
-            activeOrgs: formatNumber(data.activeOrgs),
+            suspendedOrgs: formatNumber(data.suspendedOrgs || 0),
             orgGrowth: (data.orgGrowth > 0 ? '+' : '') + data.orgGrowth + '%',
             hasPrevData: true,
             chartData: data.chartData || []
@@ -87,9 +89,9 @@ export default function Dashboard() {
       
       const summaryRows = [
         ['Total Users', metrics.totalUsers, metrics.userGrowth],
-        ['Active Users', metrics.activeUsers, 'Healthy'],
+        ['Deactivated Users', metrics.suspendedUsers, 'Suspended'],
         ['Total Organisations', metrics.totalOrgs, metrics.orgGrowth],
-        ['Active Organisations', metrics.activeOrgs, 'Healthy'],
+        ['Deactivated Organisations', metrics.suspendedOrgs, 'Suspended'],
       ];
 
       const chartRows = (metrics.chartData || []).map(d => [
@@ -227,7 +229,7 @@ export default function Dashboard() {
         <KPICard
           title="Total Users"
           value={metrics.totalUsers}
-          growth="+12%"
+          growth={metrics.userGrowth}
           growthIcon="trending_up"
           icon="group"
           colorVariant="primary"
@@ -235,29 +237,19 @@ export default function Dashboard() {
           onClick={() => navigate('/users')}
         />
         <KPICard
-          title="Active Users"
-          value={metrics.activeUsers}
-          growth="Healthy"
-          growthIcon="check_circle"
-          icon="bolt"
+          title="Deactivated Users"
+          value={metrics.suspendedUsers}
+          growth="Suspended"
+          growthIcon="block"
+          icon="person_off"
           colorVariant="secondary"
           progressWidth={45}
-          onClick={() => navigate('/users?status=Active')}
-        />
-        <KPICard
-          title="User Growth %"
-          value={metrics.userGrowth}
-          growth="Strong"
-          growthIcon="trending_up"
-          icon="show_chart"
-          colorVariant="tertiary"
-          progressWidth={60}
-          onClick={() => navigate('/detailed-analytics?metric=user_growth')}
+          onClick={() => navigate('/users?status=Suspended')}
         />
         <KPICard
           title="Total Organisations"
           value={metrics.totalOrgs}
-          growth="+5%"
+          growth={metrics.orgGrowth}
           growthIcon="trending_up"
           icon="domain"
           colorVariant="primary"
@@ -265,24 +257,24 @@ export default function Dashboard() {
           onClick={() => navigate('/organizations')}
         />
         <KPICard
-          title="Active Organisations"
-          value={metrics.activeOrgs}
-          growth="Healthy"
-          growthIcon="check_circle"
-          icon="domain_verification"
+          title="Deactivated Organisations"
+          value={metrics.suspendedOrgs}
+          growth="Suspended"
+          growthIcon="block"
+          icon="domain_disabled"
           colorVariant="secondary"
           progressWidth={80}
-          onClick={() => navigate('/organizations?status=Active')}
+          onClick={() => navigate('/organizations?status=Suspended')}
         />
         <KPICard
-          title="Organisation Growth %"
-          value={metrics.orgGrowth}
-          growth="Steady"
-          growthIcon="trending_up"
-          icon="show_chart"
-          colorVariant="tertiary"
-          progressWidth={40}
-          onClick={() => navigate('/detailed-analytics?metric=organization_growth')}
+          title="Total Thoughts"
+          value={metrics.totalThoughts}
+          growth="All-time"
+          growthIcon="chat_bubble"
+          icon="forum"
+          colorVariant="primary"
+          progressWidth={100}
+          onClick={() => navigate('/thoughts')}
         />
       </div>
 

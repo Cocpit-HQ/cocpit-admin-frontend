@@ -33,6 +33,7 @@ export default function SystemControls() {
     enableNotInterested: true,
     enableAiPostEnhancement: true,
     enableMediaUploads: true,
+    channel_thoughts_enabled: true,
 
     // Notifications
     enableNotifications: true,
@@ -307,6 +308,7 @@ export default function SystemControls() {
                   <ToggleRow label="Not Interested" description="Users cannot mark posts as Not interested." settingKey="enableNotInterested" />
                   <ToggleRow label="AI Post Enhancement" description="Disable AI text generation for posts." settingKey="enableAiPostEnhancement" />
                   <ToggleRow label="Media Uploads" description="Users can only post text." settingKey="enableMediaUploads" />
+                  <ToggleRow label="Enable Channel Thoughts" description="Disable comments/thoughts on articles globally." settingKey="channel_thoughts_enabled" />
                 </div>
               </div>
             )}

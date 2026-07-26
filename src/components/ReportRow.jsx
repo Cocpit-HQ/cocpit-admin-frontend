@@ -15,6 +15,22 @@ const getSeverityBg = (severity) => {
   return 'bg-outline';
 };
 
+const getTypeConfig = (type) => {
+  switch (type) {
+    case 'Content':
+    case 'POST': return { icon: 'article', label: 'Post', color: 'text-blue-600', bg: 'bg-blue-100' };
+    case 'Comment':
+    case 'COMMENT': return { icon: 'chat', label: 'Comment', color: 'text-teal-600', bg: 'bg-teal-100' };
+    case 'Account':
+    case 'USER': return { icon: 'person', label: 'User', color: 'text-purple-600', bg: 'bg-purple-100' };
+    case 'Organization':
+    case 'ORGANIZATION': return { icon: 'business', label: 'Org', color: 'text-orange-600', bg: 'bg-orange-100' };
+    case 'Job':
+    case 'JOB': return { icon: 'work', label: 'Job', color: 'text-indigo-600', bg: 'bg-indigo-100' };
+    default: return { icon: 'report', label: type, color: 'text-gray-600', bg: 'bg-gray-100' };
+  }
+};
+
 export default function ReportRow({ report, role, activeTab, onApprove, onReject, onEscalate, onSuspend }) {
   const { highestSeverity, reportCount, uniqueReporters, uniqueReasons } = report;
 
@@ -22,7 +38,10 @@ export default function ReportRow({ report, role, activeTab, onApprove, onReject
     <tr className="hover:bg-surface-container-low transition-colors group">
       <td className="px-lg py-md align-top">
         <span className="font-mono-label text-on-surface-variant">#{String(report.id).split('-')[0]}</span>
-        <div className="text-[11px] text-on-surface mt-xs font-semibold">{report.type}</div>
+        <div className={`mt-2 flex items-center gap-1 w-max px-2 py-1 rounded-md ${getTypeConfig(report.type).bg} ${getTypeConfig(report.type).color}`}>
+          <span className="material-symbols-outlined text-[14px]">{getTypeConfig(report.type).icon}</span>
+          <span className="text-[11px] font-bold uppercase tracking-wider">{getTypeConfig(report.type).label}</span>
+        </div>
         <div className={`mt-xs flex items-center gap-xs text-[10px] font-bold uppercase ${getSeverityStyle(highestSeverity)}`}>
           <span className={`w-1.5 h-1.5 rounded-full ${highestSeverity.includes('Tier 3') ? 'animate-pulse' : ''} ${getSeverityBg(highestSeverity)}`}></span>
           {highestSeverity}
@@ -38,9 +57,11 @@ export default function ReportRow({ report, role, activeTab, onApprove, onReject
           <div className="flex flex-col gap-xs">
             <p className={`font-body-sm text-on-surface line-clamp-3 leading-tight ${highestSeverity.includes('Tier 3') ? 'italic' : ''}`}>
               {report.type === 'Account' ? (
-                <Link to={`/profile/${report.postId}`} state={{ from: '/moderation', label: 'Moderation Queue' }} className="hover:underline text-primary">{report.contentPreview}</Link>
+                <Link to={`/profile/${report.postId}`} state={{ from: '/moderation', label: 'Moderation Queue' }} className="hover:underline text-primary">{report.contentPreview || 'User Profile Reported'}</Link>
               ) : report.type === 'Organization' ? (
-                <Link to="/org-profile" state={{ from: '/moderation', label: 'Moderation Queue' }} className="hover:underline text-primary">{report.contentPreview}</Link>
+                <Link to="/org-profile" state={{ from: '/moderation', label: 'Moderation Queue' }} className="hover:underline text-primary">{report.contentPreview || 'Organization Profile Reported'}</Link>
+              ) : report.type === 'Job' ? (
+                <Link to="/jobs" state={{ from: '/moderation', label: 'Moderation Queue' }} className="hover:underline text-primary">{report.contentPreview || 'Job Posting Reported'}</Link>
               ) : (
                 report.contentPreview
               )}

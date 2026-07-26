@@ -129,7 +129,7 @@ export default function JobDetailCard({ job, onApprove, onReject, isProcessing, 
             <span className="material-symbols-outlined text-[16px]">description</span>
             Job Description
           </h3>
-          <div className="bg-gray-50 border border-gray-100 rounded-xl p-4 text-sm text-gray-750 whitespace-pre-line leading-relaxed max-h-[300px] overflow-y-auto font-sans">
+          <div className="bg-gray-50 border border-gray-100 rounded-xl p-4 text-sm text-gray-800 whitespace-pre-line leading-relaxed max-h-[300px] overflow-y-auto font-sans">
             {job.description || 'No description provided'}
           </div>
         </div>
@@ -164,7 +164,7 @@ export default function JobDetailCard({ job, onApprove, onReject, isProcessing, 
         <div className="border-t border-gray-100 pt-4 text-xs text-gray-400 flex flex-col gap-1">
           <p>Job ID: <span className="font-mono text-gray-600">{job.job_id}</span></p>
           <p>Posted On: <span className="text-gray-600">{new Date(job.created_at).toLocaleString()}</span></p>
-          {job.expires_at && <p>Expires On: <span className="text-gray-650">{new Date(job.expires_at).toLocaleString()}</span></p>}
+          {job.expires_at && <p>Expires On: <span className="text-gray-600">{new Date(job.expires_at).toLocaleString()}</span></p>}
         </div>
       </div>
 

@@ -5,7 +5,7 @@ import { useTheme } from '../ThemeContext';
 import GlobalSearch from './GlobalSearch';
 
 export default function Header({ toggleSidebar }) {
-  const { logout, role } = useAuth();
+  const { logout, role, accessToken } = useAuth();
   const { theme, toggleTheme } = useTheme();
   const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
@@ -14,38 +14,67 @@ export default function Header({ toggleSidebar }) {
   const profileDropdownRef = useRef(null);
   const navigate = useNavigate();
 
-  const notifications = [
-    {
-      id: 1,
-      type: 'alert',
-      title: 'Dead Letter Queue Spike',
-      description: '42 jobs failed in WEBHOOK_PAYMENT_FAILURE.',
-      time: 'Just now',
-      path: '/health',
-      icon: 'error',
-      color: 'text-error'
-    },
-    {
-      id: 2,
-      type: 'escalation',
-      title: 'High-Risk Organization Flagged',
-      description: 'Automated review flagged "Global Tech Corp".',
-      time: '5m ago',
-      path: '/moderation',
-      icon: 'gavel',
-      color: 'text-tertiary'
-    },
-    {
-      id: 3,
-      type: 'system',
-      title: 'Database Load Warning',
-      description: 'PostgreSQL active connections at 84/150.',
-      time: '1h ago',
-      path: '/health',
-      icon: 'database',
-      color: 'text-secondary'
-    }
-  ];
+  const [notifications, setNotifications] = useState([]);
+
+  useEffect(() => {
+    if (!accessToken) return;
+    const fetchNotifications = async () => {
+      try {
+        const res = await fetch('/api/admin/dashboard/notifications', {
+          headers: { 'Authorization': `Bearer ${accessToken}` }
+        });
+        if (res.ok) {
+          const data = await res.json();
+          const newNotifications = [];
+          if (data.appeals > 0) {
+            newNotifications.push({
+              id: 'appeals',
+              type: 'escalation',
+              title: `${data.appeals} New Appeal${data.appeals > 1 ? 's' : ''}`,
+              description: 'Users have submitted new moderation appeals.',
+              time: 'Just now',
+              path: '/moderation',
+              icon: 'gavel',
+              color: 'text-tertiary'
+            });
+          }
+          if (data.reports > 0) {
+            newNotifications.push({
+              id: 'reports',
+              type: 'system',
+              title: `${data.reports} Report${data.reports > 1 ? 's' : ''}`,
+              description: 'Reports pending review in moderation queue.',
+              time: 'Just now',
+              path: '/moderation',
+              icon: 'report',
+              color: 'text-error'
+            });
+          }
+          if (data.organizations > 0) {
+            newNotifications.push({
+              id: 'orgs',
+              type: 'system',
+              title: `${data.organizations} Organization${data.organizations > 1 ? 's' : ''} Pending`,
+              description: 'Organizations waiting for verification.',
+              time: 'Just now',
+              path: '/organizations',
+              icon: 'business',
+              color: 'text-primary'
+            });
+          }
+          setNotifications(newNotifications);
+          setHasUnread(newNotifications.length > 0);
+        }
+      } catch (e) {
+        console.error('Failed to fetch notifications', e);
+      }
+    };
+    fetchNotifications();
+    
+    // Refresh every minute
+    const interval = setInterval(fetchNotifications, 60000);
+    return () => clearInterval(interval);
+  }, [accessToken]);
 
   // Close dropdown if clicked outside
   useEffect(() => {

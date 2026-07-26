@@ -59,6 +59,7 @@ export default function FeedEngagementBreakdown() {
 
   const [viewMode, setViewMode] = useState('active'); // 'active' or 'unlisted'
   const [posts, setPosts] = useState([]);
+  const [selectedPostId, setSelectedPostId] = useState(null);
   const [hashtags, setHashtags] = useState([]);
   const [leaderboard, setLeaderboard] = useState([]);
   const [toastMessage, setToastMessage] = useState('');
@@ -123,8 +124,14 @@ export default function FeedEngagementBreakdown() {
       });
       if (res.ok) {
         const data = await res.json();
-        setPosts(data.posts || []);
+        const fetchedPosts = data.posts || [];
+        setPosts(fetchedPosts);
         setTotalPages(data.totalPages || 1);
+        if (fetchedPosts.length > 0) {
+          setSelectedPostId(fetchedPosts[0].id);
+        } else {
+          setSelectedPostId(null);
+        }
       }
     } catch (err) {
       console.error('Error fetching posts', err);
@@ -344,183 +351,228 @@ export default function FeedEngagementBreakdown() {
     }
   };
 
-  const renderCardView = () => (
-    <div className="flex flex-col gap-6">
-      {posts.length === 0 ? (
-        <div className="bg-surface p-8 text-center rounded-xl border border-outline-variant text-on-surface-variant">
-          No posts found matching the current filters.
+  const renderPostDetail = () => {
+    const post = posts.find(p => p.id === selectedPostId);
+    if (!post) {
+      return (
+        <div className="h-full w-full flex flex-col items-center justify-center text-gray-400 bg-surface border border-gray-200 rounded-xl">
+          <span className="material-symbols-outlined text-5xl mb-3 text-gray-300">hide_image</span>
+          <p className="text-sm font-medium">Select a post to view details</p>
         </div>
-      ) : (
-        posts.map(post => (
-          <div key={post.id} className="bg-surface border border-outline-variant rounded-xl shadow-sm overflow-hidden flex flex-col relative">
-            
-            {/* Unlisted Status Banner */}
-            {post.isUnlisted && (
-              <div className="px-5 py-2.5 bg-surface-container-low border-b border-outline-variant flex items-center gap-2">
-                <span className="material-symbols-outlined text-on-surface-variant text-sm">visibility_off</span>
-                <span className="text-xs font-bold text-on-surface">Unlisted (Soft-Takedown)</span>
+      );
+    }
+    
+    return (
+      <div className="w-full flex flex-col bg-surface border border-gray-200 rounded-xl overflow-hidden shadow-sm h-fit max-h-full">
+        {/* Post Detail Header */}
+        <div className="px-5 py-4 border-b border-gray-200 flex items-center justify-between bg-gray-50/50">
+          <h3 className="font-bold text-gray-900">Post Detail</h3>
+          <span className="text-xs font-semibold text-gray-500 bg-gray-100 px-2 py-1 rounded-full border border-gray-200">
+            {new Date(post.created_at).toLocaleString()}
+          </span>
+        </div>
+        
+        <div className="p-5 overflow-y-auto custom-scrollbar flex flex-col gap-5">
+          {/* Large Image View */}
+          <div className="w-full bg-gray-50 rounded-xl border border-gray-200 overflow-hidden flex items-center justify-center min-h-[300px]">
+            {post.mediaUrl ? (
+              <img src={post.mediaUrl} alt="User Uploaded" className="w-full h-auto max-h-[500px] object-contain" />
+            ) : (
+              <div className="flex flex-col items-center justify-center text-gray-400 p-10">
+                <span className="material-symbols-outlined text-4xl mb-2">image_not_supported</span>
+                <p className="text-sm">No image uploaded</p>
               </div>
             )}
-
-            {/* User Appeal Warning Block (Rendered outside the dimmed post data wrapper to keep at 100% full opacity) */}
-            {post.appeal && (
-              <div className="px-6 py-4 border-b flex flex-col gap-3 bg-orange-50/80 dark:bg-[#451A03]/80 border-orange-200 dark:border-[#F59E0B]/30 shadow-inner">
-                <div className="flex items-start gap-3">
-                  <span className="material-symbols-outlined text-[20px] text-orange-700 dark:text-[#FBBF24] mt-0.5">gavel</span>
-                  <div className="flex-1">
-                    <p className="text-sm font-bold text-orange-900 dark:text-[#FBBF24]">User Appeal Submitted</p>
-                    <div className="mt-2 bg-surface/90 border border-orange-200 dark:border-[#F59E0B]/30/60 p-3 rounded-lg text-sm font-medium text-orange-800 dark:text-[#FBBF24] shadow-sm leading-relaxed">
-                      {post.appeal.reason}
-                    </div>
-                  </div>
-                </div>
-                <div className="flex gap-3 justify-end items-center mt-1">
-                  <button 
-                    onClick={() => handleRejectAppeal(post.id)}
-                    className="px-3.5 py-1.5 bg-surface border border-orange-300 dark:border-[#F59E0B]/50 text-xs font-bold rounded-lg hover:bg-orange-100/50 dark:bg-[#451A03]/80 text-orange-900 dark:text-[#FBBF24] shadow-sm transition-all"
-                  >
-                    Reject Appeal
-                  </button>
-                  <button 
-                    onClick={() => handleRestorePost(post.id)}
-                    className="px-3.5 py-1.5 bg-green-600 hover:bg-green-700 active:bg-green-800 text-xs font-bold rounded-lg text-on-primary shadow-sm hover:shadow-md transition-all"
-                  >
-                    Approve & Restore
-                  </button>
-                </div>
-              </div>
-            )}
-
-            {/* Main Post Data (Dimmed selectively if unlisted, keeping moderation/appeal blocks bright) */}
-            <div className={post.isUnlisted ? 'opacity-50 bg-surface-container-lowest/20' : ''}>
-              {/* Post Header */}
-              <div className="p-5 flex justify-between items-start">
-              <div className="flex items-center gap-3">
-                <img src={post.avatar} alt={post.author} className="w-12 h-12 rounded-full border border-outline-variant" />
-                <div>
-                  <div className="flex items-center gap-2">
-                    <h4 className="font-bold text-on-surface leading-tight">{post.author}</h4>
-                  </div>
-                  <p className="text-xs text-on-surface-variant mt-0.5">
-                    {post.title && post.company ? (
-                      <>
-                        <span className="font-medium text-on-surface">{post.title}</span>
-                        {" @ "}
-                        <span className="text-blue-600 font-semibold">{post.company}</span>
-                      </>
-                    ) : post.title ? (
-                      <span className="font-medium text-on-surface">{post.title}</span>
-                    ) : post.company ? (
-                      <span className="text-blue-600 font-semibold">{post.company}</span>
-                    ) : (
-                      <span className="text-outline font-medium">Platform Member</span>
-                    )}
-                  </p>
-                  <p className="text-xs text-outline mt-0.5 flex items-center gap-1">
-                    <span className="material-symbols-outlined text-[12px]">location_on</span> {post.location}
-                  </p>
-                </div>
-              </div>
-              
-              {/* Post Moderation Actions */}
-              <div className="flex items-center gap-1 bg-surface-container-lowest border border-outline-variant rounded-lg p-1">
-                {post.isUnlisted ? (
-                  <button onClick={() => handleRestorePost(post.id)} className="p-1.5 text-outline hover:text-green-600 hover:bg-green-50 dark:bg-green-900/20 rounded transition-colors" title="Restore Post">
-                    <span className="material-symbols-outlined text-[18px]">settings_backup_restore</span>
-                  </button>
-                ) : (
-                  <button onClick={() => handleTakedownPost(post.id)} className="p-1.5 text-outline hover:text-red-600 hover:bg-red-50 rounded transition-colors" title="Takedown Post">
-                    <span className="material-symbols-outlined text-[18px]">visibility_off</span>
-                  </button>
-                )}
-              </div>
-            </div>
-
-            {/* AI Flags Alert (If Author Has Moderation Flags) */}
-            {post.aiFlag && (
-              <div className="px-5 py-3 border-y flex items-start gap-2 bg-red-50 border-red-100">
-                <span className="material-symbols-outlined text-[18px] mt-0.5 text-red-600">warning</span>
-                <div className="flex-1">
-                  <p className="text-xs font-bold text-red-800">Moderation Alert</p>
-                  <p className="text-xs mt-0.5 text-red-700">{post.aiFlag.message}</p>
-                </div>
-              </div>
-            )}
-
-
-            {/* Post Content */}
-            <div className="p-5 pt-3 text-sm text-on-surface">
+          </div>
+          
+          {/* Post Description Text */}
+          <div className="p-4 bg-gray-50 border border-gray-200 rounded-xl shadow-sm">
+            <h4 className="text-xs font-bold text-gray-500 mb-2 uppercase tracking-wide">Description</h4>
+            <div className="text-[14px] leading-[20px] text-[#1A1A2E] font-normal">
               {post.content && post.content.includes('<') ? (
-                <div className="whitespace-pre-wrap" dangerouslySetInnerHTML={{ __html: post.content }} />
+                <div dangerouslySetInnerHTML={{ __html: post.content }} />
               ) : (
                 <div dangerouslySetInnerHTML={{ __html: parseMarkdown(post.content) }} />
               )}
             </div>
+          </div>
+        </div>
+      </div>
+    );
+  };
 
-            {/* Media Content */}
-            {post.mediaUrl && (
-              <div className="w-full bg-surface-container-low">
-                <img src={post.mediaUrl} alt="Post media" className="w-full h-auto max-h-[400px] object-cover" />
-              </div>
-            )}
-
-            {/* Interactive Metric Analytics Overlay */}
-            <div className="bg-surface-container-lowest border-t border-outline-variant p-4 flex items-center justify-between">
-              <div className="flex gap-4">
-                <div className="flex items-center gap-1.5 text-blue-600 bg-blue-50 dark:bg-blue-900/20 px-2 py-1 rounded-full" title="Likes">
-                  <span className="material-symbols-outlined text-[16px]">thumb_up</span>
-                  <span className="text-xs font-bold">{post.metrics.likes.toLocaleString()}</span>
+  const renderCardView = () => (
+    <div className="bg-surface border border-gray-200 rounded-xl overflow-hidden shadow-sm font-['Poppins',sans-serif] w-full h-full flex flex-col">
+      {posts.length === 0 ? (
+        <div className="p-8 text-center text-on-surface-variant my-auto">
+          No posts found matching the current filters.
+        </div>
+      ) : (
+        <div className="flex flex-col divide-y divide-[#DADADA] overflow-y-auto custom-scrollbar h-full">
+          {posts.map(post => (
+            <div 
+              key={post.id} 
+              onClick={() => setSelectedPostId(post.id)}
+              className={`relative flex flex-col p-4 gap-2 cursor-pointer transition-colors shrink-0 ${selectedPostId === post.id ? 'bg-blue-50/40 border-l-4 border-l-blue-500' : 'bg-surface hover:bg-gray-50 border-l-4 border-l-transparent'}`}
+            >
+              
+              {/* Unlisted Status Banner */}
+              {post.isUnlisted && (
+                <div className="px-3 py-1.5 bg-gray-50 border border-gray-200 rounded-md flex items-center gap-2 mb-2 w-max">
+                  <span className="material-symbols-outlined text-gray-500 text-sm">visibility_off</span>
+                  <span className="text-xs font-bold text-gray-700">Unlisted (Soft-Takedown)</span>
                 </div>
-                <button 
-                  onClick={() => toggleComments(post.id)}
-                  className="flex items-center gap-1.5 text-indigo-600 bg-indigo-50 dark:bg-indigo-900/20 px-3 py-1 rounded-full hover:bg-indigo-100 transition-colors"
-                  title="View Comments"
-                >
-                  <span className="material-symbols-outlined text-[16px]">chat_bubble</span>
-                  <span className="text-xs font-bold">{post.metrics.comments.toLocaleString()}</span>
-                </button>
-                <div className="flex items-center gap-1.5 text-green-600 bg-green-50 dark:bg-green-900/20 px-2 py-1 rounded-full" title="Reposts">
-                  <span className="material-symbols-outlined text-[16px]">repeat</span>
-                  <span className="text-xs font-bold">{post.metrics.shares.toLocaleString()}</span>
-                </div>
-              </div>
-            </div>
+              )}
 
-            {/* Collapsible Comments Section */}
-            {expandedComments[post.id] && (
-              <div className="border-t border-outline-variant bg-surface-container-lowest/50 px-5 py-4 flex flex-col gap-3">
-                <h5 className="text-xs font-bold text-on-surface-variant uppercase tracking-wider">Comments ({expandedComments[post.id].length})</h5>
-                {expandedComments[post.id].length === 0 ? (
-                  <p className="text-xs text-outline italic">No comments on this post yet.</p>
-                ) : (
-                  <div className="flex flex-col gap-3 max-h-[250px] overflow-y-auto pr-1">
-                    {expandedComments[post.id].map(comment => (
-                      <div key={comment.id} className="flex gap-2.5 items-start bg-surface p-2.5 rounded-lg border border-outline-variant shadow-xs">
-                        <img src={comment.avatar} alt={comment.author} className="w-8 h-8 rounded-full border border-outline-variant shrink-0" />
-                        <div className="flex-1 min-w-0">
-                          <div className="flex justify-between items-baseline mb-0.5">
-                            <span className="text-xs font-bold text-on-surface">{comment.author}</span>
-                            <span className="text-[10px] text-outline">
-                              {new Date(comment.created_at).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
-                            </span>
-                          </div>
-                          <p className="text-xs text-on-surface-variant mb-1">{comment.title} @ <span className="text-blue-500 font-semibold">{comment.company}</span></p>
-                          <p className="text-xs text-on-surface leading-snug break-words">{comment.content}</p>
-                        </div>
+              {/* User Appeal Warning Block */}
+              {post.appeal && (
+                <div className="px-4 py-3 mb-2 border border-orange-200 bg-orange-50 rounded-lg flex flex-col gap-2">
+                  <div className="flex items-start gap-3">
+                    <span className="material-symbols-outlined text-[20px] text-orange-700 mt-0.5">gavel</span>
+                    <div className="flex-1">
+                      <p className="text-sm font-bold text-orange-900">User Appeal Submitted</p>
+                      <div className="mt-1 bg-white border border-orange-200 p-2 rounded-lg text-sm font-medium text-orange-800 shadow-sm">
+                        {post.appeal.reason}
                       </div>
-                    ))}
+                    </div>
+                  </div>
+                  <div className="flex gap-3 justify-end items-center mt-1">
+                    <button 
+                      onClick={() => handleRejectAppeal(post.id)}
+                      className="px-3 py-1.5 bg-white border border-orange-300 text-xs font-bold rounded-lg hover:bg-orange-100 text-orange-900 shadow-sm transition-all"
+                    >
+                      Reject Appeal
+                    </button>
+                    <button 
+                      onClick={() => handleRestorePost(post.id)}
+                      className="px-3 py-1.5 bg-indigo-500 hover:bg-indigo-600 text-xs font-bold rounded-lg text-white shadow-sm transition-all"
+                    >
+                      Approve & Restore
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {/* Main Post Data */}
+              <div className={`flex flex-col gap-2 ${post.isUnlisted ? 'opacity-60' : ''}`}>
+                {/* Frame 2609286 - Post Header */}
+                <div className="flex justify-between items-start h-[36px]">
+                  {/* Frame 2609288 - Avatar + Name Group */}
+                  <div className="flex items-center gap-[6px]">
+                    {/* Ellipse 3 - Avatar */}
+                    <img src={post.avatar} alt={post.author} className="w-[32px] h-[32px] rounded-full object-cover shrink-0" />
+                    {/* Frame 2609287 - Name + Role */}
+                    <div className="flex flex-col justify-center h-[36px]">
+                      {/* Name */}
+                      <h4 className="font-semibold text-[#1A1A2E] text-[14px] leading-[20px] m-0">{post.author}</h4>
+                      {/* Role */}
+                      <p className="font-normal text-[#6B7280] text-[12px] leading-[16px] m-0">
+                        {post.title || 'Platform Member'}
+                      </p>
+                    </div>
+                  </div>
+                  
+                  {/* Moderation Actions (Vector Icon) */}
+                  <div className="flex items-center h-[36px]">
+                    {post.isUnlisted ? (
+                      <button onClick={() => handleRestorePost(post.id)} className="w-[24px] h-[24px] flex items-center justify-center text-indigo-500 hover:bg-indigo-50 rounded transition-colors" title="Restore Post">
+                        <span className="material-symbols-outlined text-[18px]" style={{ fontVariationSettings: "'FILL' 1" }}>settings_backup_restore</span>
+                      </button>
+                    ) : (
+                      <button onClick={() => handleTakedownPost(post.id)} className="w-[24px] h-[24px] flex items-center justify-center text-indigo-500 hover:bg-indigo-50 rounded transition-colors" title="Takedown Post">
+                        <span className="material-symbols-outlined text-[18px]" style={{ fontVariationSettings: "'FILL' 1" }}>visibility_off</span>
+                      </button>
+                    )}
+                  </div>
+                </div>
+
+                {/* AI Flags Alert */}
+                {post.aiFlag && (
+                  <div className="mt-1 px-3 py-2 rounded-lg flex items-start gap-2 bg-red-50 border border-red-100">
+                    <span className="material-symbols-outlined text-[16px] mt-0.5 text-red-600">warning</span>
+                    <div className="flex-1">
+                      <p className="text-xs font-bold text-red-800">Moderation Alert: {post.aiFlag.message}</p>
+                    </div>
+                  </div>
+                )}
+
+                {/* Frame 2609297 - Content Row */}
+                <div className="flex flex-row items-center gap-[16px] min-h-[76px] mt-1">
+                  
+                  {/* Background+Border - Image Thumbnail */}
+                  {post.mediaUrl && (
+                    <div className="w-[76px] h-[76px] rounded-[12px] border border-[#E5E7EB] bg-[#F3F4F6] flex items-center justify-center overflow-hidden shrink-0">
+                      <img src={post.mediaUrl} alt="Post media" className="w-[74px] h-[74px] object-cover" />
+                    </div>
+                  )}
+
+                  {/* Frame 2609254 - Text Content */}
+                  <div className="flex flex-col items-start gap-[8px] flex-1 max-h-[76px] overflow-hidden">
+                    <div className="text-[14px] leading-[20px] text-[#1A1A2E] font-normal line-clamp-3">
+                      {post.content && post.content.includes('<') ? (
+                        <div dangerouslySetInnerHTML={{ __html: post.content }} />
+                      ) : (
+                        <div dangerouslySetInnerHTML={{ __html: parseMarkdown(post.content) }} />
+                      )}
+                    </div>
+                  </div>
+                  
+                </div>
+
+                {/* Interactive Metric Analytics Overlay (Not in Figma specs, keeping original style but adapting spacing) */}
+                <div className="mt-2 flex items-center gap-4">
+                  <div className="flex items-center gap-1.5 text-indigo-500 hover:bg-indigo-50 px-2 py-1 rounded-md transition-colors cursor-pointer">
+                    <span className="material-symbols-outlined text-[16px]">thumb_up</span>
+                    <span className="text-xs font-semibold">{post.metrics.likes.toLocaleString()}</span>
+                  </div>
+                  <button 
+                    onClick={() => toggleComments(post.id)}
+                    className="flex items-center gap-1.5 text-gray-500 hover:text-indigo-500 hover:bg-indigo-50 px-2 py-1 rounded-md transition-colors"
+                  >
+                    <span className="material-symbols-outlined text-[16px]">chat_bubble</span>
+                    <span className="text-xs font-semibold">{post.metrics.comments.toLocaleString()}</span>
+                  </button>
+                  <div className="flex items-center gap-1.5 text-gray-500 hover:text-indigo-500 hover:bg-indigo-50 px-2 py-1 rounded-md transition-colors cursor-pointer">
+                    <span className="material-symbols-outlined text-[16px]">repeat</span>
+                    <span className="text-xs font-semibold">{post.metrics.shares.toLocaleString()}</span>
+                  </div>
+                </div>
+
+                {/* Collapsible Comments Section */}
+                {expandedComments[post.id] && (
+                  <div className="mt-3 border-t border-gray-100 pt-3 flex flex-col gap-3">
+                    {expandedComments[post.id].length === 0 ? (
+                      <p className="text-xs text-gray-400 italic">No comments on this post yet.</p>
+                    ) : (
+                      <div className="flex flex-col gap-3 max-h-[200px] overflow-y-auto pr-1">
+                        {expandedComments[post.id].map(comment => (
+                          <div key={comment.id} className="flex gap-2.5 items-start bg-gray-50 p-2.5 rounded-lg border border-gray-100">
+                            <img src={comment.avatar} alt={comment.author} className="w-8 h-8 rounded-full object-cover shrink-0" />
+                            <div className="flex-1 min-w-0">
+                              <div className="flex justify-between items-baseline mb-0.5">
+                                <span className="text-xs font-bold text-on-surface">{comment.author}</span>
+                                <span className="text-[10px] text-gray-500">
+                                  {new Date(comment.created_at).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
+                                </span>
+                              </div>
+                              <p className="text-xs text-gray-500 mb-1">{comment.title}</p>
+                              <p className="text-xs text-on-surface break-words">{comment.content}</p>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
+                {loadingComments[post.id] && (
+                  <div className="mt-3 flex items-center justify-center">
+                    <div className="w-5 h-5 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin"></div>
                   </div>
                 )}
               </div>
-            )}
-            {loadingComments[post.id] && (
-              <div className="border-t border-outline-variant bg-surface-container-lowest/50 px-5 py-4 flex items-center justify-center">
-                <div className="w-5 h-5 border-2 border-indigo-600 border-t-transparent rounded-full animate-spin"></div>
-              </div>
-            )}
-            </div> {/* Closing main post data dimmed container */}
-          </div>
-        ))
+            </div>
+          ))}
+        </div>
       )}
     </div>
   );
@@ -640,25 +692,23 @@ export default function FeedEngagementBreakdown() {
       </div>
 
       {/* Top Bar: Controls + Dual-View Toggle */}
-      <div className="bg-surface p-4 rounded-xl shadow-sm border border-outline-variant flex flex-col md:flex-row justify-between items-center gap-4">
-        
-        <div className="flex items-center gap-4">
-          <div className="bg-surface-container-low p-1 rounded-lg flex">
+      <div className="flex flex-col md:flex-row justify-between items-center gap-4 mb-2">
+        <div className="flex items-center gap-2 flex-wrap">
+          {[
+            { id: 'active', label: 'Active Feed' },
+            { id: 'unlisted', label: 'Unlisted Posts' },
+            { id: 'likes', label: 'Likes' },
+            { id: 'comments', label: 'Comments' },
+            { id: 'tags', label: 'Tags' }
+          ].map((tab) => (
             <button 
-              onClick={() => setViewMode('active')}
-              className={`flex items-center gap-2 px-4 py-2 rounded-md text-sm font-semibold transition-all ${viewMode === 'active' ? 'bg-surface shadow-sm text-blue-600' : 'text-on-surface-variant hover:text-on-surface'}`}
+              key={tab.id}
+              onClick={() => setViewMode(tab.id)}
+              className={`flex items-center gap-2 px-5 py-2 rounded-full text-sm font-medium transition-all ${viewMode === tab.id ? 'bg-blue-50 text-blue-600 shadow-sm border border-blue-100' : 'bg-surface text-on-surface-variant border border-outline-variant hover:border-blue-300 hover:text-blue-500'}`}
             >
-              <span className="material-symbols-outlined text-[18px]">rss_feed</span>
-              Active Feed
+              {tab.label}
             </button>
-            <button 
-              onClick={() => setViewMode('unlisted')}
-              className={`flex items-center gap-2 px-4 py-2 rounded-md text-sm font-semibold transition-all ${viewMode === 'unlisted' ? 'bg-surface shadow-sm text-blue-600' : 'text-on-surface-variant hover:text-on-surface'}`}
-            >
-              <span className="material-symbols-outlined text-[18px]">visibility_off</span>
-              Unlisted Posts
-            </button>
-          </div>
+          ))}
         </div>
 
         <div className="flex gap-3">
@@ -674,14 +724,14 @@ export default function FeedEngagementBreakdown() {
         </div>
       </div>
 
-      <div className="flex flex-col lg:flex-row gap-8 items-stretch">
+      <div className="flex flex-col lg:flex-row gap-6 items-stretch">
         
-        {/* Left Column: Feed Stream */}
+        {/* Left Column: Feed List (Master) */}
         <div 
-          className="w-full lg:w-2/3 flex flex-col justify-between"
-          style={{ height: rightColumnHeight ? `${rightColumnHeight}px` : 'auto' }}
+          className="w-full lg:w-[32%] flex flex-col justify-between"
+          style={{ height: rightColumnHeight ? `${rightColumnHeight}px` : '750px' }}
         >
-          <div className="flex flex-col gap-6 overflow-y-auto pr-3 custom-scrollbar flex-1 mb-4">
+          <div className="flex flex-col overflow-hidden flex-1 mb-4">
             {renderCardView()}
           </div>
 
@@ -691,17 +741,17 @@ export default function FeedEngagementBreakdown() {
               <button
                 disabled={currentPage <= 1}
                 onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
-                className="px-4 py-2 border border-outline-variant text-sm font-semibold rounded-lg hover:bg-surface-container-lowest text-on-surface disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                className="px-3 py-1.5 border border-outline-variant text-xs font-semibold rounded-lg hover:bg-surface-container-lowest text-on-surface disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
               >
-                Previous
+                Prev
               </button>
-              <span className="text-sm font-medium text-on-surface">
-                Page {currentPage} of {totalPages}
+              <span className="text-xs font-medium text-on-surface">
+                {currentPage} of {totalPages}
               </span>
               <button
                 disabled={currentPage >= totalPages}
                 onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
-                className="px-4 py-2 border border-outline-variant text-sm font-semibold rounded-lg hover:bg-surface-container-lowest text-on-surface disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                className="px-3 py-1.5 border border-outline-variant text-xs font-semibold rounded-lg hover:bg-surface-container-lowest text-on-surface disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
               >
                 Next
               </button>
@@ -709,8 +759,16 @@ export default function FeedEngagementBreakdown() {
           )}
         </div>
 
+        {/* Center Column: Post Detail (Detail) */}
+        <div 
+          className="w-full lg:w-[40%] flex flex-col"
+          style={{ height: rightColumnHeight ? `${rightColumnHeight}px` : '750px' }}
+        >
+          {renderPostDetail()}
+        </div>
+
         {/* Right Column: Side Panels */}
-        <div ref={rightColumnRef} className="w-full lg:w-1/3 flex flex-col gap-6 sticky top-6">
+        <div ref={rightColumnRef} className="w-full lg:w-[28%] flex flex-col gap-6 sticky top-6">
           
           {/* Viral Content Leaderboard */}
           <div className="bg-surface border border-outline-variant rounded-xl shadow-sm overflow-hidden">
@@ -815,3 +873,5 @@ export default function FeedEngagementBreakdown() {
     </div>
   );
 }
+
+// force refresh

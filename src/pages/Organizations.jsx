@@ -161,8 +161,22 @@ export default function Organizations() {
           alert(`Failed to send warning: ${data.error}`);
         }
       } else {
-        // Bulk warning logic (Optional for later, just alert for now if selectedOrgs is used)
-        alert('Bulk warning for organizations is not fully implemented yet in the backend.');
+        const orgIds = Array.from(selectedOrgs);
+        const res = await fetch('/api/admin/organisations/bulk-warn', {
+          method: 'POST',
+          headers: { 'Authorization': `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ orgIds, reason: 'Admin Warning', message: warningMessage, isSevere: warningIsSevere })
+        });
+        if (res.ok) {
+          alert(`Warnings sent to ${orgIds.length} organizations.`);
+          fetchOrganizations();
+        } else {
+          alert('Failed to send bulk warnings.');
+        }
+        setWarningModalOpen(false);
+        setWarningMessage('');
+        setWarningIsSevere(false);
+        setSelectedOrgs(new Set());
       }
     } catch (error) {
       console.error('Failed to warn organization:', error);
@@ -184,11 +198,98 @@ export default function Organizations() {
   };
 
   const handleRestrictSelected = async () => {
-    for (let id of selectedOrgs) {
-      await handleRestrictOrg(id);
+    try {
+      const orgIds = Array.from(selectedOrgs);
+      const res = await fetch('/api/admin/organisations/bulk-suspend', {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ orgIds })
+      });
+      if (res.ok) {
+        alert(`Suspended ${selectedOrgs.size} organizations.`);
+        fetchOrganizations(); // refresh the list
+      } else {
+        alert('Failed to suspend organizations.');
+      }
+    } catch (error) {
+      console.error('Failed to suspend organizations:', error);
+      alert('Error suspending organizations.');
     }
-    alert(`Restricted ${selectedOrgs.size} organizations.`);
     setRestrictConfirmModalOpen(false);
+    setSelectedOrgs(new Set());
+  };
+
+  const handleDeleteSelected = async () => {
+    if (!window.confirm(`Are you sure you want to delete ${selectedOrgs.size} organizations?`)) return;
+    try {
+      const orgIds = Array.from(selectedOrgs);
+      const res = await fetch('/api/admin/organisations/bulk-delete', {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ orgIds })
+      });
+      if (res.ok) {
+        alert(`Deleted ${selectedOrgs.size} organizations.`);
+        fetchOrganizations();
+      } else {
+        alert('Failed to delete organizations.');
+      }
+    } catch (error) {
+      console.error('Failed to delete organizations:', error);
+      alert('Error deleting organizations.');
+    }
+    setSelectedOrgs(new Set());
+  };
+
+  const handleBulkUnsuspend = async () => {
+    if (window.confirm(`Are you sure you want to restore ${selectedOrgs.size} organizations?`)) {
+      try {
+        const orgIds = Array.from(selectedOrgs);
+        const res = await fetch('/api/admin/organisations/bulk-unsuspend', {
+          method: 'POST',
+          headers: { 'Authorization': `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ orgIds })
+        });
+        if (res.ok) {
+          alert(`Successfully restored ${selectedOrgs.size} organizations.`);
+          fetchOrganizations();
+          setSelectedOrgs(new Set());
+        } else {
+          alert('Failed to restore organizations.');
+        }
+      } catch (error) {
+        console.error('Error restoring organizations:', error);
+        alert('Error restoring organizations.');
+      }
+    }
+  };
+
+  const handleExportCSV = () => {
+    const orgIds = Array.from(selectedOrgs);
+    const selectedData = organizations.filter(o => orgIds.includes(o.id));
+    if (selectedData.length === 0) return;
+
+    const headers = ['ID', 'Name', 'Industry', 'Status', 'Joined Date'];
+    const csvRows = [headers.join(',')];
+    for (const row of selectedData) {
+      const values = [
+        row.id,
+        `"${(row.name || '').replace(/"/g, '""')}"`,
+        `"${(row.industry || '').replace(/"/g, '""')}"`,
+        `"${(row.status || '').replace(/"/g, '""')}"`,
+        `"${(row.date || '').replace(/"/g, '""')}"`
+      ];
+      csvRows.push(values.join(','));
+    }
+    const csvString = csvRows.join('\n');
+    const blob = new Blob([csvString], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.setAttribute('href', url);
+    link.setAttribute('download', `exported_organizations_${new Date().getTime()}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
     setSelectedOrgs(new Set());
   };
 
@@ -264,6 +365,9 @@ export default function Organizations() {
       default: return null;
     }
   };
+
+  const selectedOrgsList = organizations.filter(o => selectedOrgs.has(o.id));
+  const allSelectedAreSuspended = selectedOrgsList.length > 0 && selectedOrgsList.every(o => o.status === 'Suspended');
 
   return (
     <div className="pt-8 pb-12 w-full max-w-[1400px] mx-auto px-4">
@@ -503,12 +607,36 @@ export default function Organizations() {
                   <span className="material-symbols-outlined text-[18px]">warning</span>
                   Send Bulk Warning
                 </button>
+                {allSelectedAreSuspended ? (
+                  <button
+                    onClick={handleBulkUnsuspend}
+                    className="px-md py-sm bg-surface text-on-surface shadow-sm hover:bg-surface-container-low rounded-lg font-label-md transition-colors flex items-center gap-sm border border-outline-variant"
+                  >
+                    <span className="material-symbols-outlined text-[18px]">restore</span>
+                    Restore
+                  </button>
+                ) : (
+                  <button
+                    onClick={() => setRestrictConfirmModalOpen(true)}
+                    className="px-md py-sm bg-error text-on-error rounded-lg font-label-md hover:bg-error/90 transition-colors shadow-sm flex items-center gap-sm"
+                  >
+                    <span className="material-symbols-outlined text-[18px]">block</span>
+                    Suspend
+                  </button>
+                )}
                 <button
-                  onClick={() => setRestrictConfirmModalOpen(true)}
+                  onClick={handleDeleteSelected}
                   className="px-md py-sm bg-error text-on-error rounded-lg font-label-md hover:bg-error/90 transition-colors shadow-sm flex items-center gap-sm"
                 >
-                  <span className="material-symbols-outlined text-[18px]">block</span>
-                  Restrict Selected
+                  <span className="material-symbols-outlined text-[18px]">delete</span>
+                  Delete
+                </button>
+                <button
+                  onClick={handleExportCSV}
+                  className="px-md py-sm bg-surface text-primary rounded-lg font-label-md hover:bg-surface-container-low transition-colors shadow-sm flex items-center gap-sm"
+                >
+                  <span className="material-symbols-outlined text-[18px]">download</span>
+                  Export
                 </button>
               </div>
             </div>

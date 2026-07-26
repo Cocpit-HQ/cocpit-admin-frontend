@@ -162,24 +162,102 @@ export default function UserManagement() {
   };
 
   const handleDelete = async () => {
-    if (!userToDelete) return;
-    try {
-      const res = await fetch(`/api/admin/users/${userToDelete.id}`, {
-        method: 'DELETE',
-        headers: { 'Authorization': `Bearer ${accessToken}` }
-      });
-      if (res.ok) {
-        setUsers(users.map(u => u.id === userToDelete.id ? { ...u, status: 'Deleted' } : u));
-        alert(`Successfully deleted ${userToDelete.name}.`);
-        setUserToDelete(null);
-        setDeleteModalOpen(false);
-      } else {
-        alert('Failed to delete user.');
+    if (userToDelete) {
+      try {
+        const res = await fetch(`/api/admin/users/${userToDelete.id}`, {
+          method: 'DELETE',
+          headers: { 'Authorization': `Bearer ${accessToken}` }
+        });
+        if (res.ok) {
+          setUsers(users.map(u => u.id === userToDelete.id ? { ...u, status: 'Deleted' } : u));
+          alert(`Successfully deleted ${userToDelete.name}.`);
+          setUserToDelete(null);
+          setDeleteModalOpen(false);
+        } else {
+          alert('Failed to delete user.');
+        }
+      } catch (e) {
+        console.error(e);
+        alert('Error deleting user.');
       }
-    } catch (e) {
-      console.error(e);
-      alert('Error deleting user.');
+    } else {
+      try {
+        const userIds = Array.from(selectedUsers);
+        const response = await fetch('/api/admin/users/bulk-delete', {
+          method: 'POST',
+          headers: { 'Authorization': `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ userIds })
+        });
+        if (response.ok) {
+          setUsers(users.map(u => userIds.includes(u.id) ? { ...u, status: 'Deleted' } : u));
+          alert(`Successfully deleted ${userIds.length} users.`);
+          setSelectedUsers(new Set());
+        } else {
+          alert('Failed to delete users.');
+        }
+      } catch (e) {
+        console.error(e);
+        alert('Error deleting users in bulk.');
+      }
+      setDeleteModalOpen(false);
     }
+  };
+
+  const handleBulkUnsuspend = async () => {
+    if (window.confirm(`Are you sure you want to restore ${selectedUsers.size} users?`)) {
+      try {
+        const userIds = Array.from(selectedUsers);
+        const res = await fetch('/api/admin/users/bulk-unsuspend', {
+          method: 'POST',
+          headers: { 'Authorization': `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ userIds })
+        });
+        if (res.ok) {
+          setUsers(users.map(u => userIds.includes(u.id) ? { ...u, status: 'Active' } : u));
+          alert(`Successfully restored ${userIds.length} users.`);
+          setSelectedUsers(new Set());
+        } else {
+          alert('Failed to restore users.');
+        }
+      } catch (e) {
+        console.error(e);
+        alert('Error restoring users.');
+      }
+    }
+  };
+
+  const handleExportCSV = () => {
+    const userIds = Array.from(selectedUsers);
+    const selectedData = users.filter(u => userIds.includes(u.id));
+    
+    if (selectedData.length === 0) return;
+
+    const headers = ['ID', 'Name', 'Email', 'Role', 'Status', 'Joined Date'];
+    const csvRows = [headers.join(',')];
+    
+    for (const row of selectedData) {
+      const values = [
+        row.id,
+        `"${(row.name || '').replace(/"/g, '""')}"`,
+        `"${(row.email || '').replace(/"/g, '""')}"`,
+        `"${(row.role || '').replace(/"/g, '""')}"`,
+        `"${(row.status || '').replace(/"/g, '""')}"`,
+        `"${(row.joined || '').replace(/"/g, '""')}"`
+      ];
+      csvRows.push(values.join(','));
+    }
+    
+    const csvString = csvRows.join('\n');
+    const blob = new Blob([csvString], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.setAttribute('href', url);
+    link.setAttribute('download', `exported_users_${new Date().getTime()}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    
+    setSelectedUsers(new Set());
   };
 
   const handleSendBulkEmail = async () => {
@@ -273,6 +351,8 @@ export default function UserManagement() {
   };
 
   // Server-side paginated data is now directly in 'users'
+  const selectedUsersList = users.filter(u => selectedUsers.has(u.id));
+  const allSelectedAreSuspended = selectedUsersList.length > 0 && selectedUsersList.every(u => u.status === 'Suspended');
 
   return (
     <div>
@@ -391,12 +471,36 @@ export default function UserManagement() {
               <span className="material-symbols-outlined text-[18px]">warning</span>
               Send Bulk Warning
             </button>
+            {allSelectedAreSuspended ? (
+              <button
+                onClick={handleBulkUnsuspend}
+                className="px-md py-sm bg-surface text-on-surface shadow-sm hover:bg-surface-container-low rounded-lg font-label-md transition-colors flex items-center gap-sm border border-outline-variant"
+              >
+                <span className="material-symbols-outlined text-[18px]">restore</span>
+                Restore
+              </button>
+            ) : (
+              <button
+                onClick={() => setSuspendConfirmModalOpen(true)}
+                className="px-md py-sm bg-error text-on-error rounded-lg font-label-md hover:bg-error/90 transition-colors shadow-sm flex items-center gap-sm"
+              >
+                <span className="material-symbols-outlined text-[18px]">gavel</span>
+                Suspend
+              </button>
+            )}
             <button
-              onClick={() => setSuspendConfirmModalOpen(true)}
+              onClick={() => { setUserToDelete(null); setDeleteModalOpen(true); }}
               className="px-md py-sm bg-error text-on-error rounded-lg font-label-md hover:bg-error/90 transition-colors shadow-sm flex items-center gap-sm"
             >
-              <span className="material-symbols-outlined text-[18px]">gavel</span>
-              Suspend Selected
+              <span className="material-symbols-outlined text-[18px]">delete</span>
+              Delete
+            </button>
+            <button
+              onClick={handleExportCSV}
+              className="px-md py-sm bg-surface text-primary rounded-lg font-label-md hover:bg-surface-container-low transition-colors shadow-sm flex items-center gap-sm"
+            >
+              <span className="material-symbols-outlined text-[18px]">download</span>
+              Export
             </button>
           </div>
         </div>
