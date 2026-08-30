@@ -18,9 +18,12 @@ export const api = {
   request: async (endpoint, options = {}) => {
     const url = `${BASE_URL}${endpoint}`;
     
+    const environment = localStorage.getItem('admin_environment') || 'staging';
+
     // Setup headers
     const headers = {
       'Content-Type': 'application/json',
+      'x-environment': environment,
       ...options.headers,
     };
 

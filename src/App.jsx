@@ -16,6 +16,7 @@ import DetailedAnalytics from './pages/DetailedAnalytics';
 import AppealsQueue from './pages/AppealsQueue';
 import Thoughts from './pages/Thoughts';
 import AiAnalytics from './pages/AiAnalytics';
+import ContactSupport from './pages/ContactSupport';
 import { AuthProvider } from './AuthContext';
 import { ThemeProvider } from './ThemeContext';
 import RoleGuard from './components/RoleGuard';
@@ -44,6 +45,7 @@ function AppRoutes() {
         
         {/* All roles */}
         <Route path="thoughts" element={<Thoughts />} />
+        <Route path="support" element={<ContactSupport />} />
         <Route path="health" element={<SystemHealth />} />
         <Route path="notifications" element={<Notifications />} />
         <Route path="profile/:id" element={<UserProfile />} />

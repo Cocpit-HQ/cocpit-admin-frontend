@@ -42,20 +42,6 @@ const parseMarkdown = (text) => {
 
 export default function FeedEngagementBreakdown() {
   const { accessToken } = useAuth();
-  const rightColumnRef = useRef(null);
-  const [rightColumnHeight, setRightColumnHeight] = useState(770);
-
-  useEffect(() => {
-    if (rightColumnRef.current) {
-      const resizeObserver = new ResizeObserver((entries) => {
-        for (let entry of entries) {
-          setRightColumnHeight(entry.contentRect.height);
-        }
-      });
-      resizeObserver.observe(rightColumnRef.current);
-      return () => resizeObserver.disconnect();
-    }
-  }, []);
 
   const [viewMode, setViewMode] = useState('active'); // 'active' or 'unlisted'
   const [posts, setPosts] = useState([]);
@@ -386,9 +372,9 @@ export default function FeedEngagementBreakdown() {
           </div>
           
           {/* Post Description Text */}
-          <div className="p-4 bg-gray-50 border border-gray-200 rounded-xl shadow-sm">
-            <h4 className="text-xs font-bold text-gray-500 mb-2 uppercase tracking-wide">Description</h4>
-            <div className="text-[14px] leading-[20px] text-[#1A1A2E] font-normal">
+          <div className="p-4 bg-surface-container border border-outline-variant rounded-xl shadow-sm">
+            <h4 className="text-xs font-bold text-on-surface-variant mb-2 uppercase tracking-wide">Description</h4>
+            <div className="text-[14px] leading-[20px] text-on-surface font-normal post-content-container">
               {post.content && post.content.includes('<') ? (
                 <div dangerouslySetInnerHTML={{ __html: post.content }} />
               ) : (
@@ -464,9 +450,9 @@ export default function FeedEngagementBreakdown() {
                     {/* Frame 2609287 - Name + Role */}
                     <div className="flex flex-col justify-center h-[36px]">
                       {/* Name */}
-                      <h4 className="font-semibold text-[#1A1A2E] text-[14px] leading-[20px] m-0">{post.author}</h4>
+                      <h4 className="font-semibold text-on-surface text-[14px] leading-[20px] m-0">{post.author}</h4>
                       {/* Role */}
-                      <p className="font-normal text-[#6B7280] text-[12px] leading-[16px] m-0">
+                      <p className="font-normal text-on-surface-variant text-[12px] leading-[16px] m-0">
                         {post.title || 'Platform Member'}
                       </p>
                     </div>
@@ -508,7 +494,7 @@ export default function FeedEngagementBreakdown() {
 
                   {/* Frame 2609254 - Text Content */}
                   <div className="flex flex-col items-start gap-[8px] flex-1 max-h-[76px] overflow-hidden">
-                    <div className="text-[14px] leading-[20px] text-[#1A1A2E] font-normal line-clamp-3">
+                    <div className="text-[14px] leading-[20px] text-on-surface font-normal line-clamp-3 post-content-container">
                       {post.content && post.content.includes('<') ? (
                         <div dangerouslySetInnerHTML={{ __html: post.content }} />
                       ) : (
@@ -728,8 +714,8 @@ export default function FeedEngagementBreakdown() {
         
         {/* Left Column: Feed List (Master) */}
         <div 
-          className="w-full lg:w-[32%] flex flex-col justify-between"
-          style={{ height: rightColumnHeight ? `${rightColumnHeight}px` : '750px' }}
+          className="w-full lg:w-[35%] flex flex-col justify-between"
+          style={{ height: '750px' }}
         >
           <div className="flex flex-col overflow-hidden flex-1 mb-4">
             {renderCardView()}
@@ -761,97 +747,10 @@ export default function FeedEngagementBreakdown() {
 
         {/* Center Column: Post Detail (Detail) */}
         <div 
-          className="w-full lg:w-[40%] flex flex-col"
-          style={{ height: rightColumnHeight ? `${rightColumnHeight}px` : '750px' }}
+          className="w-full lg:w-[65%] flex flex-col"
+          style={{ height: '750px' }}
         >
           {renderPostDetail()}
-        </div>
-
-        {/* Right Column: Side Panels */}
-        <div ref={rightColumnRef} className="w-full lg:w-[28%] flex flex-col gap-6 sticky top-6">
-          
-          {/* Viral Content Leaderboard */}
-          <div className="bg-surface border border-outline-variant rounded-xl shadow-sm overflow-hidden">
-            <div className="bg-orange-50 dark:bg-[#451A03] p-5 border-b border-orange-200 dark:border-[#F59E0B]/30 flex items-center justify-between">
-              <h3 className="text-base font-bold text-orange-700 dark:text-[#FBBF24] flex items-center gap-2">
-                <span className="material-symbols-outlined text-orange-600 dark:text-[#F59E0B]">local_fire_department</span>
-                Viral Content Leaderboard
-              </h3>
-            </div>
-            <div className="p-0">
-              <ul className="divide-y divide-outline-variant">
-                {leaderboard.length === 0 ? (
-                  <li className="p-4 text-center text-on-surface-variant text-sm">No viral content.</li>
-                ) : (
-                  leaderboard.map((item, index) => {
-                    const getRankStyle = (idx) => {
-                      switch (idx) {
-                        case 0: return 'bg-orange-100 dark:bg-[#451A03] text-orange-700 dark:text-[#FBBF24] ring-2 ring-amber-300';
-                        case 1: return 'bg-surface-container-low text-on-surface-variant ring-2 ring-slate-300';
-                        case 2: return 'bg-orange-100 text-orange-700 ring-2 ring-orange-300';
-                        default: return 'bg-surface-container-lowest text-outline border border-outline-variant';
-                      }
-                    };
-                    return (
-                      <li key={item.id} className="p-4 hover:bg-surface-container-lowest transition-colors flex items-center gap-4">
-                        <span className={`w-6 h-6 rounded-full flex items-center justify-center font-bold text-xs shrink-0 ${getRankStyle(index)}`}>
-                          {index + 1}
-                        </span>
-                        <div className="flex-1 min-w-0">
-                          <p className="font-bold text-on-surface text-sm leading-tight line-clamp-2">{stripHtml(item.title)}</p>
-                          <div className="flex items-center justify-between mt-2">
-                            <p className="text-xs text-on-surface-variant">by {item.author}</p>
-                            <div className="flex items-center gap-2">
-                              <span className="flex items-center gap-1 text-[10px] font-extrabold text-blue-600 bg-blue-50 dark:bg-blue-900/20 dark:bg-blue-900/30 px-1.5 py-0.5 rounded-md" title="Likes">
-                                <span className="material-symbols-outlined text-[12px]">thumb_up</span> {item.likes.toLocaleString()}
-                              </span>
-                              <span className="flex items-center gap-1 text-[10px] font-extrabold text-indigo-600 bg-indigo-50 dark:bg-indigo-900/20 dark:bg-indigo-900/30 px-1.5 py-0.5 rounded-md" title="Comments">
-                                <span className="material-symbols-outlined text-[12px]">chat_bubble</span> {item.comments.toLocaleString()}
-                              </span>
-                              {item.shares > 0 && (
-                                <span className="flex items-center gap-1 text-[10px] font-extrabold text-green-600 bg-green-50 dark:bg-green-900/20 dark:bg-green-900/30 px-1.5 py-0.5 rounded-md" title="Shares">
-                                  <span className="material-symbols-outlined text-[12px]">repeat</span> {item.shares.toLocaleString()}
-                                </span>
-                              )}
-                            </div>
-                          </div>
-                        </div>
-                      </li>
-                    );
-                  })
-                )}
-              </ul>
-            </div>
-          </div>
-
-          {/* Trending Hashtags */}
-          <div className="bg-surface border border-outline-variant rounded-xl shadow-sm overflow-hidden">
-            <div className="bg-surface-container p-5 border-b border-outline-variant flex justify-between items-center">
-              <div>
-                <h3 className="text-base font-bold text-primary flex items-center gap-2">
-                  <span className="material-symbols-outlined text-indigo-600">tag</span>
-                  Trending Hashtags
-                </h3>
-              </div>
-            </div>
-            <div className="p-0">
-              <ul className="divide-y divide-outline-variant">
-                {hashtags.length === 0 ? (
-                  <li className="p-4 text-center text-on-surface-variant text-sm">No hashtags found.</li>
-                ) : (
-                  hashtags.map(tag => (
-                    <li key={tag.id} className="p-4 flex items-center justify-between hover:bg-surface-container-lowest transition-colors">
-                      <div>
-                        <p className="font-bold text-on-surface text-sm">{tag.tag}</p>
-                        <p className="text-xs text-green-600 font-semibold mt-0.5">{tag.velocity}</p>
-                      </div>
-                    </li>
-                  ))
-                )}
-              </ul>
-            </div>
-          </div>
-
         </div>
       </div>
       {renderTakedownModal()}
@@ -868,6 +767,11 @@ export default function FeedEngagementBreakdown() {
         }
         .custom-scrollbar::-webkit-scrollbar-thumb:hover {
           background: #cbd5e1;
+        }
+        .post-content-container * {
+          background-color: transparent !important;
+          background: transparent !important;
+          color: inherit !important;
         }
       `}} />
     </div>

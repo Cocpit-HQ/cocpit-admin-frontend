@@ -384,56 +384,7 @@ export default function Thoughts() {
 
             {/* Right Column: Thoughts Moderation */}
             <div className="flex-1 border border-outline-variant rounded-xl flex flex-col bg-surface overflow-hidden">
-              <div className="p-4 border-b border-outline-variant bg-surface-container-lowest flex items-center justify-between shrink-0">
-                <h3 className="font-semibold text-on-surface flex items-center gap-2">
-                  <span className="material-symbols-outlined">forum</span>
-                  Thoughts ({totalThoughts})
-                </h3>
-              </div>
-              
               <div className="flex-1 overflow-y-auto p-4 bg-surface-container-lowest/30 flex flex-col gap-4 relative">
-                
-                <div className="sticky top-0 z-10 bg-surface/95 backdrop-blur pb-4 space-y-3">
-                  <form onSubmit={handlePostThought} className="relative">
-                    {replyingTo && (
-                      <div className="flex items-center justify-between bg-primary-container text-on-primary-container text-xs px-3 py-1.5 rounded-t-xl border-x border-t border-outline-variant">
-                        <span>Replying to <strong>{replyingTo.author}</strong></span>
-                        <button type="button" onClick={() => setReplyingTo(null)} className="hover:text-error">
-                          <span className="material-symbols-outlined text-[14px]">close</span>
-                        </button>
-                      </div>
-                    )}
-                    <div className="relative">
-                      <input
-                        id="thought-input"
-                        type="text"
-                        placeholder="Write your thoughts"
-                        value={newThoughtContent}
-                        onChange={(e) => setNewThoughtContent(e.target.value)}
-                        disabled={isPosting}
-                        className={`w-full bg-surface border border-outline-variant ${replyingTo ? 'rounded-b-xl border-t-0' : 'rounded-full'} px-4 py-2.5 pr-10 text-sm text-on-surface focus:outline-none focus:border-primary transition-colors`}
-                      />
-                      <button 
-                        type="submit" 
-                        disabled={isPosting || !newThoughtContent.trim()}
-                        className="absolute right-2 top-1/2 -translate-y-1/2 text-primary hover:text-primary/80 disabled:opacity-50 p-1 flex items-center justify-center"
-                      >
-                        <span className="material-symbols-outlined text-xl">send</span>
-                      </button>
-                    </div>
-                  </form>
-
-                  <div className="relative">
-                    <input
-                      type="text"
-                      placeholder="Search thoughts"
-                      value={searchQuery}
-                      onChange={(e) => setSearchQuery(e.target.value)}
-                      className="w-full bg-surface border border-outline-variant rounded-full px-4 py-2 text-sm text-on-surface focus:outline-none focus:border-primary transition-colors"
-                    />
-                    <span className="material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 text-on-surface-variant">search</span>
-                  </div>
-                </div>
 
                 {thoughts.length === 0 ? (
                   <div className="text-center text-on-surface-variant py-10 mt-4">

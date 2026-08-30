@@ -2,11 +2,13 @@ import React, { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../AuthContext';
 import { useTheme } from '../ThemeContext';
+import { useEnvironment } from '../EnvironmentContext';
 import GlobalSearch from './GlobalSearch';
 
 export default function Header({ toggleSidebar }) {
   const { logout, role, accessToken } = useAuth();
   const { theme, toggleTheme } = useTheme();
+  const { environment, setEnvironment } = useEnvironment();
   const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const [hasUnread, setHasUnread] = useState(true);
@@ -21,7 +23,10 @@ export default function Header({ toggleSidebar }) {
     const fetchNotifications = async () => {
       try {
         const res = await fetch('/api/admin/dashboard/notifications', {
-          headers: { 'Authorization': `Bearer ${accessToken}` }
+          headers: { 
+            'Authorization': `Bearer ${accessToken}`,
+            'x-environment': environment
+          }
         });
         if (res.ok) {
           const data = await res.json();
@@ -109,6 +114,22 @@ export default function Header({ toggleSidebar }) {
       </div>
       <div className="flex items-center gap-2 md:gap-md shrink-0">
         
+        {/* Environment Selector */}
+        <select
+          value={environment}
+          onChange={(e) => {
+            setEnvironment(e.target.value);
+            // Optional: force reload to refetch everything
+            window.location.reload();
+          }}
+          className="bg-surface border border-outline-variant text-on-surface font-label-md rounded-md px-2 py-1 outline-none focus:border-primary capitalize cursor-pointer"
+          title="Select Environment"
+        >
+          <option value="production">Production</option>
+          <option value="staging">Staging</option>
+          <option value="uat">UAT</option>
+        </select>
+
         {/* Theme Toggle */}
         <button
           onClick={toggleTheme}

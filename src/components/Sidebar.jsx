@@ -14,6 +14,7 @@ export default function Sidebar({ isOpen, setIsOpen }) {
     { name: 'Channel Thoughts', path: '/thoughts', icon: 'forum', roles: ['admin', 'moderator', 'developer'], section: 'System' },
     { name: 'Organizations', path: '/organizations', icon: 'corporate_fare', roles: ['admin', 'developer'], section: 'System' },
     { name: 'System Health', path: '/health', icon: 'analytics', roles: ['admin', 'moderator', 'developer'], section: 'System' },
+    { name: 'Contact Support', path: '/support', icon: 'support_agent', roles: ['admin', 'moderator', 'developer'], section: 'System' },
     { name: 'System Controls', path: '/controls', icon: 'toggle_on', roles: ['developer'], section: 'System' },
     { name: 'AI Analytics', path: '/ai-analytics', icon: 'smart_toy', roles: ['admin', 'developer'], section: 'System' },
     { name: 'Monetization', path: '/monetization', icon: 'attach_money', roles: ['admin', 'developer'], section: 'System' },

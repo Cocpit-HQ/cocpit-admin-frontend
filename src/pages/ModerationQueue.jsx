@@ -120,6 +120,9 @@ export default function ModerationQueue() {
           offenses: report.offenses,
           targetUserId: report.targetUserId,
           targetUserName: report.targetUserName,
+          postImageUrl: report.postImageUrl,
+          postMediaType: report.postMediaType,
+          pollOptions: report.pollOptions,
           reports: [],
         };
       }

@@ -4,6 +4,12 @@ import Modal from './Modal';
 import Button from './Button';
 
 export default function ReportDetailModal({ isOpen, onClose, report, onDeleteContent, onDismissReport, onDismissIndividual, onWarnUser, role }) {
+  const [mediaError, setMediaError] = React.useState(false);
+
+  React.useEffect(() => {
+    setMediaError(false);
+  }, [report]);
+
   if (!report) return null;
 
   const isTier3 = report.highestSeverity?.includes('Tier 3');
@@ -115,6 +121,50 @@ export default function ReportDetailModal({ isOpen, onClose, report, onDeleteCon
                     <span className="material-symbols-outlined text-[14px]">alternate_email</span> @{report.contentPreview.replace(/\s+/g, '_').toLowerCase()}
                   </span>
                 </div>
+
+                {/* Reported Content Details (Image / Video / Poll) */}
+                {report.postImageUrl && (
+                  <div className="mt-4 px-4 pb-4">
+                    <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-2 text-left">
+                      Reported {report.postMediaType === 'video' || report.postImageUrl.includes('.mp4') ? 'Video' : 'Image'}
+                    </p>
+                    {mediaError || report.postImageUrl.includes('dst2rqu4h') ? (
+                      <div className="w-full h-32 rounded-xl border border-dashed border-gray-200 bg-gray-50 flex flex-col items-center justify-center text-gray-400 p-4 text-center">
+                        <span className="material-symbols-outlined text-3xl mb-1 text-gray-300">broken_image</span>
+                        <p className="text-xs font-semibold">Media Unavailable</p>
+                        <p className="text-[10px] text-gray-400 mt-0.5 font-medium">The Cloudinary account hosting this media is disabled.</p>
+                      </div>
+                    ) : report.postMediaType === 'video' || report.postImageUrl.includes('.mp4') ? (
+                      <video 
+                        src={report.postImageUrl} 
+                        controls
+                        onError={() => setMediaError(true)}
+                        className="w-full max-h-48 rounded-xl border border-gray-200 bg-black" 
+                      />
+                    ) : (
+                      <img 
+                        src={report.postImageUrl} 
+                        alt="Reported content media" 
+                        onError={() => setMediaError(true)}
+                        className="w-full max-h-48 object-contain rounded-xl border border-gray-200 bg-white animate-fade-in" 
+                      />
+                    )}
+                  </div>
+                )}
+
+                {report.pollOptions && report.pollOptions.length > 0 && (
+                  <div className="mt-4 px-4 pb-4 text-left">
+                    <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-2">Reported Poll Options</p>
+                    <div className="flex flex-col gap-2">
+                      {report.pollOptions.map((opt, i) => (
+                        <div key={i} className="flex items-center gap-2 px-3 py-2 bg-white border border-gray-200 rounded-lg text-xs text-gray-700 font-medium">
+                          <span className="w-5 h-5 rounded-full bg-gray-100 flex items-center justify-center text-[10px] font-bold text-gray-500 shrink-0">{i + 1}</span>
+                          <span>{opt}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
               
               {/* Metrics */}
