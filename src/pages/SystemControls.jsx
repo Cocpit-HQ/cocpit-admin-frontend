@@ -85,6 +85,7 @@ export default function SystemControls() {
     enableGlobalSearch: true,
 
     // Settings & Privacy
+    enableSettingsPage: true,
     enableSavedPosts: true,
     enableActivityHistory: true,
     enableUserBlocking: true,
@@ -417,6 +418,7 @@ export default function SystemControls() {
               <div className="animate-in fade-in duration-300">
                 <h3 className="font-headline-sm mb-md pb-xs border-b border-outline-variant">Settings & Privacy</h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-md">
+                  <ToggleRow label="Settings Page" description="Master switch to hide the entire settings page." settingKey="enableSettingsPage" danger />
                   <ToggleRow label="Saved Posts & Collections" description="Users cannot save posts or create collections." settingKey="enableSavedPosts" />
                   <ToggleRow label="Activity History" description="Users cannot view or clear interaction history." settingKey="enableActivityHistory" />
                   <ToggleRow label="User Blocking" description="Users cannot block/unblock accounts." settingKey="enableUserBlocking" danger />
