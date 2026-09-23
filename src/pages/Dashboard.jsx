@@ -186,6 +186,44 @@ export default function Dashboard() {
     }
   };
 
+  const [selectedSignupDate, setSelectedSignupDate] = useState(null);
+  const [dailySignupsData, setDailySignupsData] = useState({ date: '', count: 0, users: [] });
+  const [loadingDailySignups, setLoadingDailySignups] = useState(false);
+  const [isSignupsModalOpen, setIsSignupsModalOpen] = useState(false);
+
+  const handleDateSelect = async (selectedPoint) => {
+    if (!selectedPoint || !selectedPoint.date) return;
+    
+    // Determine the query date. If label is like 'Oct 01', parse date relative to dateRange
+    let dateStr = selectedPoint.date;
+    setSelectedSignupDate(dateStr);
+    setIsSignupsModalOpen(true);
+    setLoadingDailySignups(true);
+
+    try {
+      // Calculate target date ISO string if possible
+      let targetDateParam = '';
+      if (selectedPoint.date !== 'Start' && selectedPoint.date !== 'End') {
+        const parsed = new Date(selectedPoint.date);
+        if (!isNaN(parsed.getTime())) {
+          targetDateParam = parsed.toISOString().split('T')[0];
+        }
+      }
+
+      const res = await fetch(`/api/admin/dashboard/daily-signups?date=${encodeURIComponent(targetDateParam)}`, {
+        headers: { 'Authorization': `Bearer ${accessToken}` }
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setDailySignupsData(data);
+      }
+    } catch (err) {
+      console.error('Error fetching daily signups:', err);
+    } finally {
+      setLoadingDailySignups(false);
+    }
+  };
+
   return (
     <div>
       {/* Page Header */}
@@ -285,7 +323,7 @@ export default function Dashboard() {
           <div className="flex justify-between items-center mb-xl">
             <div>
               <h5 className="font-headline-sm text-headline-sm font-bold">Platform Growth</h5>
-              <p className="text-body-sm text-on-surface-variant">User vs Organisation acquisition</p>
+              <p className="text-body-sm text-on-surface-variant">Click any date point on the chart to see joined users</p>
             </div>
             <div className="flex gap-md">
               <div className="flex items-center gap-xs">
@@ -299,7 +337,7 @@ export default function Dashboard() {
             </div>
           </div>
           <div className="flex-1 min-h-[320px] relative mt-auto -ml-4">
-            <PlatformGrowthChart data={metrics.chartData || []} />
+            <PlatformGrowthChart data={metrics.chartData || []} onDateSelect={handleDateSelect} />
           </div>
         </div>
 
@@ -314,6 +352,96 @@ export default function Dashboard() {
         </div>
 
       </div>
+
+      {/* Daily Signups Modal */}
+      {isSignupsModalOpen && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 p-4">
+          <div className="bg-surface border border-outline-variant w-[550px] max-w-[95vw] rounded-2xl shadow-2xl p-6 flex flex-col max-h-[85vh]">
+            <div className="flex justify-between items-center pb-4 border-b border-outline-variant">
+              <div>
+                <h3 className="text-lg font-bold text-on-surface flex items-center gap-2">
+                  <span className="material-symbols-outlined text-primary">group_add</span>
+                  Signups on {selectedSignupDate}
+                </h3>
+                <p className="text-xs text-on-surface-variant mt-0.5">
+                  Detailed view of accounts created on this date
+                </p>
+              </div>
+              <button 
+                onClick={() => setIsSignupsModalOpen(false)} 
+                className="w-8 h-8 rounded-lg flex items-center justify-center text-on-surface-variant hover:text-on-surface hover:bg-surface-container transition-colors"
+              >
+                <span className="material-symbols-outlined text-[20px]">close</span>
+              </button>
+            </div>
+
+            <div className="flex-1 overflow-y-auto py-4">
+              {loadingDailySignups ? (
+                <div className="flex flex-col items-center justify-center py-12 text-on-surface-variant">
+                  <span className="material-symbols-outlined animate-spin text-3xl text-primary mb-2">sync</span>
+                  <p className="text-sm">Fetching user signups...</p>
+                </div>
+              ) : dailySignupsData.users.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-12 text-on-surface-variant">
+                  <span className="material-symbols-outlined text-4xl mb-2 text-slate-300">person_off</span>
+                  <p className="text-sm font-medium">No users joined on this date.</p>
+                </div>
+              ) : (
+                <div className="flex flex-col gap-3">
+                  <div className="text-xs font-semibold text-on-surface-variant uppercase tracking-wider px-1">
+                    Total Registrations: <span className="text-primary font-bold">{dailySignupsData.count}</span>
+                  </div>
+                  {dailySignupsData.users.map((u) => {
+                    const initials = u.name ? u.name.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase() : 'U';
+                    const joinedTime = new Date(u.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+                    return (
+                      <div key={u.id} className="flex items-center justify-between p-3 rounded-xl border border-outline-variant bg-surface-container/40 hover:bg-surface-container transition-all">
+                        <div className="flex items-center gap-3">
+                          <div className="w-10 h-10 rounded-full bg-primary/10 text-primary flex items-center justify-center font-bold text-sm">
+                            {initials}
+                          </div>
+                          <div>
+                            <p className="text-sm font-semibold text-on-surface leading-tight">{u.name || 'Unnamed User'}</p>
+                            <p className="text-xs text-on-surface-variant">{u.email}</p>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-3">
+                          <div className="text-right">
+                            <span className="inline-block px-2 py-0.5 text-[11px] font-medium rounded-full bg-indigo-50 text-indigo-700 border border-indigo-200">
+                              {u.role}
+                            </span>
+                            <p className="text-[11px] text-on-surface-variant mt-1">{joinedTime}</p>
+                          </div>
+                          <button
+                            onClick={() => {
+                              setIsSignupsModalOpen(false);
+                              navigate(`/users/${u.id}`);
+                            }}
+                            className="p-1.5 rounded-lg text-on-surface-variant hover:text-primary hover:bg-primary/10 transition-colors"
+                            title="View Profile"
+                          >
+                            <span className="material-symbols-outlined text-[18px]">chevron_right</span>
+                          </button>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+
+            <div className="pt-3 border-t border-outline-variant flex justify-end">
+              <button 
+                onClick={() => setIsSignupsModalOpen(false)} 
+                className="px-4 py-2 rounded-xl text-sm font-medium bg-surface-container hover:bg-surface-container-high transition-colors"
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Export Modal */}
       {isExportModalOpen && (
@@ -354,3 +482,4 @@ export default function Dashboard() {
     </div>
   );
 }
+

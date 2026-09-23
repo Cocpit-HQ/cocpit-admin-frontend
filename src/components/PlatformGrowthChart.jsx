@@ -1,7 +1,7 @@
 import React from 'react';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 
-export default function PlatformGrowthChart({ data }) {
+export default function PlatformGrowthChart({ data, onDateSelect }) {
   const formatYAxis = (tickItem) => {
     if (tickItem >= 1000) {
       return (tickItem / 1000) + 'k';
@@ -24,10 +24,23 @@ export default function PlatformGrowthChart({ data }) {
               <span className="font-semibold text-gray-800">{entry.value}</span>
             </div>
           ))}
+          {onDateSelect && (
+            <div className="mt-2 pt-2 border-t border-gray-100 text-xs font-medium text-indigo-600 flex items-center gap-1">
+              <span>Click to view joined users</span>
+              <span className="material-symbols-outlined text-xs">arrow_forward</span>
+            </div>
+          )}
         </div>
       );
     }
     return null;
+  };
+
+  const handleClick = (state) => {
+    if (state && state.activePayload && state.activePayload.length > 0 && onDateSelect) {
+      const selectedData = state.activePayload[0].payload;
+      onDateSelect(selectedData);
+    }
   };
 
   return (
@@ -35,8 +48,11 @@ export default function PlatformGrowthChart({ data }) {
       <ResponsiveContainer width="100%" height="100%">
         <AreaChart
           data={data}
+          onClick={handleClick}
+          className={onDateSelect ? "cursor-pointer" : ""}
           margin={{ top: 20, right: 30, left: 0, bottom: 0 }}
         >
+
           <defs>
             <linearGradient id="colorUsers" x1="0" y1="0" x2="0" y2="1">
               <stop offset="5%" stopColor="#4f46e5" stopOpacity={0.15}/>

@@ -6,7 +6,11 @@ import { useNavigate, useLocation, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../AuthContext';
 import DangerModal from '../components/DangerModal';
 import WarningModal from '../components/WarningModal';
-
+import DatePickerDropdown from '../components/DatePickerDropdown';
+import jsPDF from 'jspdf';
+import autoTable from 'jspdf-autotable';
+import * as XLSX from 'xlsx';
+import { format } from 'date-fns';
 
 export default function UserManagement() {
   const { role, accessToken } = useAuth();
@@ -30,6 +34,11 @@ export default function UserManagement() {
   const [roleFilter, setRoleFilter] = useState(initialRole);
   const [statusFilter, setStatusFilter] = useState(initialStatus);
   const [searchQuery, setSearchQuery] = useState(initialSearch);
+  const [dateRange, setDateRange] = useState({ startDate: null, endDate: null, rangeLabel: 'All Time' });
+  
+  const [isExportModalOpen, setIsExportModalOpen] = useState(false);
+  const [exportFormat, setExportFormat] = useState('excel');
+  const [isExporting, setIsExporting] = useState(false);
 
   useEffect(() => {
     const params = new URLSearchParams();
@@ -74,6 +83,13 @@ export default function UserManagement() {
           role: roleFilter
         });
         
+        if (dateRange.startDate) {
+          queryParams.append('startDate', dateRange.startDate.toISOString());
+        }
+        if (dateRange.endDate) {
+          queryParams.append('endDate', dateRange.endDate.toISOString());
+        }
+        
         const response = await fetch(`/api/admin/users?${queryParams}`, {
           headers: {
             'Authorization': `Bearer ${accessToken}`
@@ -97,7 +113,7 @@ export default function UserManagement() {
       }
     };
     fetchUsers();
-  }, [accessToken, currentPage, searchQuery, statusFilter, roleFilter]);
+  }, [accessToken, currentPage, searchQuery, statusFilter, roleFilter, dateRange]);
   const [warningModalOpen, setWarningModalOpen] = useState(false);
   const [userToWarn, setUserToWarn] = useState(null);
   const [isSevereWarning, setIsSevereWarning] = useState(false);
@@ -321,6 +337,82 @@ export default function UserManagement() {
     setUserToWarn(null);
   };
 
+  const handleExportReport = async () => {
+    setIsExporting(true);
+    try {
+      const queryParams = new URLSearchParams({
+        page: 1,
+        limit: 1000000,
+        search: searchQuery,
+        status: statusFilter,
+        role: roleFilter
+      });
+      
+      if (dateRange.startDate) {
+        queryParams.append('startDate', dateRange.startDate.toISOString());
+      }
+      if (dateRange.endDate) {
+        queryParams.append('endDate', dateRange.endDate.toISOString());
+      }
+
+      const response = await fetch(`/api/admin/users?${queryParams}`, {
+        headers: { 'Authorization': `Bearer ${accessToken}` }
+      });
+      
+      if (!response.ok) throw new Error('Failed to fetch data for export');
+      
+      const result = await response.json();
+      const exportData = result.data.map(u => ({
+        ID: u.id,
+        Name: u.name,
+        Email: u.email,
+        Role: u.role || 'N/A',
+        Status: u.status,
+        Joined: u.joined ? format(new Date(u.joined), 'MMM d, yyyy') : 'Unknown'
+      }));
+
+      if (exportData.length === 0) {
+        alert('No data to export.');
+        setIsExporting(false);
+        setIsExportModalOpen(false);
+        return;
+      }
+
+      if (exportFormat === 'pdf') {
+        const doc = new jsPDF();
+        doc.text(`User Report - ${dateRange.rangeLabel}`, 14, 15);
+        doc.setFontSize(10);
+        doc.text(`Filters: Role - ${roleFilter}, Status - ${statusFilter}`, 14, 22);
+        
+        const tableColumn = ["ID", "Name", "Email", "Role", "Status", "Joined Date"];
+        const tableRows = exportData.map(row => [
+          row.ID, row.Name, row.Email, row.Role, row.Status, row.Joined
+        ]);
+
+        autoTable(doc, {
+          head: [tableColumn],
+          body: tableRows,
+          startY: 28,
+          styles: { fontSize: 8 },
+          headStyles: { fillColor: [79, 70, 229] }
+        });
+
+        doc.save(`users_report_${new Date().getTime()}.pdf`);
+      } else {
+        const worksheet = XLSX.utils.json_to_sheet(exportData);
+        const workbook = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(workbook, worksheet, "Users");
+        XLSX.writeFile(workbook, `users_report_${new Date().getTime()}.xlsx`);
+      }
+    } catch (error) {
+      console.error('Export failed', error);
+      alert('Failed to export report.');
+    } finally {
+      setIsExporting(false);
+      setIsExportModalOpen(false);
+    }
+  };
+
   const toggleUser = (id) => {
     const newSelected = new Set(selectedUsers);
     if (newSelected.has(id)) {
@@ -372,6 +464,13 @@ export default function UserManagement() {
             <p className="text-body-lg text-on-surface-variant">Review, manage, and moderate your platform's user base.</p>
           </div>
         </div>
+        <button 
+          onClick={() => setIsExportModalOpen(true)}
+          className="bg-primary hover:bg-primary/90 text-on-primary px-lg py-md rounded-xl font-label-lg transition-colors shadow-sm flex items-center gap-sm shrink-0"
+        >
+          <span className="material-symbols-outlined text-[20px]">download</span>
+          Export Report
+        </button>
       </div>
 
       {/* Stat Cards */}
@@ -418,6 +517,14 @@ export default function UserManagement() {
             />
           </div>
 
+          <DatePickerDropdown 
+            initialRangeLabel={dateRange.rangeLabel}
+            onRangeChange={(range) => {
+              setDateRange(range);
+              setCurrentPage(1);
+            }} 
+          />
+
           <FilterDropdown
             label="Role"
             value={roleFilter}
@@ -443,7 +550,12 @@ export default function UserManagement() {
 
         <div className="flex items-center gap-md">
           <button
-            onClick={() => { setStatusFilter('All'); setRoleFilter('All'); setSearchQuery(''); }}
+            onClick={() => { 
+              setStatusFilter('All'); 
+              setRoleFilter('All'); 
+              setSearchQuery(''); 
+              setDateRange({ startDate: null, endDate: null, rangeLabel: 'All Time' });
+            }}
             className="text-primary font-label-md hover:underline shrink-0"
           >
             Clear all filters
@@ -750,6 +862,71 @@ export default function UserManagement() {
         message={userToDelete ? `Are you sure you want to permanently delete ${userToDelete.name}'s account? This will softly delete the user from the database. This action cannot be easily undone.` : ''}
         actionText="Permanently Delete"
       />
+
+      {/* Export Modal */}
+      {isExportModalOpen && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 animate-in fade-in duration-200">
+          <div className="bg-surface border border-outline-variant rounded-2xl w-[450px] max-w-[90vw] p-6 shadow-xl relative animate-in zoom-in-95 duration-200">
+            <button 
+              onClick={() => setIsExportModalOpen(false)}
+              className="absolute top-4 right-4 text-on-surface-variant hover:text-on-surface transition-colors"
+            >
+              <span className="material-symbols-outlined">close</span>
+            </button>
+            
+            <div className="mb-6 pr-6">
+              <h3 className="text-xl font-bold text-on-surface mb-2">Export Report</h3>
+              <p className="text-sm text-on-surface-variant">
+                Choose the format for your user data export. This will include all users matching your current active filters.
+              </p>
+            </div>
+
+            <div className="grid grid-cols-2 gap-3 mb-6">
+              <button
+                onClick={() => setExportFormat('excel')}
+                className={`flex flex-col items-center justify-center p-4 rounded-xl border-2 transition-all ${
+                  exportFormat === 'excel' 
+                    ? 'border-green-500 bg-green-50 dark:bg-green-500/10 text-green-700 dark:text-green-400' 
+                    : 'border-outline-variant hover:border-green-300 hover:bg-green-50/50 dark:hover:bg-green-500/5'
+                }`}
+              >
+                <span className="material-symbols-outlined text-[32px] mb-2 text-green-600 dark:text-green-500">table</span>
+                <span className="font-semibold text-sm">Excel (.xlsx)</span>
+              </button>
+              
+              <button
+                onClick={() => setExportFormat('pdf')}
+                className={`flex flex-col items-center justify-center p-4 rounded-xl border-2 transition-all ${
+                  exportFormat === 'pdf' 
+                    ? 'border-red-500 bg-red-50 dark:bg-red-500/10 text-red-700 dark:text-red-400' 
+                    : 'border-outline-variant hover:border-red-300 hover:bg-red-50/50 dark:hover:bg-red-500/5'
+                }`}
+              >
+                <span className="material-symbols-outlined text-[32px] mb-2 text-red-600 dark:text-red-500">picture_as_pdf</span>
+                <span className="font-semibold text-sm">PDF (.pdf)</span>
+              </button>
+            </div>
+
+            <button
+              onClick={handleExportReport}
+              disabled={isExporting}
+              className="w-full bg-primary hover:bg-primary/90 text-on-primary py-3 rounded-xl font-semibold shadow-md transition-all active:scale-[0.98] disabled:opacity-70 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+            >
+              {isExporting ? (
+                <>
+                  <span className="material-symbols-outlined animate-spin text-[20px]">progress_activity</span>
+                  Generating Report...
+                </>
+              ) : (
+                <>
+                  <span className="material-symbols-outlined text-[20px]">download</span>
+                  Download Report
+                </>
+              )}
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

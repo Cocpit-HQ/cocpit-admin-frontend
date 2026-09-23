@@ -318,6 +318,26 @@ export default function UserProfile() {
     setDeleteModalOpen(false);
   };
 
+  const handleRestoreUser = async () => {
+    if (window.confirm(`Are you sure you want to restore ${userData.name}? This will reactivate their account.`)) {
+      try {
+        const res = await fetch(`/api/admin/users/${userData.id}/restore`, {
+          method: 'POST',
+          headers: { 'Authorization': `Bearer ${accessToken}`, 'Content-Type': 'application/json' }
+        });
+        if (res.ok) {
+          setUserData({ ...userData, status: 'Active' });
+          alert('User restored successfully.');
+        } else {
+          alert('Failed to restore user.');
+        }
+      } catch (e) {
+        console.error(e);
+        alert('Error restoring user.');
+      }
+    }
+  };
+
   const handleDismissReport = async () => {
     try {
       const res = await fetch(`/api/admin/reports/${selectedReport.id}`, {
@@ -436,12 +456,18 @@ export default function UserProfile() {
               {menuOpen && (
                 <div className="absolute right-0 top-12 bg-surface-container-high border border-outline-variant rounded-xl shadow-lg p-2 w-[160px] z-50 flex flex-col gap-1">
                   <button onClick={() => { setMenuOpen(false); setWarningModalOpen(true); }} className="text-left px-3 py-2 text-sm text-on-surface hover:bg-surface-container-highest rounded-md">Warn User</button>
-                  {userData.status === 'Suspended' ? (
-                    <button onClick={() => { setMenuOpen(false); handleUnsuspendUser(); }} className="text-left px-3 py-2 text-sm text-on-surface hover:bg-surface-container-highest rounded-md">Restore User</button>
+                  {userData.status === 'Deleted' ? (
+                    <button onClick={() => { setMenuOpen(false); handleRestoreUser(); }} className="text-left px-3 py-2 text-sm text-on-surface hover:bg-surface-container-highest rounded-md">Restore Account</button>
                   ) : (
-                    <button onClick={() => { setMenuOpen(false); setSuspendConfirmModalOpen(true); }} className="text-left px-3 py-2 text-sm text-on-surface hover:bg-surface-container-highest rounded-md">Suspend User</button>
+                    <>
+                      {userData.status === 'Suspended' ? (
+                        <button onClick={() => { setMenuOpen(false); handleUnsuspendUser(); }} className="text-left px-3 py-2 text-sm text-on-surface hover:bg-surface-container-highest rounded-md">Restore User</button>
+                      ) : (
+                        <button onClick={() => { setMenuOpen(false); setSuspendConfirmModalOpen(true); }} className="text-left px-3 py-2 text-sm text-on-surface hover:bg-surface-container-highest rounded-md">Suspend User</button>
+                      )}
+                      <button onClick={() => { setMenuOpen(false); setDeleteModalOpen(true); }} className="text-left px-3 py-2 text-sm text-error hover:bg-error-container rounded-md">Delete Account</button>
+                    </>
                   )}
-                  <button onClick={() => { setMenuOpen(false); setDeleteModalOpen(true); }} className="text-left px-3 py-2 text-sm text-error hover:bg-error-container rounded-md">Delete Account</button>
                 </div>
               )}
             </div>

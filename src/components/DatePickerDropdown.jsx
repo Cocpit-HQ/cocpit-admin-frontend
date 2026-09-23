@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { format, subDays, startOfYear, startOfDay } from 'date-fns';
+import { format, subDays, startOfYear, startOfDay, endOfDay } from 'date-fns';
 
 export default function DatePickerDropdown({ onRangeChange, initialRangeLabel = 'Last 30 Days' }) {
   const [isOpen, setIsOpen] = useState(false);
@@ -26,16 +26,19 @@ export default function DatePickerDropdown({ onRangeChange, initialRangeLabel = 
 
     const today = new Date();
     let start = today;
-    let end = today;
+    let end = endOfDay(today);
 
     if (rangeLabel === 'Today') {
       start = startOfDay(today);
     } else if (rangeLabel === 'Last 7 Days') {
-      start = subDays(today, 6);
+      start = startOfDay(subDays(today, 6));
     } else if (rangeLabel === 'Last 30 Days') {
-      start = subDays(today, 29);
+      start = startOfDay(subDays(today, 29));
     } else if (rangeLabel === 'This Year') {
       start = startOfYear(today);
+    } else if (rangeLabel === 'All Time') {
+      start = null;
+      end = null;
     }
 
     onRangeChange({ startDate: start, endDate: end, rangeLabel });
@@ -46,9 +49,9 @@ export default function DatePickerDropdown({ onRangeChange, initialRangeLabel = 
       setDateError('Please select both dates.');
       return;
     }
-    const start = new Date(startDate);
-    const end = new Date(endDate);
-    const today = new Date();
+    const start = startOfDay(new Date(startDate));
+    const end = endOfDay(new Date(endDate));
+    const today = endOfDay(new Date());
 
     if (start > today || end > today) {
       setDateError('Future dates are not allowed.');
@@ -85,7 +88,7 @@ export default function DatePickerDropdown({ onRangeChange, initialRangeLabel = 
           
           {/* Quick Selects */}
           <div className="p-2 flex flex-col gap-1">
-            {['Today', 'Last 7 Days', 'Last 30 Days', 'This Year'].map((range) => (
+            {['All Time', 'Today', 'Last 7 Days', 'Last 30 Days', 'This Year'].map((range) => (
               <button
                 key={range}
                 onClick={() => handleRangeSelect(range)}

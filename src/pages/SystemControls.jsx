@@ -37,6 +37,7 @@ export default function SystemControls() {
 
     // Notifications
     enableNotifications: true,
+    enableNotificationsModule: true,
 
     // Messaging & Chats
     enableMessaging: true,
@@ -173,7 +174,9 @@ export default function SystemControls() {
     if (key === 'enableConnectionsTab') newSettings.enableNetworkingModule = newValue;
     if (key === 'enableMessaging') newSettings.enableMessagingModule = newValue;
     if (key === 'enableProfileTab') newSettings.enableProfileModule = newValue;
-    if (key === 'enableAITab') newSettings.enableAIModule = newValue;
+    if (key === 'enableAnalyticsTab') newSettings.enableAnalyticsModule = newValue;
+    if (key === 'enableNotifications') newSettings.enableNotificationsModule = newValue;
+    if (key === 'enableNotificationsModule') newSettings.enableNotifications = newValue;
 
     setSettings(newSettings);
   };
@@ -191,30 +194,26 @@ export default function SystemControls() {
     { id: 'Notifications', icon: 'notifications', label: 'Notifications' },
     { id: 'Jobs', icon: 'work', label: 'Jobs & Careers' },
     { id: 'Organizations', icon: 'corporate_fare', label: 'Organizations & Companies' },
-    { id: 'AI', icon: 'robot_2', label: 'AI Assistant' },
+    { id: 'Analytics', icon: 'analytics', label: 'Analytics' },
     { id: 'Profile', icon: 'person', label: 'User Profile' },
     { id: 'Search', icon: 'search', label: 'Global Search' },
     { id: 'Settings', icon: 'settings', label: 'Settings & Privacy' },
-    { id: 'Announcements', icon: 'campaign', label: 'User-Facing Messaging' },
-    { id: 'System', icon: 'memory', label: 'System & DB (Legacy)' },
   ];
 
   const ToggleRow = ({ label, description, settingKey, danger = false }) => {
     const isEnabled = Boolean(settings[settingKey]);
     return (
-      <div className={`flex items-center justify-between p-4 rounded-xl border transition-all ${
-        isEnabled 
-          ? 'bg-emerald-500/5 border-emerald-500/20' 
+      <div className={`flex items-center justify-between p-4 rounded-xl border transition-all ${isEnabled
+          ? 'bg-emerald-500/5 border-emerald-500/20'
           : 'bg-rose-500/5 border-rose-500/20'
-      }`}>
+        }`}>
         <div className="flex-1 pr-4">
           <div className="flex items-center gap-2">
             <p className="font-bold text-sm text-on-surface">{label}</p>
-            <span className={`px-2 py-0.5 text-[10px] font-black rounded-full tracking-wider uppercase ${
-              isEnabled 
-                ? 'bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30' 
+            <span className={`px-2 py-0.5 text-[10px] font-black rounded-full tracking-wider uppercase ${isEnabled
+                ? 'bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30'
                 : 'bg-rose-500/20 text-rose-600 dark:text-rose-400 border border-rose-500/30'
-            }`}>
+              }`}>
               {isEnabled ? '● ON' : '○ OFF'}
             </span>
           </div>
@@ -223,13 +222,11 @@ export default function SystemControls() {
 
         <button
           onClick={() => handleToggle(settingKey)}
-          className={`relative inline-flex h-7 w-12 shrink-0 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 cursor-pointer ${
-            isEnabled ? (danger ? 'bg-error' : 'bg-emerald-600') : 'bg-gray-300 dark:bg-gray-700'
-          }`}
+          className={`relative inline-flex h-7 w-12 shrink-0 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 cursor-pointer ${isEnabled ? (danger ? 'bg-error' : 'bg-emerald-600') : 'bg-gray-300 dark:bg-gray-700'
+            }`}
         >
-          <span className={`inline-block h-5 w-5 transform rounded-full bg-white transition-transform shadow-md ${
-            isEnabled ? 'translate-x-6' : 'translate-x-1'
-          }`} />
+          <span className={`inline-block h-5 w-5 transform rounded-full bg-white transition-transform shadow-md ${isEnabled ? 'translate-x-6' : 'translate-x-1'
+            }`} />
         </button>
       </div>
     );
@@ -270,8 +267,8 @@ export default function SystemControls() {
                   localStorage.setItem('systemControlsTab', tab.id);
                 }}
                 className={`w-full flex items-center gap-md px-md py-sm text-left font-label-md text-label-md transition-colors border-l-4 ${activeTab === tab.id
-                    ? 'bg-primary-container text-on-primary-container border-primary'
-                    : 'text-on-surface-variant hover:bg-surface-container-low border-transparent hover:text-on-surface'
+                  ? 'bg-primary-container text-on-primary-container border-primary'
+                  : 'text-on-surface-variant hover:bg-surface-container-low border-transparent hover:text-on-surface'
                   }`}
               >
                 <span className="material-symbols-outlined text-[20px]">{tab.icon}</span>
@@ -375,13 +372,11 @@ export default function SystemControls() {
               </div>
             )}
 
-            {activeTab === 'AI' && (
+            {activeTab === 'Analytics' && (
               <div className="animate-in fade-in duration-300">
-                <h3 className="font-headline-sm mb-md pb-xs border-b border-outline-variant">AI Assistant & Projects</h3>
+                <h3 className="font-headline-sm mb-md pb-xs border-b border-outline-variant">Analytics</h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-md">
-                  <ToggleRow label="AI Assistant Page" description="Master switch to disable Cyphex AI." settingKey="enableAITab" danger />
-                  <ToggleRow label="AI Chat History" description="Users cannot view past AI conversations." settingKey="enableAIChatHistory" />
-                  <ToggleRow label="AI Projects" description="Users cannot manage AI project workspaces." settingKey="enableAIProjects" />
+                  <ToggleRow label="Analytics Module" description="Master switch for user analytics and performance dashboards." settingKey="enableAnalyticsTab" danger />
                 </div>
               </div>
             )}
@@ -429,70 +424,7 @@ export default function SystemControls() {
               </div>
             )}
 
-            {activeTab === 'Announcements' && (
-              <div className="animate-in fade-in duration-300">
-                <h3 className="font-headline-sm mb-md pb-xs border-b border-outline-variant">User-Facing Messaging</h3>
-                <div className="space-y-md">
-                  <div className="p-md bg-surface border border-outline-variant rounded">
-                    <label className="font-label-md font-bold text-on-surface block mb-xs">Maintenance Mode Message</label>
-                    <textarea
-                      value={settings.maintenanceModeMessage}
-                      onChange={(e) => handleChange('maintenanceModeMessage', e.target.value)}
-                      className="w-full h-24 bg-surface-container-lowest border border-outline-variant rounded px-md py-sm text-body-sm text-on-surface focus:ring-1 focus:ring-primary focus:outline-none"
-                      placeholder="Message shown when a feature is unavailable"
-                    ></textarea>
-                  </div>
 
-                  <ToggleRow label="Global Announcement Banner" description="Toggle visibility of the global banner across the platform." settingKey="enableGlobalBanner" />
-
-                  <div className="p-md bg-surface border border-outline-variant rounded">
-                    <label className="font-label-md font-bold text-on-surface block mb-xs">Banner Message</label>
-                    <input
-                      type="text"
-                      value={settings.globalBannerMessage}
-                      placeholder="e.g. We are experiencing issues"
-                      onChange={(e) => handleChange('globalBannerMessage', e.target.value)}
-                      className="w-full bg-surface-container-lowest border border-outline-variant rounded px-md py-sm text-body-sm text-on-surface focus:ring-1 focus:ring-primary focus:outline-none"
-                    />
-                  </div>
-
-                  <div className="p-md bg-surface border border-outline-variant rounded">
-                    <label className="font-label-md font-bold text-on-surface block mb-xs">Scheduled Platform Notice</label>
-                    <input
-                      type="text"
-                      value={settings.scheduledPlatformNotice}
-                      placeholder="e.g. Scheduled downtime warning"
-                      onChange={(e) => handleChange('scheduledPlatformNotice', e.target.value)}
-                      className="w-full bg-surface-container-lowest border border-outline-variant rounded px-md py-sm text-body-sm text-on-surface focus:ring-1 focus:ring-primary focus:outline-none"
-                    />
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {activeTab === 'System' && (
-              <div className="animate-in fade-in duration-300">
-                <h3 className="font-headline-sm mb-md pb-xs border-b border-outline-variant">System & DB (Legacy)</h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-md">
-                  <ToggleRow label="Maintenance Mode" description="Takes the platform offline." settingKey="maintenanceMode" danger />
-                  <ToggleRow label="Read-Only Mode" description="Disables all writes." settingKey="readOnlyMode" danger />
-                  <ToggleRow label="Enable Public API Access" description="Allow external API access." settingKey="apiAccess" />
-                  <ToggleRow label="Auto-flag Enforcement" description="Pause auto-suspend rules." settingKey="enforceAutoFlag" />
-                  <ToggleRow label="Email Delivery" description="Send outgoing emails." settingKey="enableEmailDelivery" />
-                  <ToggleRow label="Webhook Delivery" description="Send outgoing webhooks." settingKey="enableWebhookDelivery" />
-                  <ToggleRow label="Enable Database Writes" description="Emergency read-only DB lock." settingKey="enableDatabaseWrites" danger />
-                  <ToggleRow label="Audit Logging" description="Keep this ON." settingKey="enableAuditLogging" danger />
-                </div>
-
-                <div className="mt-md p-md bg-surface border border-outline-variant rounded flex flex-col md:flex-row items-start md:items-center justify-between gap-md">
-                  <div>
-                    <p className="font-label-md font-bold text-on-surface">Manual Cache Invalidation</p>
-                    <p className="font-body-sm text-secondary mt-1">Clear specific cache layers without a full restart.</p>
-                  </div>
-                  <button onClick={() => alert('Cache invalidated.')} className="bg-primary text-on-primary px-md py-sm rounded-lg font-label-md shadow-sm active:scale-95 whitespace-nowrap">Clear Cache</button>
-                </div>
-              </div>
-            )}
 
             {/* Save Buttons (Persistent at bottom of active tab) */}
             <div className="mt-lg pt-md border-t border-outline-variant flex justify-end">
@@ -501,7 +433,7 @@ export default function SystemControls() {
                   setIsSaving(true);
                   try {
                     let token = accessToken || localStorage.getItem('accessToken') || localStorage.getItem('token');
-                    
+
                     let res = await fetch('/api/admin/feature-flags', {
                       method: 'PUT',
                       headers: {
