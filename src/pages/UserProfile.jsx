@@ -617,7 +617,16 @@ export default function UserProfile() {
                                 {/* Post Content & Media */}
                                 <div className="mt-2">
                                   {activity.post_content && (
-                                    <p className="text-[14px] text-on-surface whitespace-pre-wrap mb-3 px-1">{activity.post_content}</p>
+                                    activity.post_content.trim().startsWith('<') || activity.post_content.includes('<!-- article_divider -->') ? (
+                                      <div 
+                                        className="text-[14px] text-on-surface mb-3 px-1 prose prose-sm max-w-none dark:prose-invert [&_*]:!bg-transparent [&_*]:!color-inherit"
+                                        dangerouslySetInnerHTML={{ 
+                                          __html: activity.post_content.replace(/<!--\s*article_divider\s*-->/g, '') 
+                                        }} 
+                                      />
+                                    ) : (
+                                      <p className="text-[14px] text-on-surface whitespace-pre-wrap mb-3 px-1">{activity.post_content}</p>
+                                    )
                                   )}
                                   {activity.post_media && activity.post_media.length > 0 && (
                                     <div className={`grid gap-2 ${activity.post_media.length > 1 ? 'grid-cols-2' : 'grid-cols-1'}`}>
