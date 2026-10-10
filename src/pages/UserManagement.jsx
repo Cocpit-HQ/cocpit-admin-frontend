@@ -341,8 +341,6 @@ export default function UserManagement() {
     setIsExporting(true);
     try {
       const queryParams = new URLSearchParams({
-        page: 1,
-        limit: 1000000,
         search: searchQuery,
         status: statusFilter,
         role: roleFilter
@@ -355,7 +353,30 @@ export default function UserManagement() {
         queryParams.append('endDate', dateRange.endDate.toISOString());
       }
 
-      const response = await fetch(`/api/admin/users?${queryParams}`, {
+      // ── Option 3 & 4: Full Profile Marketing Reports (CSV or PDF from Backend) ──
+      if (exportFormat === 'marketing_csv' || exportFormat === 'marketing_pdf') {
+        const fmt = exportFormat === 'marketing_pdf' ? 'pdf' : 'csv';
+        const ext = exportFormat === 'marketing_pdf' ? 'pdf' : 'csv';
+        queryParams.append('format', fmt);
+        
+        const response = await fetch(`/api/admin/users/export-marketing-report?${queryParams}`, {
+          headers: { 'Authorization': `Bearer ${accessToken}` }
+        });
+        if (!response.ok) throw new Error('Failed to fetch full profile report from server');
+
+        const blob = await response.blob();
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.setAttribute('href', url);
+        link.setAttribute('download', `cocpit_full_profile_report_${new Date().getTime()}.${ext}`);
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        return;
+      }
+
+      // ── Option 1 & 2: Basic User Table Reports (Excel or PDF via Client) ──
+      const response = await fetch(`/api/admin/users?${queryParams}&page=1&limit=1000000`, {
         headers: { 'Authorization': `Bearer ${accessToken}` }
       });
       
@@ -397,12 +418,12 @@ export default function UserManagement() {
           headStyles: { fillColor: [79, 70, 229] }
         });
 
-        doc.save(`users_report_${new Date().getTime()}.pdf`);
+        doc.save(`users_basic_report_${new Date().getTime()}.pdf`);
       } else {
         const worksheet = XLSX.utils.json_to_sheet(exportData);
         const workbook = XLSX.utils.book_new();
         XLSX.utils.book_append_sheet(workbook, worksheet, "Users");
-        XLSX.writeFile(workbook, `users_report_${new Date().getTime()}.xlsx`);
+        XLSX.writeFile(workbook, `users_basic_report_${new Date().getTime()}.xlsx`);
       }
     } catch (error) {
       console.error('Export failed', error);
@@ -881,31 +902,70 @@ export default function UserManagement() {
               </p>
             </div>
 
-            <div className="grid grid-cols-2 gap-3 mb-6">
+            <div className="grid grid-cols-2 gap-3 mb-4">
+              {/* Option 1: Basic Excel */}
               <button
                 onClick={() => setExportFormat('excel')}
-                className={`flex flex-col items-center justify-center p-4 rounded-xl border-2 transition-all ${
+                className={`flex flex-col items-center justify-center p-3 rounded-xl border-2 transition-all text-center ${
                   exportFormat === 'excel' 
                     ? 'border-green-500 bg-green-50 dark:bg-green-500/10 text-green-700 dark:text-green-400' 
                     : 'border-outline-variant hover:border-green-300 hover:bg-green-50/50 dark:hover:bg-green-500/5'
                 }`}
               >
-                <span className="material-symbols-outlined text-[32px] mb-2 text-green-600 dark:text-green-500">table</span>
-                <span className="font-semibold text-sm">Excel (.xlsx)</span>
+                <span className="material-symbols-outlined text-[26px] mb-1 text-green-600 dark:text-green-500">table</span>
+                <span className="font-semibold text-xs">Basic Excel</span>
+                <span className="text-[10px] text-on-surface-variant opacity-80">User table (.xlsx)</span>
               </button>
               
+              {/* Option 2: Basic PDF */}
               <button
                 onClick={() => setExportFormat('pdf')}
-                className={`flex flex-col items-center justify-center p-4 rounded-xl border-2 transition-all ${
+                className={`flex flex-col items-center justify-center p-3 rounded-xl border-2 transition-all text-center ${
                   exportFormat === 'pdf' 
                     ? 'border-red-500 bg-red-50 dark:bg-red-500/10 text-red-700 dark:text-red-400' 
                     : 'border-outline-variant hover:border-red-300 hover:bg-red-50/50 dark:hover:bg-red-500/5'
                 }`}
               >
-                <span className="material-symbols-outlined text-[32px] mb-2 text-red-600 dark:text-red-500">picture_as_pdf</span>
-                <span className="font-semibold text-sm">PDF (.pdf)</span>
+                <span className="material-symbols-outlined text-[26px] mb-1 text-red-600 dark:text-red-500">picture_as_pdf</span>
+                <span className="font-semibold text-xs">Basic PDF</span>
+                <span className="text-[10px] text-on-surface-variant opacity-80">Summary table (.pdf)</span>
+              </button>
+
+              {/* Option 3: Full Profile CSV */}
+              <button
+                onClick={() => setExportFormat('marketing_csv')}
+                className={`flex flex-col items-center justify-center p-3 rounded-xl border-2 transition-all text-center ${
+                  exportFormat === 'marketing_csv' 
+                    ? 'border-indigo-500 bg-indigo-50 dark:bg-indigo-500/10 text-indigo-700 dark:text-indigo-400' 
+                    : 'border-outline-variant hover:border-indigo-300 hover:bg-indigo-50/50 dark:hover:bg-indigo-500/5'
+                }`}
+              >
+                <span className="material-symbols-outlined text-[26px] mb-1 text-indigo-600 dark:text-indigo-500">campaign</span>
+                <span className="font-semibold text-xs">Full Profile CSV</span>
+                <span className="text-[10px] text-on-surface-variant opacity-80">Edu, Exp, Skills & Projects</span>
+              </button>
+
+              {/* Option 4: Full Profile PDF */}
+              <button
+                onClick={() => setExportFormat('marketing_pdf')}
+                className={`flex flex-col items-center justify-center p-3 rounded-xl border-2 transition-all text-center ${
+                  exportFormat === 'marketing_pdf' 
+                    ? 'border-purple-500 bg-purple-50 dark:bg-purple-500/10 text-purple-700 dark:text-purple-400' 
+                    : 'border-outline-variant hover:border-purple-300 hover:bg-purple-50/50 dark:hover:bg-purple-500/5'
+                }`}
+              >
+                <span className="material-symbols-outlined text-[26px] mb-1 text-purple-600 dark:text-purple-500">badge</span>
+                <span className="font-semibold text-xs">Full Profile PDF</span>
+                <span className="text-[10px] text-on-surface-variant opacity-80">Complete visual report</span>
               </button>
             </div>
+
+            {(exportFormat === 'marketing_csv' || exportFormat === 'marketing_pdf') && (
+              <div className="mb-4 p-3 bg-indigo-500/10 border border-indigo-500/20 rounded-xl text-xs text-indigo-600 dark:text-indigo-300 flex items-start gap-2">
+                <span className="material-symbols-outlined text-[18px] shrink-0 mt-0.5">info</span>
+                <span>Includes complete user profiles: Education, Experience, Skills, Projects, Mobile numbers, and Industry preferences.</span>
+              </div>
+            )}
 
             <button
               onClick={handleExportReport}
