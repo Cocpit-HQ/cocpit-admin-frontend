@@ -97,11 +97,16 @@ export default function Organizations() {
       try {
         if (!accessToken) return;
         const response = await fetch('/api/admin/dashboard/organization-stats', {
-          headers: { 'Authorization': `Bearer ${accessToken}` }
+          headers: { 
+            'Authorization': `Bearer ${accessToken}`,
+            'x-environment': localStorage.getItem('admin_environment') || 'staging'
+          }
         });
         if (response.ok) {
           const data = await response.json();
           setStats(data);
+        } else {
+          console.error('Failed to fetch organization stats: status', response.status);
         }
       } catch (error) {
         console.error('Failed to fetch organization stats:', error);

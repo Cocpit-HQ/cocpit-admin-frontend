@@ -46,28 +46,33 @@ export default function Dashboard() {
         
         const res = await fetch(`/api/admin/dashboard/metrics?${queryParams.toString()}`, {
           headers: {
-            'Authorization': `Bearer ${accessToken}`
+            'Authorization': `Bearer ${accessToken}`,
+            'x-environment': localStorage.getItem('admin_environment') || 'staging'
           }
         });
         if (res.ok) {
           const data = await res.json();
           const formatNumber = (num) => {
-            if (num >= 1000000) return (num / 1000000).toFixed(1) + 'M';
-            if (num >= 1000) return (num / 1000).toFixed(1) + 'k';
-            return num.toString();
+            if (num == null || isNaN(Number(num))) return '0';
+            const n = Number(num);
+            if (n >= 1000000) return (n / 1000000).toFixed(1) + 'M';
+            if (n >= 1000) return (n / 1000).toFixed(1) + 'k';
+            return n.toString();
           };
           setMetrics({
             totalUsers: formatNumber(data.totalUsers),
-            activeUsers: formatNumber(data.totalUsers - (data.suspendedUsers || 0) - (data.deletedUsers || 0)),
-            suspendedUsers: formatNumber(data.suspendedUsers || 0),
-            userGrowth: (data.userGrowth > 0 ? '+' : '') + data.userGrowth + '%',
-            totalThoughts: formatNumber(data.totalThoughts || 0),
+            activeUsers: formatNumber(data.activeUsers),
+            suspendedUsers: formatNumber(data.suspendedUsers),
+            userGrowth: ((data.userGrowth || 0) > 0 ? '+' : '') + (data.userGrowth || 0) + '%',
+            totalThoughts: formatNumber(data.totalThoughts),
             totalOrgs: formatNumber(data.totalOrgs),
-            suspendedOrgs: formatNumber(data.suspendedOrgs || 0),
-            orgGrowth: (data.orgGrowth > 0 ? '+' : '') + data.orgGrowth + '%',
+            suspendedOrgs: formatNumber(data.suspendedOrgs),
+            orgGrowth: ((data.orgGrowth || 0) > 0 ? '+' : '') + (data.orgGrowth || 0) + '%',
             hasPrevData: true,
             chartData: data.chartData || []
           });
+        } else {
+          console.error('Failed to fetch metrics: status', res.status);
         }
       } catch (err) {
         console.error('Error fetching metrics', err);
