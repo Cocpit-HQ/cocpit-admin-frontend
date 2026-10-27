@@ -19,6 +19,7 @@ export default function UserManagement() {
   const initialStatus = searchParams.get('status') || 'All';
   const initialPage = parseInt(searchParams.get('page')) || 1;
   const initialRole = searchParams.get('role') || 'All';
+  const initialCollege = searchParams.get('college') || 'All';
   const initialSearch = searchParams.get('search') || '';
 
   const [users, setUsers] = useState([]);
@@ -33,6 +34,7 @@ export default function UserManagement() {
   const [selectedUsers, setSelectedUsers] = useState(new Set());
   const [roleFilter, setRoleFilter] = useState(initialRole);
   const [statusFilter, setStatusFilter] = useState(initialStatus);
+  const [collegeFilter, setCollegeFilter] = useState(initialCollege);
   const [searchQuery, setSearchQuery] = useState(initialSearch);
   const [dateRange, setDateRange] = useState({ startDate: null, endDate: null, rangeLabel: 'All Time' });
   
@@ -45,12 +47,14 @@ export default function UserManagement() {
     if (currentPage > 1) params.set('page', currentPage);
     if (roleFilter !== 'All') params.set('role', roleFilter);
     if (statusFilter !== 'All') params.set('status', statusFilter);
+    if (collegeFilter !== 'All') params.set('college', collegeFilter);
     if (searchQuery) params.set('search', searchQuery);
     
     setSearchParams(params, { replace: true });
-  }, [currentPage, roleFilter, statusFilter, searchQuery, setSearchParams]);
+  }, [currentPage, roleFilter, statusFilter, collegeFilter, searchQuery, setSearchParams]);
   
   const [availableRoles, setAvailableRoles] = useState([]);
+  const [availableColleges, setAvailableColleges] = useState([]);
 
   useEffect(() => {
     const fetchRoles = async () => {
@@ -71,6 +75,24 @@ export default function UserManagement() {
   }, [accessToken]);
 
   useEffect(() => {
+    const fetchColleges = async () => {
+      if (!accessToken) return;
+      try {
+        const response = await fetch('/api/admin/users/colleges', {
+          headers: { 'Authorization': `Bearer ${accessToken}` }
+        });
+        if (response.ok) {
+          const colleges = await response.json();
+          setAvailableColleges(colleges);
+        }
+      } catch (err) {
+        console.error('Failed to fetch colleges:', err);
+      }
+    };
+    fetchColleges();
+  }, [accessToken]);
+
+  useEffect(() => {
     const fetchUsers = async () => {
       if (!accessToken) return;
       setLoading(true);
@@ -82,6 +104,10 @@ export default function UserManagement() {
           status: statusFilter,
           role: roleFilter
         });
+
+        if (collegeFilter !== 'All') {
+          queryParams.append('college', collegeFilter);
+        }
         
         if (dateRange.startDate) {
           queryParams.append('startDate', dateRange.startDate.toISOString());
@@ -113,7 +139,7 @@ export default function UserManagement() {
       }
     };
     fetchUsers();
-  }, [accessToken, currentPage, searchQuery, statusFilter, roleFilter, dateRange]);
+  }, [accessToken, currentPage, searchQuery, statusFilter, roleFilter, collegeFilter, dateRange]);
   const [warningModalOpen, setWarningModalOpen] = useState(false);
   const [userToWarn, setUserToWarn] = useState(null);
   const [isSevereWarning, setIsSevereWarning] = useState(false);
@@ -341,12 +367,14 @@ export default function UserManagement() {
     setIsExporting(true);
     try {
       const queryParams = new URLSearchParams({
-        page: 1,
-        limit: 1000000,
         search: searchQuery,
         status: statusFilter,
         role: roleFilter
       });
+
+      if (collegeFilter !== 'All') {
+        queryParams.append('college', collegeFilter);
+      }
       
       if (dateRange.startDate) {
         queryParams.append('startDate', dateRange.startDate.toISOString());
@@ -355,7 +383,128 @@ export default function UserManagement() {
         queryParams.append('endDate', dateRange.endDate.toISOString());
       }
 
-      const response = await fetch(`/api/admin/users?${queryParams}`, {
+      // ── Option 3: Full Profile Marketing CSV ──
+      if (exportFormat === 'marketing_csv') {
+        queryParams.append('format', 'csv');
+        
+        const response = await fetch(`/api/admin/users/export-marketing-report?${queryParams}`, {
+          headers: { 'Authorization': `Bearer ${accessToken}` }
+        });
+        if (!response.ok) throw new Error('Failed to fetch full profile report from server');
+
+        const blob = await response.blob();
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.setAttribute('href', url);
+        link.setAttribute('download', `cocpit_full_profile_report_${new Date().getTime()}.csv`);
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        return;
+      }
+
+      // ── Option 4: Full Profile Marketing PDF (Client-Generated with Complete Details) ──
+      if (exportFormat === 'marketing_pdf') {
+        queryParams.append('format', 'json');
+        
+        const response = await fetch(`/api/admin/users/export-marketing-report?${queryParams}`, {
+          headers: { 'Authorization': `Bearer ${accessToken}` }
+        });
+        if (!response.ok) throw new Error('Failed to fetch full profile data from server');
+
+        const result = await response.json();
+        const profileUsers = result.users || [];
+
+        if (profileUsers.length === 0) {
+          alert('No user profile data to export.');
+          setIsExporting(false);
+          setIsExportModalOpen(false);
+          return;
+        }
+
+        const doc = new jsPDF({ orientation: 'landscape' });
+        const activeCount = profileUsers.filter(u => !u.is_suspended && !u.is_deleted).length;
+
+        doc.setFontSize(16);
+        doc.setFont("helvetica", "bold");
+        doc.setTextColor(30, 41, 59);
+        doc.text(`Full Profile Marketing Report - ${dateRange.rangeLabel}`, 14, 15);
+
+        doc.setFontSize(10);
+        doc.setFont("helvetica", "normal");
+        doc.setTextColor(71, 85, 105);
+        doc.text(`Active Users: ${activeCount} | Total Profiles: ${profileUsers.length}`, 14, 22);
+        doc.text(`Filters: Role - ${roleFilter}, Status - ${statusFilter}${collegeFilter !== 'All' ? `, College - ${collegeFilter}` : ''}`, 14, 28);
+        doc.text(`Generated: ${format(new Date(), 'MMM d, yyyy, h:mm a')}`, 14, 34);
+
+        const tableColumn = [
+          "Name / Email",
+          "Role / Industry",
+          "Status / Mobile",
+          "Headline",
+          "Education",
+          "Experience",
+          "Skills"
+        ];
+
+        const tableRows = profileUsers.map(u => {
+          const eduStr = Array.isArray(u.educations) && u.educations.length > 0
+            ? u.educations.map(e => `${e.degree || ''} ${e.school_name ? '@ ' + e.school_name : ''}`).join('\n')
+            : 'N/A';
+
+          const expStr = Array.isArray(u.experiences) && u.experiences.length > 0
+            ? u.experiences.map(e => `${e.title || ''} ${e.company_name ? '@ ' + e.company_name : ''}`).join('\n')
+            : 'N/A';
+
+          const skillsStr = Array.isArray(u.skills) && u.skills.length > 0
+            ? u.skills.join(', ')
+            : 'N/A';
+
+          const statusStr = u.is_deleted ? 'Deleted' : u.is_suspended ? 'Suspended' : 'Active';
+
+          return [
+            `${u.full_name || 'N/A'}\n${u.email || ''}`,
+            `${u.account_type || u.user_type || 'N/A'}\n${u.industry ? 'Ind: ' + u.industry : ''}`,
+            `${statusStr}\n${u.mobile_number || 'N/A'}`,
+            u.headline || 'N/A',
+            eduStr,
+            expStr,
+            skillsStr
+          ];
+        });
+
+        autoTable(doc, {
+          head: [tableColumn],
+          body: tableRows,
+          startY: 40,
+          styles: { fontSize: 7, cellPadding: 2, overflow: 'linebreak' },
+          headStyles: { fillColor: [99, 102, 241] },
+          columnStyles: {
+            0: { cellWidth: 35 },
+            1: { cellWidth: 30 },
+            2: { cellWidth: 25 },
+            3: { cellWidth: 40 },
+            4: { cellWidth: 45 },
+            5: { cellWidth: 45 },
+            6: { cellWidth: 40 }
+          }
+        });
+
+        const pageCount = doc.internal.getNumberOfPages();
+        const pageHeight = doc.internal.pageSize.getHeight();
+        for (let i = 1; i <= pageCount; i++) {
+          doc.setPage(i);
+          doc.setFontSize(8);
+          doc.setTextColor(150, 150, 150);
+          doc.text(`Active Users: ${activeCount} | Page ${i} of ${pageCount}`, 14, pageHeight - 8);
+        }
+
+        doc.save(`cocpit_full_profile_report_${new Date().getTime()}.pdf`);
+        return;
+      }
+
+      // ── Option 1 & 2: Basic User Table Reports (Excel or PDF via Client) ──
+      const response = await fetch(`/api/admin/users?${queryParams}&page=1&limit=1000000`, {
         headers: { 'Authorization': `Bearer ${accessToken}` }
       });
       
@@ -367,6 +516,7 @@ export default function UserManagement() {
         Name: u.name,
         Email: u.email,
         Role: u.role || 'N/A',
+        College: u.college || 'N/A',
         Status: u.status,
         Joined: u.joined ? format(new Date(u.joined), 'MMM d, yyyy') : 'Unknown'
       }));
@@ -380,29 +530,48 @@ export default function UserManagement() {
 
       if (exportFormat === 'pdf') {
         const doc = new jsPDF();
+        const activeUsers = exportData.filter(u => u.Status?.toLowerCase() === 'active').length;
+
+        doc.setFontSize(16);
+        doc.setFont("helvetica", "bold");
+        doc.setTextColor(30, 41, 59);
         doc.text(`User Report - ${dateRange.rangeLabel}`, 14, 15);
+
         doc.setFontSize(10);
-        doc.text(`Filters: Role - ${roleFilter}, Status - ${statusFilter}`, 14, 22);
+        doc.setFont("helvetica", "normal");
+        doc.setTextColor(71, 85, 105);
+        doc.text(`Active Users: ${activeUsers}`, 14, 22);
+        doc.text(`Filters: Role - ${roleFilter}, Status - ${statusFilter}${collegeFilter !== 'All' ? `, College - ${collegeFilter}` : ''}`, 14, 28);
+        doc.text(`Generated: ${format(new Date(), 'MMM d, yyyy, h:mm a')}`, 14, 34);
         
-        const tableColumn = ["ID", "Name", "Email", "Role", "Status", "Joined Date"];
+        const tableColumn = ["ID", "Name", "Email", "Role", "College", "Status", "Joined Date"];
         const tableRows = exportData.map(row => [
-          row.ID, row.Name, row.Email, row.Role, row.Status, row.Joined
+          row.ID, row.Name, row.Email, row.Role, row.College, row.Status, row.Joined
         ]);
 
         autoTable(doc, {
           head: [tableColumn],
           body: tableRows,
-          startY: 28,
+          startY: 40,
           styles: { fontSize: 8 },
           headStyles: { fillColor: [79, 70, 229] }
         });
 
-        doc.save(`users_report_${new Date().getTime()}.pdf`);
+        const pageCount = doc.internal.getNumberOfPages();
+        const pageHeight = doc.internal.pageSize.getHeight();
+        for (let i = 1; i <= pageCount; i++) {
+          doc.setPage(i);
+          doc.setFontSize(8);
+          doc.setTextColor(150, 150, 150);
+          doc.text(`Active Users: ${activeUsers} | Page ${i} of ${pageCount}`, 14, pageHeight - 10);
+        }
+
+        doc.save(`users_basic_report_${new Date().getTime()}.pdf`);
       } else {
         const worksheet = XLSX.utils.json_to_sheet(exportData);
         const workbook = XLSX.utils.book_new();
         XLSX.utils.book_append_sheet(workbook, worksheet, "Users");
-        XLSX.writeFile(workbook, `users_report_${new Date().getTime()}.xlsx`);
+        XLSX.writeFile(workbook, `users_basic_report_${new Date().getTime()}.xlsx`);
       }
     } catch (error) {
       console.error('Export failed', error);
@@ -536,6 +705,16 @@ export default function UserManagement() {
           />
 
           <FilterDropdown
+            label="College"
+            value={collegeFilter}
+            options={[
+              { label: 'Any', value: 'All' },
+              ...availableColleges.map(c => ({ label: c, value: c }))
+            ]}
+            onChange={(val) => { setCollegeFilter(val); setCurrentPage(1); }}
+          />
+
+          <FilterDropdown
             label="Status"
             value={statusFilter}
             options={[
@@ -553,6 +732,7 @@ export default function UserManagement() {
             onClick={() => { 
               setStatusFilter('All'); 
               setRoleFilter('All'); 
+              setCollegeFilter('All');
               setSearchQuery(''); 
               setDateRange({ startDate: null, endDate: null, rangeLabel: 'All Time' });
             }}
@@ -674,6 +854,12 @@ export default function UserManagement() {
                       <div className="flex flex-col">
                         <span className="font-semibold text-on-surface">{user.name}</span>
                         <span className="text-body-sm text-outline">{user.email}</span>
+                        {user.college && (
+                          <span className="text-[11px] text-primary flex items-center gap-1 mt-0.5 font-medium">
+                            <span className="material-symbols-outlined text-[13px]">school</span>
+                            <span className="truncate max-w-[220px]" title={user.college}>{user.college}</span>
+                          </span>
+                        )}
                       </div>
                     </div>
                   </td>
@@ -881,31 +1067,70 @@ export default function UserManagement() {
               </p>
             </div>
 
-            <div className="grid grid-cols-2 gap-3 mb-6">
+            <div className="grid grid-cols-2 gap-3 mb-4">
+              {/* Option 1: Basic Excel */}
               <button
                 onClick={() => setExportFormat('excel')}
-                className={`flex flex-col items-center justify-center p-4 rounded-xl border-2 transition-all ${
+                className={`flex flex-col items-center justify-center p-3 rounded-xl border-2 transition-all text-center ${
                   exportFormat === 'excel' 
                     ? 'border-green-500 bg-green-50 dark:bg-green-500/10 text-green-700 dark:text-green-400' 
                     : 'border-outline-variant hover:border-green-300 hover:bg-green-50/50 dark:hover:bg-green-500/5'
                 }`}
               >
-                <span className="material-symbols-outlined text-[32px] mb-2 text-green-600 dark:text-green-500">table</span>
-                <span className="font-semibold text-sm">Excel (.xlsx)</span>
+                <span className="material-symbols-outlined text-[26px] mb-1 text-green-600 dark:text-green-500">table</span>
+                <span className="font-semibold text-xs">Basic Excel</span>
+                <span className="text-[10px] text-on-surface-variant opacity-80">User table (.xlsx)</span>
               </button>
               
+              {/* Option 2: Basic PDF */}
               <button
                 onClick={() => setExportFormat('pdf')}
-                className={`flex flex-col items-center justify-center p-4 rounded-xl border-2 transition-all ${
+                className={`flex flex-col items-center justify-center p-3 rounded-xl border-2 transition-all text-center ${
                   exportFormat === 'pdf' 
                     ? 'border-red-500 bg-red-50 dark:bg-red-500/10 text-red-700 dark:text-red-400' 
                     : 'border-outline-variant hover:border-red-300 hover:bg-red-50/50 dark:hover:bg-red-500/5'
                 }`}
               >
-                <span className="material-symbols-outlined text-[32px] mb-2 text-red-600 dark:text-red-500">picture_as_pdf</span>
-                <span className="font-semibold text-sm">PDF (.pdf)</span>
+                <span className="material-symbols-outlined text-[26px] mb-1 text-red-600 dark:text-red-500">picture_as_pdf</span>
+                <span className="font-semibold text-xs">Basic PDF</span>
+                <span className="text-[10px] text-on-surface-variant opacity-80">Summary table (.pdf)</span>
+              </button>
+
+              {/* Option 3: Full Profile CSV */}
+              <button
+                onClick={() => setExportFormat('marketing_csv')}
+                className={`flex flex-col items-center justify-center p-3 rounded-xl border-2 transition-all text-center ${
+                  exportFormat === 'marketing_csv' 
+                    ? 'border-indigo-500 bg-indigo-50 dark:bg-indigo-500/10 text-indigo-700 dark:text-indigo-400' 
+                    : 'border-outline-variant hover:border-indigo-300 hover:bg-indigo-50/50 dark:hover:bg-indigo-500/5'
+                }`}
+              >
+                <span className="material-symbols-outlined text-[26px] mb-1 text-indigo-600 dark:text-indigo-500">campaign</span>
+                <span className="font-semibold text-xs">Full Profile CSV</span>
+                <span className="text-[10px] text-on-surface-variant opacity-80">Edu, Exp, Skills & Projects</span>
+              </button>
+
+              {/* Option 4: Full Profile PDF */}
+              <button
+                onClick={() => setExportFormat('marketing_pdf')}
+                className={`flex flex-col items-center justify-center p-3 rounded-xl border-2 transition-all text-center ${
+                  exportFormat === 'marketing_pdf' 
+                    ? 'border-purple-500 bg-purple-50 dark:bg-purple-500/10 text-purple-700 dark:text-purple-400' 
+                    : 'border-outline-variant hover:border-purple-300 hover:bg-purple-50/50 dark:hover:bg-purple-500/5'
+                }`}
+              >
+                <span className="material-symbols-outlined text-[26px] mb-1 text-purple-600 dark:text-purple-500">badge</span>
+                <span className="font-semibold text-xs">Full Profile PDF</span>
+                <span className="text-[10px] text-on-surface-variant opacity-80">Complete visual report</span>
               </button>
             </div>
+
+            {(exportFormat === 'marketing_csv' || exportFormat === 'marketing_pdf') && (
+              <div className="mb-4 p-3 bg-indigo-500/10 border border-indigo-500/20 rounded-xl text-xs text-indigo-600 dark:text-indigo-300 flex items-start gap-2">
+                <span className="material-symbols-outlined text-[18px] shrink-0 mt-0.5">info</span>
+                <span>Includes complete user profiles: Education, Experience, Skills, Projects, Mobile numbers, and Industry preferences.</span>
+              </div>
+            )}
 
             <button
               onClick={handleExportReport}

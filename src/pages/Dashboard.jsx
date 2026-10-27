@@ -24,6 +24,7 @@ export default function Dashboard() {
 
   const [metrics, setMetrics] = useState({
     totalUsers: '...',
+    activeUsers: '...',
     suspendedUsers: '...',
     userGrowth: '...',
     totalThoughts: '...',
@@ -57,6 +58,7 @@ export default function Dashboard() {
           };
           setMetrics({
             totalUsers: formatNumber(data.totalUsers),
+            activeUsers: formatNumber(data.totalUsers - (data.suspendedUsers || 0) - (data.deletedUsers || 0)),
             suspendedUsers: formatNumber(data.suspendedUsers || 0),
             userGrowth: (data.userGrowth > 0 ? '+' : '') + data.userGrowth + '%',
             totalThoughts: formatNumber(data.totalThoughts || 0),
@@ -88,7 +90,7 @@ export default function Dashboard() {
       const reportDateRange = `${format(dateRange.startDate, 'MMM dd, yyyy')} - ${format(dateRange.endDate, 'MMM dd, yyyy')}`;
       
       const summaryRows = [
-        ['Total Users', metrics.totalUsers, metrics.userGrowth],
+        ['Active Users', metrics.activeUsers, metrics.userGrowth],
         ['Deactivated Users', metrics.suspendedUsers, 'Suspended'],
         ['Total Organisations', metrics.totalOrgs, metrics.orgGrowth],
         ['Deactivated Organisations', metrics.suspendedOrgs, 'Suspended'],
@@ -265,8 +267,8 @@ export default function Dashboard() {
       {/* KPI Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-lg mb-lg">
         <KPICard
-          title="Total Users"
-          value={metrics.totalUsers}
+          title="Active Users"
+          value={metrics.activeUsers}
           growth={metrics.userGrowth}
           growthIcon="trending_up"
           icon="group"
