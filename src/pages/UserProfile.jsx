@@ -414,11 +414,25 @@ export default function UserProfile() {
               <div className="flex flex-col items-start gap-2 w-full max-w-full">
                 <h2 className="w-[180px] font-semibold text-[24px] leading-[32px] text-on-surface whitespace-nowrap">{userData.name}</h2>
 
-                <div className="flex flex-row items-center gap-2 h-[16px]">
-                  <p className="font-normal text-[12px] leading-[16px] flex items-center text-on-surface-variant">Account Status</p>
+                <div className="flex flex-row items-center gap-4 h-[16px]">
                   <div className="flex flex-row items-center gap-2">
-                    <div className={`w-[6px] h-[6px] rounded-full ${userData.status === 'Active' ? 'bg-[#22C55E]' : 'bg-red-500'}`}></div>
-                    <p className={`font-normal text-[12px] leading-[16px] flex items-center ${userData.status === 'Active' ? 'text-[#22C55E]' : 'text-red-500'}`}>{userData.status}</p>
+                    <p className="font-normal text-[12px] leading-[16px] flex items-center text-on-surface-variant">Account Status</p>
+                    <div className="flex flex-row items-center gap-1.5">
+                      <div className={`w-[6px] h-[6px] rounded-full ${userData.status === 'Active' ? 'bg-[#22C55E]' : 'bg-red-500'}`}></div>
+                      <p className={`font-normal text-[12px] leading-[16px] flex items-center ${userData.status === 'Active' ? 'text-[#22C55E]' : 'text-red-500'}`}>{userData.status}</p>
+                    </div>
+                  </div>
+
+                  <div className="w-[4px] h-[4px] bg-outline-variant rounded-full"></div>
+
+                  <div className="flex flex-row items-center gap-2">
+                    <p className="font-normal text-[12px] leading-[16px] flex items-center text-on-surface-variant">Onboarding</p>
+                    <div className="flex flex-row items-center gap-1.5">
+                      <div className={`w-[6px] h-[6px] rounded-full ${userData.isOnboardingComplete ? 'bg-[#22C55E]' : 'bg-amber-500'}`}></div>
+                      <p className={`font-normal text-[12px] leading-[16px] flex items-center ${userData.isOnboardingComplete ? 'text-[#22C55E]' : 'text-amber-500'}`}>
+                        {userData.isOnboardingComplete ? 'Complete' : 'Incomplete'}
+                      </p>
+                    </div>
                   </div>
                 </div>
 
