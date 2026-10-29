@@ -300,7 +300,10 @@ export default function DetailedAnalytics() {
         )}
 
         {/* Content Area */}
-        <div className={`flex-1 overflow-y-auto ${isCoreMetric ? 'p-8' : 'p-8 pt-6'}`}>
+        <div className={`flex-1 ${activeMetric === 'feed_engagement' ? 'overflow-hidden flex flex-col h-full bg-slate-50/75' : 'overflow-y-auto ' + (isCoreMetric ? 'p-8' : 'p-8 pt-6')}`}>
+          {activeMetric === 'feed_engagement' ? (
+            <FeedEngagementBreakdown />
+          ) : (
           <div className="flex flex-col gap-8">
             
             {isCoreMetric && (
@@ -370,10 +373,10 @@ export default function DetailedAnalytics() {
             {activeMetric === 'organization_growth' && <OrganizationGrowthBreakdown dateRange={dateRange} />}
             {activeMetric === 'active_jobs' && <ActiveJobsBreakdown />}
             {activeMetric === 'upcoming_events' && <UpcomingEventsBreakdown />}
-            {activeMetric === 'feed_engagement' && <FeedEngagementBreakdown />}
             {activeMetric === 'new_connections' && <NewConnectionsBreakdown />}
 
           </div>
+          )}
         </div>
       </div>
 
