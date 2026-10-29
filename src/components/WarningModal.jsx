@@ -50,7 +50,7 @@ export default function WarningModal({ isOpen, onClose, userName, onSend }) {
     >
       <div className="flex flex-col gap-4 text-on-surface">
         <p className="text-sm text-on-surface-variant">
-          You are sending an official warning to <strong>{userName}</strong>. They will receive this warning on the home page.
+          You are sending an official warning to <strong>{userName}</strong>. This action will be delivered directly to their in-app Settings &gt; Account status &gt; &quot;Account actions&quot; tab.
         </p>
 
         {validationError && (
