@@ -5,12 +5,15 @@ import ReportRow from '../components/ReportRow';
 import AppealRow from '../components/AppealRow';
 import ReportDetailModal from '../components/ReportDetailModal';
 import WarningModal from '../components/WarningModal';
+import ResolvedReportRow from '../components/ResolvedReportRow';
+import ResolvedReportDetailModal from '../components/ResolvedReportDetailModal';
 
 export default function ModerationQueue() {
   const { role, accessToken } = useAuth();
   const location = useLocation();
   const [reports, setReports] = useState([]);
   const [escalatedReports, setEscalatedReports] = useState([]);
+  const [resolvedReports, setResolvedReports] = useState([]);
   const [appeals, setAppeals] = useState([]);
   const [activeTab, setActiveTab] = useState(location.state?.fromTab || 'Active Reports');
   const [filterType, setFilterType] = useState('All');
@@ -25,6 +28,8 @@ export default function ModerationQueue() {
   const [activeTotalPages, setActiveTotalPages] = useState(1);
   const [escalatedPage, setEscalatedPage] = useState(1);
   const [escalatedTotalPages, setEscalatedTotalPages] = useState(1);
+  const [resolvedPage, setResolvedPage] = useState(1);
+  const [resolvedTotalPages, setResolvedTotalPages] = useState(1);
 
   // Modal State
   const [selectedReport, setSelectedReport] = useState(null);
@@ -32,6 +37,10 @@ export default function ModerationQueue() {
   const [warningModalOpen, setWarningModalOpen] = useState(false);
   const [userToWarn, setUserToWarn] = useState(null);
   const [warningReportGroup, setWarningReportGroup] = useState(null);
+
+  // Resolved Report Modal State
+  const [selectedResolvedReport, setSelectedResolvedReport] = useState(null);
+  const [isResolvedModalOpen, setIsResolvedModalOpen] = useState(false);
 
   const fetchReports = async (status, setter, setTotalPages, page, type = 'All', reason = 'All', severity = 'All') => {
     try {
@@ -85,7 +94,7 @@ export default function ModerationQueue() {
           const res = await fetch('/api/admin/reports/reasons', { headers: { 'Authorization': `Bearer ${accessToken}` } });
           if (res.ok) {
             const data = await res.json();
-            setReportReasons(data); // store the full array of {code, label}
+            setReportReasons(data);
           }
         } catch (e) {
           console.error(e);
@@ -95,11 +104,12 @@ export default function ModerationQueue() {
       Promise.all([
         fetchReports('active', setReports, setActiveTotalPages, activePage, filterType, filterReason, filterSeverity),
         fetchReports('escalated', setEscalatedReports, setEscalatedTotalPages, escalatedPage, filterType, filterReason, filterSeverity),
+        fetchReports('all_resolved', setResolvedReports, setResolvedTotalPages, resolvedPage, filterType, filterReason, filterSeverity),
         fetchAppeals(),
         fetchReasons()
       ]).finally(() => setLoading(false));
     }
-  }, [accessToken, activePage, escalatedPage, filterType, filterReason, filterSeverity]);
+  }, [accessToken, activePage, escalatedPage, resolvedPage, filterType, filterReason, filterSeverity]);
 
   const filteredReports = activeTab === 'Escalations' ? escalatedReports : reports;
 
@@ -111,7 +121,7 @@ export default function ModerationQueue() {
       
       if (!groups[groupId]) {
         groups[groupId] = {
-          id: groupId, // The grouped ID
+          id: groupId,
           type: report.type,
           contentPreview: report.contentPreview,
           postId: report.postId,
@@ -129,17 +139,11 @@ export default function ModerationQueue() {
       groups[groupId].reports.push(report);
     });
 
-    // Post-process the groups
     return Object.values(groups).map(group => {
-      // Determine highest severity
       const hasTier3 = group.reports.some(r => (r.severity || '').includes('Tier 3'));
       const hasTier2 = group.reports.some(r => (r.severity || '').includes('Tier 2'));
       const highestSeverity = hasTier3 ? 'Tier 3 (Severe)' : (hasTier2 ? 'Tier 2 (Moderate)' : 'Tier 1 (Minor)');
-      
-      // Get unique reasons
       const uniqueReasons = [...new Set(group.reports.map(r => r.reason))];
-      
-      // Get unique reporters count
       const uniqueReporters = new Set(group.reports.map(r => r.reportedBy)).size;
 
       return {
@@ -150,7 +154,6 @@ export default function ModerationQueue() {
         reportCount: group.reports.length
       };
     }).sort((a, b) => {
-      // Sort by severity first, then by number of reports
       if (a.highestSeverity !== b.highestSeverity) {
         if (a.highestSeverity.includes('Tier 3')) return -1;
         if (b.highestSeverity.includes('Tier 3')) return 1;
@@ -175,12 +178,13 @@ export default function ModerationQueue() {
       );
       await Promise.all(promises);
       
-      // Update local state by filtering out all affected report IDs
       if (activeTab === 'Escalations') {
         setEscalatedReports(prev => prev.filter(r => !reportIds.includes(r.id)));
       } else {
         setReports(prev => prev.filter(r => !reportIds.includes(r.id)));
       }
+      // Refresh resolved reports tab
+      fetchReports('all_resolved', setResolvedReports, setResolvedTotalPages, resolvedPage, filterType, filterReason, filterSeverity);
     } catch (e) {
       console.error("Bulk update error:", e);
     }
@@ -190,14 +194,14 @@ export default function ModerationQueue() {
     if (window.confirm(`Approve content and dismiss all ${groupedReport.reportCount} reports?`)) {
       const reportIds = groupedReport.reports.map(r => r.id);
       await updateReportStatusBulk(reportIds, 'dismissed');
-      alert("All reports dismissed.");
+      alert("All reports dismissed and logged as resolved.");
     }
   };
 
   const handleDismissFromModal = async (reportIds) => {
     await updateReportStatusBulk(reportIds, 'dismissed');
     setIsModalOpen(false);
-    alert("Reports dismissed.");
+    alert("Reports dismissed and moved to Resolved Reports.");
   };
 
   const handleDismissIndividual = async (id) => {
@@ -213,6 +217,7 @@ export default function ModerationQueue() {
         } else {
           setReports(prev => prev.filter(r => r.id !== id));
         }
+        fetchReports('all_resolved', setResolvedReports, setResolvedTotalPages, resolvedPage, filterType, filterReason, filterSeverity);
       }
     } catch (e) {
       console.error(e);
@@ -222,7 +227,11 @@ export default function ModerationQueue() {
   const handleDeleteContent = async (groupedReport) => {
     if (window.confirm("Are you sure you want to delete this content? This action cannot be undone.")) {
       try {
-        const endpoint = groupedReport.type === 'Content' ? `/api/admin/posts/${groupedReport.postId}` : null;
+        const endpoint = (groupedReport.type === 'Content' || groupedReport.type === 'POST') 
+          ? `/api/admin/posts/${groupedReport.postId}` 
+          : groupedReport.type === 'Comment' || groupedReport.type === 'COMMENT'
+          ? `/api/admin/comments/${groupedReport.postId}`
+          : null;
         
         if (!endpoint) {
           alert(`Deletion not implemented for type: ${groupedReport.type}`);
@@ -244,8 +253,9 @@ export default function ModerationQueue() {
           } else {
             setReports(prev => prev.filter(r => !reportIds.includes(r.id)));
           }
+          fetchReports('all_resolved', setResolvedReports, setResolvedTotalPages, resolvedPage, filterType, filterReason, filterSeverity);
           setIsModalOpen(false);
-          alert("Content deleted and associated reports resolved.");
+          alert("Content deleted, author notified in Account Actions, and associated reports resolved.");
         } else {
           const data = await res.json();
           alert(`Error deleting content: ${data.error}`);
@@ -262,7 +272,6 @@ export default function ModerationQueue() {
       const reportIds = groupedReport.reports.map(r => r.id);
       await updateReportStatusBulk(reportIds, 'escalated');
       
-      // Add them locally to the escalated tab if we are in active reports
       if (activeTab !== 'Escalations') {
         const newEscalated = groupedReport.reports.map(r => ({ ...r, status: 'escalated' }));
         setEscalatedReports(prev => [...prev, ...newEscalated]);
@@ -276,11 +285,42 @@ export default function ModerationQueue() {
       alert("Moderators cannot directly suspend for Tier 3 violations. Please escalate using the Reject button.");
       return;
     }
+
+    const targetUserId = groupedReport.reports?.[0]?.targetUserId || groupedReport.targetUserId;
+    if (!targetUserId) {
+      alert("Unable to identify target user for suspension.");
+      return;
+    }
     
     if (window.confirm(`Proceed with Suspension for user who posted this?`)) {
       const reportIds = groupedReport.reports.map(r => r.id);
-      await updateReportStatusBulk(reportIds, 'resolved');
-      alert("Reports resolved and suspension logged.");
+      try {
+        const res = await fetch(`/api/admin/users/${targetUserId}/suspend`, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${accessToken}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            duration: 'Short Temporary (3-7 days)',
+            reportIds
+          })
+        });
+        if (res.ok) {
+          if (activeTab === 'Escalations') {
+            setEscalatedReports(prev => prev.filter(r => !reportIds.includes(r.id)));
+          } else {
+            setReports(prev => prev.filter(r => !reportIds.includes(r.id)));
+          }
+          fetchReports('all_resolved', setResolvedReports, setResolvedTotalPages, resolvedPage, filterType, filterReason, filterSeverity);
+          alert("User suspended, Account Action delivered to user app, and reports resolved.");
+        } else {
+          alert("Failed to suspend user.");
+        }
+      } catch (e) {
+        console.error(e);
+        alert("Error suspending user.");
+      }
     }
   };
 
@@ -332,13 +372,21 @@ export default function ModerationQueue() {
   const handleSendWarning = async ({ reason, message, isSevere }) => {
     if (!userToWarn || !warningReportGroup) return;
     try {
+      const reportIds = warningReportGroup.reports.map(r => r.id);
       const response = await fetch(`/api/admin/users/${userToWarn.id}/warn`, {
         method: 'POST',
         headers: { 
           'Authorization': `Bearer ${accessToken}`, 
           'Content-Type': 'application/json' 
         },
-        body: JSON.stringify({ reason, message, isSevere })
+        body: JSON.stringify({ 
+          reason, 
+          message, 
+          isSevere,
+          reportIds,
+          postId: warningReportGroup.postId,
+          postTitle: warningReportGroup.contentPreview
+        })
       });
       const data = await response.json();
       
@@ -354,13 +402,19 @@ export default function ModerationQueue() {
         }
       }
       
-      // Auto-resolve all reports in this group
-      const reportIds = warningReportGroup.reports.map(r => r.id);
-      await updateReportStatusBulk(reportIds, 'resolved');
+      // Remove from active/escalated
+      if (activeTab === 'Escalations') {
+        setEscalatedReports(prev => prev.filter(r => !reportIds.includes(r.id)));
+      } else {
+        setReports(prev => prev.filter(r => !reportIds.includes(r.id)));
+      }
+
+      // Re-fetch resolved reports so it appears immediately in the Resolved Reports tab
+      fetchReports('all_resolved', setResolvedReports, setResolvedTotalPages, resolvedPage, filterType, filterReason, filterSeverity);
       
-      alert(alertMsg + "\n\nAssociated reports have been resolved.");
+      alert(alertMsg + "\n\nWarning was delivered to user's in-app 'Account Actions' tab and reports resolved.");
       
-      setIsModalOpen(false); // Close the detail modal
+      setIsModalOpen(false);
     } catch (e) {
       console.error(e);
       alert("Failed to send warning.");
@@ -369,6 +423,11 @@ export default function ModerationQueue() {
       setUserToWarn(null);
       setWarningReportGroup(null);
     }
+  };
+
+  const handleSelectResolved = (report) => {
+    setSelectedResolvedReport(report);
+    setIsResolvedModalOpen(true);
   };
 
   if (loading) {
@@ -381,13 +440,6 @@ export default function ModerationQueue() {
       <div className="flex flex-col gap-lg mb-xl">
         <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-4">
           <div className="flex gap-3">
-            <button 
-              onClick={() => navigate(-1)}
-              className="w-10 h-10 shrink-0 rounded-xl bg-surface border border-outline-variant flex items-center justify-center text-on-surface hover:bg-slate-50 transition-colors shadow-sm self-start mt-1"
-              title="Go Back"
-            >
-              <span className="material-symbols-outlined text-[20px]">arrow_back</span>
-            </button>
             <div>
               <h2 className="font-display-lg text-display-lg text-on-surface">Moderation Queue</h2>
               <p className="font-body-md text-on-surface-variant mt-xs">Process reports to maintain community standards and safety.</p>
@@ -411,6 +463,7 @@ export default function ModerationQueue() {
                 Promise.all([
                   fetchReports('active', setReports, setActiveTotalPages, activePage, filterType, filterReason, filterSeverity),
                   fetchReports('escalated', setEscalatedReports, setEscalatedTotalPages, escalatedPage, filterType, filterReason, filterSeverity),
+                  fetchReports('all_resolved', setResolvedReports, setResolvedTotalPages, resolvedPage, filterType, filterReason, filterSeverity),
                   fetchAppeals()
                 ]).finally(() => setLoading(false));
               }}
@@ -420,107 +473,119 @@ export default function ModerationQueue() {
               Refresh
             </button>
             <div className="flex bg-surface-container-low p-1 rounded-xl border border-outline-variant overflow-x-auto max-w-full w-full sm:w-auto">
-            <button 
-              onClick={() => setActiveTab('Active Reports')}
-              className={`px-sm md:px-lg py-sm rounded-lg font-label-md transition-colors whitespace-nowrap ${activeTab === 'Active Reports' ? 'bg-surface shadow-sm text-on-surface' : 'text-on-surface-variant hover:text-on-surface'}`}
-            >
-              Active Reports
-            </button>
-            {role === 'admin' && (
-              <>
-                <button 
-                  onClick={() => setActiveTab('Escalations')}
-                  className={`px-sm md:px-lg py-sm rounded-lg font-label-md transition-colors whitespace-nowrap ${activeTab === 'Escalations' ? 'bg-surface shadow-sm text-on-surface' : 'text-on-surface-variant hover:text-on-surface'}`}
-                >
-                  Escalations
-                </button>
-                <button 
-                  onClick={() => setActiveTab('Appeals')}
-                  className={`px-sm md:px-lg py-sm rounded-lg font-label-md transition-colors whitespace-nowrap ${activeTab === 'Appeals' ? 'bg-surface shadow-sm text-on-surface' : 'text-on-surface-variant hover:text-on-surface'}`}
-                >
-                  Appeals
-                </button>
-              </>
-            )}
+              <button 
+                onClick={() => setActiveTab('Active Reports')}
+                className={`px-sm md:px-lg py-sm rounded-lg font-label-md transition-colors whitespace-nowrap ${activeTab === 'Active Reports' ? 'bg-surface shadow-sm text-on-surface font-semibold' : 'text-on-surface-variant hover:text-on-surface'}`}
+              >
+                Active Reports
+              </button>
+              {role === 'admin' && (
+                <>
+                  <button 
+                    onClick={() => setActiveTab('Escalations')}
+                    className={`px-sm md:px-lg py-sm rounded-lg font-label-md transition-colors whitespace-nowrap ${activeTab === 'Escalations' ? 'bg-surface shadow-sm text-on-surface font-semibold' : 'text-on-surface-variant hover:text-on-surface'}`}
+                  >
+                    Escalations
+                  </button>
+                  <button 
+                    onClick={() => setActiveTab('Appeals')}
+                    className={`px-sm md:px-lg py-sm rounded-lg font-label-md transition-colors whitespace-nowrap ${activeTab === 'Appeals' ? 'bg-surface shadow-sm text-on-surface font-semibold' : 'text-on-surface-variant hover:text-on-surface'}`}
+                  >
+                    Appeals
+                  </button>
+                </>
+              )}
+              <button 
+                onClick={() => setActiveTab('Resolved Reports')}
+                className={`px-sm md:px-lg py-sm rounded-lg font-label-md transition-colors whitespace-nowrap flex items-center gap-1.5 ${activeTab === 'Resolved Reports' ? 'bg-surface shadow-sm text-on-surface font-semibold' : 'text-on-surface-variant hover:text-on-surface'}`}
+              >
+                <span>Resolved Reports</span>
+                {resolvedReports.length > 0 && (
+                  <span className="px-1.5 py-0.2 rounded-full text-[10px] bg-green-100 text-green-800 font-bold">
+                    {resolvedReports.length}
+                  </span>
+                )}
+              </button>
             </div>
           </div>
         </div>
       </div>
 
-      {activeTab === 'Active Reports' || activeTab === 'Escalations' ? (
-        <>
-          {/* Filter Bar */}
-          <div className="flex flex-wrap items-center gap-md bg-surface-container-low p-md border border-outline-variant rounded-xl mb-xl">
-            <div className="flex items-center gap-sm">
-              <span className="material-symbols-outlined text-on-surface-variant text-[20px]">filter_list</span>
-              <span className="font-label-md text-on-surface">Filter By:</span>
-            </div>
-            <select
-              value={filterType}
-              onChange={(e) => { setActivePage(1); setEscalatedPage(1); setFilterType(e.target.value); }}
-              className="bg-surface-container-lowest border border-outline-variant rounded-lg font-body-sm text-on-surface px-md py-sm focus:ring-primary focus:outline-none"
-            >
-              <option value="All">Type: All</option>
-              <option value="Content">Content</option>
-              <option value="Comment">Thought / Comment</option>
-              <option value="Account">Account</option>
-              <option value="Organization">Organization</option>
-              <option value="Job">Job</option>
-            </select>
-            <select
-              value={filterReason}
-              onChange={(e) => { setActivePage(1); setEscalatedPage(1); setFilterReason(e.target.value); }}
-              className="bg-surface-container-lowest border border-outline-variant rounded-lg font-body-sm text-on-surface px-md py-sm focus:ring-primary focus:outline-none"
-            >
-              <option value="All">Reason: All</option>
-              {reportReasons.map((r) => (
-                <option key={r.code} value={r.label}>{r.code}</option>
-              ))}
-            </select>
-            <select
-              value={filterSeverity}
-              onChange={(e) => { setActivePage(1); setEscalatedPage(1); setFilterSeverity(e.target.value); }}
-              className="bg-surface-container-lowest border border-outline-variant rounded-lg font-body-sm text-on-surface px-md py-sm focus:ring-primary focus:outline-none"
-            >
-              <option value="All">Tier: All</option>
-              <option value="Tier 3 (Severe)">Tier 3 (Severe)</option>
-              <option value="Tier 2 (Moderate)">Tier 2 (Moderate)</option>
-              <option value="Tier 1 (Minor)">Tier 1 (Minor)</option>
-            </select>
-            {(filterType !== 'All' || filterReason !== 'All' || filterSeverity !== 'All') && (
-              <button
-                onClick={() => { setActivePage(1); setEscalatedPage(1); setFilterType('All'); setFilterReason('All'); setFilterSeverity('All'); }}
-                className="text-primary font-label-md hover:underline bg-transparent border-none cursor-pointer px-sm py-xs"
-              >
-                Clear Filters
-              </button>
-            )}
+      {/* FILTER BAR (Shown for Active, Escalations, and Resolved tabs) */}
+      {activeTab !== 'Appeals' && (
+        <div className="flex flex-wrap items-center gap-md bg-surface-container-low p-md border border-outline-variant rounded-xl mb-xl">
+          <div className="flex items-center gap-sm">
+            <span className="material-symbols-outlined text-on-surface-variant text-[20px]">filter_list</span>
+            <span className="font-label-md text-on-surface">Filter By:</span>
           </div>
+          <select
+            value={filterType}
+            onChange={(e) => { setActivePage(1); setEscalatedPage(1); setResolvedPage(1); setFilterType(e.target.value); }}
+            className="bg-surface-container-lowest border border-outline-variant rounded-lg font-body-sm text-on-surface px-md py-sm focus:ring-primary focus:outline-none"
+          >
+            <option value="All">Type: All</option>
+            <option value="Content">Content / Post</option>
+            <option value="Comment">Thought / Comment</option>
+            <option value="Account">Account</option>
+            <option value="Organization">Organization</option>
+            <option value="Job">Job</option>
+          </select>
+          <select
+            value={filterReason}
+            onChange={(e) => { setActivePage(1); setEscalatedPage(1); setResolvedPage(1); setFilterReason(e.target.value); }}
+            className="bg-surface-container-lowest border border-outline-variant rounded-lg font-body-sm text-on-surface px-md py-sm focus:ring-primary focus:outline-none"
+          >
+            <option value="All">Reason: All</option>
+            {reportReasons.map((r) => (
+              <option key={r.code} value={r.label}>{r.code}</option>
+            ))}
+          </select>
+          <select
+            value={filterSeverity}
+            onChange={(e) => { setActivePage(1); setEscalatedPage(1); setResolvedPage(1); setFilterSeverity(e.target.value); }}
+            className="bg-surface-container-lowest border border-outline-variant rounded-lg font-body-sm text-on-surface px-md py-sm focus:ring-primary focus:outline-none"
+          >
+            <option value="All">Tier: All</option>
+            <option value="Tier 3 (Severe)">Tier 3 (Severe)</option>
+            <option value="Tier 2 (Moderate)">Tier 2 (Moderate)</option>
+            <option value="Tier 1 (Minor)">Tier 1 (Minor)</option>
+          </select>
+          {(filterType !== 'All' || filterReason !== 'All' || filterSeverity !== 'All') && (
+            <button
+              onClick={() => { setActivePage(1); setEscalatedPage(1); setResolvedPage(1); setFilterType('All'); setFilterReason('All'); setFilterSeverity('All'); }}
+              className="text-primary font-label-md hover:underline bg-transparent border-none cursor-pointer px-sm py-xs"
+            >
+              Clear Filters
+            </button>
+          )}
+        </div>
+      )}
 
-        {/* Moderation Data Table */}
+      {/* ACTIVE REPORTS & ESCALATIONS TABLE */}
+      {(activeTab === 'Active Reports' || activeTab === 'Escalations') && (
         <div className="bg-surface-container-lowest border border-outline-variant rounded-xl overflow-hidden shadow-sm">
           <div className="overflow-x-auto">
             <table className="w-full text-left border-collapse">
               <thead>
                 <tr className="bg-surface-container border-b border-outline-variant">
                   <th className="px-lg py-md font-label-md text-on-surface-variant uppercase tracking-wider">Report ID</th>
-                  <th className="px-lg py-md font-label-md text-on-surface-variant uppercase tracking-wider">Reported Item</th>
-                  <th className="px-lg py-md font-label-md text-on-surface-variant uppercase tracking-wider">Reason</th>
-                  <th className="px-lg py-md font-label-md text-on-surface-variant uppercase tracking-wider">Reported By</th>
-                  <th className="px-lg py-md font-label-md text-on-surface-variant uppercase tracking-wider text-right">Actions</th>
+                  <th className="px-lg py-md font-label-md text-on-surface-variant uppercase tracking-wider">Content Preview</th>
+                  <th className="px-lg py-md font-label-md text-on-surface-variant uppercase tracking-wider">Violations</th>
+                  <th className="px-lg py-md font-label-md text-on-surface-variant uppercase tracking-wider">Reporters</th>
+                  <th className="px-lg py-md font-label-md text-on-surface-variant uppercase tracking-wider text-right">Quick Actions</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-outline-variant">
-                {groupedReports.map((report) => (
+                {groupedReports.map((groupedReport) => (
                   <ReportRow 
-                    key={report.id} 
-                    report={report} 
-                    role={role} 
+                    key={groupedReport.id} 
+                    report={groupedReport} 
+                    role={role}
                     activeTab={activeTab}
-                    onApprove={() => handleApproveGroup(report)}
-                    onReject={() => openReportModal(report)}
-                    onEscalate={() => handleEscalateGroup(report)}
-                    onSuspend={() => handleSuspendGroup(report)}
+                    onApprove={() => handleApproveGroup(groupedReport)}
+                    onReject={() => openReportModal(groupedReport)}
+                    onEscalate={() => handleEscalateGroup(groupedReport)}
+                    onSuspend={() => handleSuspendGroup(groupedReport)}
                   />
                 ))}
                 {groupedReports.length === 0 && (
@@ -533,8 +598,9 @@ export default function ModerationQueue() {
               </tbody>
             </table>
           </div>
-          {/* Pagination Controls */}
-          <div className="flex items-center justify-between px-lg py-md border-t border-outline-variant bg-surface-container">
+
+          {/* Pagination */}
+          <div className="p-md border-t border-outline-variant flex items-center justify-between">
             <span className="font-body-sm text-on-surface-variant">
               Page {activeTab === 'Escalations' ? escalatedPage : activePage} of {activeTab === 'Escalations' ? escalatedTotalPages : activeTotalPages}
             </span>
@@ -556,8 +622,82 @@ export default function ModerationQueue() {
             </div>
           </div>
         </div>
-        </>
-      ) : (
+      )}
+
+      {/* RESOLVED REPORTS TAB */}
+      {activeTab === 'Resolved Reports' && (
+        <div className="bg-surface-container-lowest border border-outline-variant rounded-xl overflow-hidden shadow-sm">
+          <div className="p-4 bg-surface-container border-b border-outline-variant flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
+            <div>
+              <h3 className="font-semibold text-on-surface text-base">Resolved Reports &amp; Actions Log</h3>
+              <p className="text-xs text-on-surface-variant">Reports resolved with warnings, content removals, suspensions, or dismissals delivered to in-app accounts.</p>
+            </div>
+            <span className="px-3 py-1 rounded-full text-xs font-semibold bg-primary/10 text-primary">
+              {resolvedReports.length} Cases Resolved
+            </span>
+          </div>
+
+          <div className="overflow-x-auto">
+            <table className="w-full text-left border-collapse">
+              <thead>
+                <tr className="bg-surface-container/60 border-b border-outline-variant">
+                  <th className="px-lg py-md font-label-md text-on-surface-variant uppercase tracking-wider">Report / Date</th>
+                  <th className="px-lg py-md font-label-md text-on-surface-variant uppercase tracking-wider">Reported Item &amp; Target</th>
+                  <th className="px-lg py-md font-label-md text-on-surface-variant uppercase tracking-wider">Reason &amp; Reporter</th>
+                  <th className="px-lg py-md font-label-md text-on-surface-variant uppercase tracking-wider">Published Action</th>
+                  <th className="px-lg py-md font-label-md text-on-surface-variant uppercase tracking-wider text-right">Details</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-outline-variant">
+                {resolvedReports.map((report) => (
+                  <ResolvedReportRow
+                    key={report.id}
+                    report={report}
+                    onSelect={handleSelectResolved}
+                  />
+                ))}
+                {resolvedReports.length === 0 && (
+                  <tr>
+                    <td colSpan="5" className="px-lg py-xl text-center text-on-surface-variant">
+                      <div className="flex flex-col items-center justify-center py-6">
+                        <span className="material-symbols-outlined text-4xl text-on-surface-variant/50 mb-2">task_alt</span>
+                        <p className="font-medium text-sm">No resolved reports found.</p>
+                        <p className="text-xs text-on-surface-variant mt-1">When reports are dismissed or resolved with warnings/removals, they will appear here.</p>
+                      </div>
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+
+          {/* Pagination */}
+          <div className="p-md border-t border-outline-variant flex items-center justify-between">
+            <span className="font-body-sm text-on-surface-variant">
+              Page {resolvedPage} of {resolvedTotalPages}
+            </span>
+            <div className="flex gap-sm">
+              <button 
+                disabled={resolvedPage === 1}
+                onClick={() => setResolvedPage(p => Math.max(1, p - 1))}
+                className="px-md py-xs font-label-md bg-surface border border-outline-variant rounded hover:bg-surface-variant disabled:opacity-50 transition-opacity"
+              >
+                Previous
+              </button>
+              <button 
+                disabled={resolvedPage >= resolvedTotalPages}
+                onClick={() => setResolvedPage(p => Math.min(resolvedTotalPages, p + 1))}
+                className="px-md py-xs font-label-md bg-surface border border-outline-variant rounded hover:bg-surface-variant disabled:opacity-50 transition-opacity"
+              >
+                Next
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* APPEALS TAB */}
+      {activeTab === 'Appeals' && (
         <div className="bg-surface-container-lowest border border-outline-variant rounded-xl overflow-hidden shadow-sm">
           <div className="overflow-x-auto">
             <table className="w-full text-left border-collapse">
@@ -608,6 +748,13 @@ export default function ModerationQueue() {
         onClose={() => setWarningModalOpen(false)}
         userName={userToWarn?.name}
         onSend={handleSendWarning}
+      />
+
+      {/* Resolved Report Detail Modal */}
+      <ResolvedReportDetailModal
+        isOpen={isResolvedModalOpen}
+        onClose={() => setIsResolvedModalOpen(false)}
+        report={selectedResolvedReport}
       />
     </div>
   );
