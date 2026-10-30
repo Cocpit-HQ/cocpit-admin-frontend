@@ -414,11 +414,25 @@ export default function UserProfile() {
               <div className="flex flex-col items-start gap-2 w-full max-w-full">
                 <h2 className="w-[180px] font-semibold text-[24px] leading-[32px] text-on-surface whitespace-nowrap">{userData.name}</h2>
 
-                <div className="flex flex-row items-center gap-2 h-[16px]">
-                  <p className="font-normal text-[12px] leading-[16px] flex items-center text-on-surface-variant">Account Status</p>
+                <div className="flex flex-row items-center gap-4 h-[16px]">
                   <div className="flex flex-row items-center gap-2">
-                    <div className={`w-[6px] h-[6px] rounded-full ${userData.status === 'Active' ? 'bg-[#22C55E]' : 'bg-red-500'}`}></div>
-                    <p className={`font-normal text-[12px] leading-[16px] flex items-center ${userData.status === 'Active' ? 'text-[#22C55E]' : 'text-red-500'}`}>{userData.status}</p>
+                    <p className="font-normal text-[12px] leading-[16px] flex items-center text-on-surface-variant">Account Status</p>
+                    <div className="flex flex-row items-center gap-1.5">
+                      <div className={`w-[6px] h-[6px] rounded-full ${userData.status === 'Active' ? 'bg-[#22C55E]' : 'bg-red-500'}`}></div>
+                      <p className={`font-normal text-[12px] leading-[16px] flex items-center ${userData.status === 'Active' ? 'text-[#22C55E]' : 'text-red-500'}`}>{userData.status}</p>
+                    </div>
+                  </div>
+
+                  <div className="w-[4px] h-[4px] bg-outline-variant rounded-full"></div>
+
+                  <div className="flex flex-row items-center gap-2">
+                    <p className="font-normal text-[12px] leading-[16px] flex items-center text-on-surface-variant">Onboarding</p>
+                    <div className="flex flex-row items-center gap-1.5">
+                      <div className={`w-[6px] h-[6px] rounded-full ${userData.isOnboardingComplete ? 'bg-[#22C55E]' : 'bg-amber-500'}`}></div>
+                      <p className={`font-normal text-[12px] leading-[16px] flex items-center ${userData.isOnboardingComplete ? 'text-[#22C55E]' : 'text-amber-500'}`}>
+                        {userData.isOnboardingComplete ? 'Complete' : 'Incomplete'}
+                      </p>
+                    </div>
                   </div>
                 </div>
 
@@ -511,6 +525,12 @@ export default function UserProfile() {
                 className={`box-border flex flex-row justify-center items-center px-4 py-[6px] h-[32px] rounded-[24px] transition-colors ${activeMainTab === 'Activity' ? 'bg-surface-container-high border-surface-container-high' : 'bg-surface border-outline-variant'} border`}
               >
                 <p className={`h-[20px] font-medium text-[14px] leading-[20px] flex items-center text-center ${activeMainTab === 'Activity' ? 'text-primary' : 'text-on-surface-variant'}`}>Activity</p>
+              </button>
+              <button
+                onClick={() => setActiveMainTab('Full Profile')}
+                className={`box-border flex flex-row justify-center items-center px-4 py-[6px] h-[32px] rounded-[24px] transition-colors ${activeMainTab === 'Full Profile' ? 'bg-surface-container-high border-surface-container-high' : 'bg-surface border-outline-variant'} border`}
+              >
+                <p className={`h-[20px] font-medium text-[14px] leading-[20px] flex items-center text-center ${activeMainTab === 'Full Profile' ? 'text-primary' : 'text-on-surface-variant'}`}>Full Profile</p>
               </button>
               <button
                 onClick={() => setActiveMainTab('Reports')}
@@ -676,6 +696,297 @@ export default function UserProfile() {
               </div>
             </div>
           )}
+
+          {activeMainTab === 'Full Profile' && (() => {
+            const detailed = userData.detailedProfile || {};
+            const educations = detailed.educations || [];
+            const experiences = detailed.experiences || [];
+            const skills = detailed.skills || [];
+            const projects = detailed.projects || [];
+
+            const formatPeriod = (dStr) => {
+              if (!dStr) return '';
+              try {
+                const d = new Date(dStr);
+                return isNaN(d.getTime()) ? dStr : format(d, 'MMM yyyy');
+              } catch {
+                return dStr;
+              }
+            };
+
+            return (
+              <div className="flex flex-col gap-6 w-full min-h-[522px] animate-in fade-in duration-200">
+                {/* 1. Professional Overview Card */}
+                <div className="w-full bg-surface-container-low rounded-[24px] p-6 border border-outline-variant/60 shadow-sm">
+                  <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-4 border-b border-outline-variant">
+                    <div>
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <h3 className="font-bold text-[18px] text-on-surface">Professional Overview</h3>
+                        <span className="px-2.5 py-0.5 rounded-full text-[11px] font-bold uppercase tracking-wider bg-primary/10 text-primary border border-primary/20">
+                          {detailed.account_type || userData.role || 'Member'}
+                        </span>
+                        {detailed.industry && (
+                          <span className="px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-surface-container-highest text-on-surface-variant">
+                            {detailed.industry}
+                          </span>
+                        )}
+                      </div>
+                      <p className="text-[14px] font-medium text-on-surface-variant mt-1">
+                        {detailed.headline || 'No professional headline specified.'}
+                      </p>
+                    </div>
+
+                    {detailed.resumeUrl && (
+                      <a
+                        href={detailed.resumeUrl}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-semibold bg-primary text-on-primary hover:bg-primary/90 transition-all shadow-sm active:scale-95 shrink-0 self-start md:self-auto"
+                      >
+                        <span className="material-symbols-outlined text-[18px]">description</span>
+                        View Resume
+                      </a>
+                    )}
+                  </div>
+
+                  {/* Bio / About */}
+                  <div className="mt-4">
+                    <h4 className="text-[12px] font-bold uppercase tracking-wider text-outline mb-1.5">About / Bio</h4>
+                    <p className="text-[14px] text-on-surface leading-relaxed whitespace-pre-line bg-surface p-3.5 rounded-xl border border-outline-variant">
+                      {detailed.about || 'No detailed biography provided by user.'}
+                    </p>
+                  </div>
+
+                  {/* Meta Badges */}
+                  {(detailed.openTo || detailed.availability || detailed.workPreference) && (
+                    <div className="flex flex-wrap items-center gap-4 mt-4 pt-4 border-t border-outline-variant text-[12px]">
+                      {detailed.openTo && (
+                        <div className="flex items-center gap-1.5 text-on-surface-variant">
+                          <span className="material-symbols-outlined text-[16px] text-primary">verified</span>
+                          <span><strong>Open To:</strong> {detailed.openTo}</span>
+                        </div>
+                      )}
+                      {detailed.availability && (
+                        <div className="flex items-center gap-1.5 text-on-surface-variant">
+                          <span className="material-symbols-outlined text-[16px] text-green-600">schedule</span>
+                          <span><strong>Availability:</strong> {detailed.availability}</span>
+                        </div>
+                      )}
+                      {detailed.workPreference && (
+                        <div className="flex items-center gap-1.5 text-on-surface-variant">
+                          <span className="material-symbols-outlined text-[16px] text-indigo-600">home_work</span>
+                          <span><strong>Preference:</strong> {detailed.workPreference}</span>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+
+                {/* 2. Education & Colleges Section */}
+                <div className="w-full bg-surface-container-low rounded-[24px] p-6 border border-outline-variant/60 shadow-sm">
+                  <div className="flex items-center justify-between mb-4">
+                    <h3 className="font-bold text-[18px] text-on-surface flex items-center gap-2">
+                      <span className="material-symbols-outlined text-primary text-[22px]">school</span>
+                      Education & Colleges
+                    </h3>
+                    <span className="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-primary/10 text-primary">
+                      {educations.length} {educations.length === 1 ? 'Record' : 'Records'}
+                    </span>
+                  </div>
+
+                  {educations.length === 0 ? (
+                    <div className="flex flex-col items-center justify-center py-8 bg-surface rounded-xl border border-outline-variant text-center">
+                      <span className="material-symbols-outlined text-4xl text-outline mb-1">school</span>
+                      <p className="text-on-surface-variant text-sm font-medium">No education or college history added yet.</p>
+                    </div>
+                  ) : (
+                    <div className="grid grid-cols-1 gap-3">
+                      {educations.map((edu, idx) => (
+                        <div key={idx} className="p-4 rounded-xl bg-surface border border-outline-variant hover:border-primary/40 transition-colors shadow-xs">
+                          <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-2">
+                            <div>
+                              <h4 className="font-bold text-[15px] text-on-surface flex items-center gap-2">
+                                <span className="material-symbols-outlined text-primary text-[19px]">account_balance</span>
+                                {edu.school_name || 'Institution / College'}
+                              </h4>
+                              <p className="text-body-sm font-medium text-primary mt-0.5">
+                                {[edu.degree, edu.field_of_study].filter(Boolean).join(' • ') || 'Degree not specified'}
+                              </p>
+                            </div>
+                            {(edu.start_date || edu.end_date) && (
+                              <span className="text-[12px] font-mono-label text-on-surface-variant bg-surface-container-high px-2.5 py-1 rounded-full whitespace-nowrap self-start">
+                                {formatPeriod(edu.start_date)} – {edu.end_date ? formatPeriod(edu.end_date) : 'Present'}
+                              </span>
+                            )}
+                          </div>
+
+                          {edu.location && (
+                            <p className="text-[12px] text-on-surface-variant flex items-center gap-1 mt-2">
+                              <span className="material-symbols-outlined text-[15px]">location_on</span>
+                              {edu.location}
+                            </p>
+                          )}
+
+                          {edu.description && (
+                            <p className="text-[13px] text-on-surface-variant mt-2 bg-surface-container-lowest p-2.5 rounded-lg border border-outline-variant/60 leading-relaxed">
+                              {edu.description}
+                            </p>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                {/* 3. Skills & Competencies Section */}
+                <div className="w-full bg-surface-container-low rounded-[24px] p-6 border border-outline-variant/60 shadow-sm">
+                  <div className="flex items-center justify-between mb-4">
+                    <h3 className="font-bold text-[18px] text-on-surface flex items-center gap-2">
+                      <span className="material-symbols-outlined text-amber-500 text-[22px]">bolt</span>
+                      Skills & Expertise
+                    </h3>
+                    <span className="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-amber-500/10 text-amber-600 dark:text-amber-400">
+                      {skills.length} {skills.length === 1 ? 'Skill' : 'Skills'}
+                    </span>
+                  </div>
+
+                  {skills.length === 0 ? (
+                    <div className="flex flex-col items-center justify-center py-8 bg-surface rounded-xl border border-outline-variant text-center">
+                      <span className="material-symbols-outlined text-4xl text-outline mb-1">psychology</span>
+                      <p className="text-on-surface-variant text-sm font-medium">No skills tagged on this profile.</p>
+                    </div>
+                  ) : (
+                    <div className="flex flex-wrap gap-2.5 p-2">
+                      {skills.map((skill, idx) => (
+                        <span
+                          key={idx}
+                          className="px-3.5 py-1.5 rounded-xl text-xs font-semibold bg-surface border border-outline-variant text-on-surface hover:border-primary hover:text-primary transition-all flex items-center gap-2 shadow-xs group"
+                        >
+                          <span className="w-2 h-2 rounded-full bg-primary/70 group-hover:bg-primary transition-colors"></span>
+                          {skill}
+                        </span>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                {/* 4. Experience Section */}
+                <div className="w-full bg-surface-container-low rounded-[24px] p-6 border border-outline-variant/60 shadow-sm">
+                  <div className="flex items-center justify-between mb-4">
+                    <h3 className="font-bold text-[18px] text-on-surface flex items-center gap-2">
+                      <span className="material-symbols-outlined text-indigo-500 text-[22px]">work</span>
+                      Work Experience
+                    </h3>
+                    <span className="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-indigo-500/10 text-indigo-600 dark:text-indigo-400">
+                      {experiences.length} {experiences.length === 1 ? 'Role' : 'Roles'}
+                    </span>
+                  </div>
+
+                  {experiences.length === 0 ? (
+                    <div className="flex flex-col items-center justify-center py-8 bg-surface rounded-xl border border-outline-variant text-center">
+                      <span className="material-symbols-outlined text-4xl text-outline mb-1">business_center</span>
+                      <p className="text-on-surface-variant text-sm font-medium">No work experience entries recorded.</p>
+                    </div>
+                  ) : (
+                    <div className="grid grid-cols-1 gap-3">
+                      {experiences.map((exp, idx) => (
+                        <div key={idx} className="p-4 rounded-xl bg-surface border border-outline-variant hover:border-indigo-400/40 transition-colors shadow-xs">
+                          <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-2">
+                            <div>
+                              <h4 className="font-bold text-[15px] text-on-surface">
+                                {exp.title || 'Role'}
+                              </h4>
+                              <div className="flex items-center gap-2 flex-wrap mt-0.5">
+                                <span className="text-body-sm font-semibold text-primary">
+                                  {exp.company_name || 'Company'}
+                                </span>
+                                {exp.work_mode && (
+                                  <span className="text-[10px] font-bold uppercase px-2 py-0.5 rounded bg-surface-container-highest text-on-surface-variant">
+                                    {exp.work_mode}
+                                  </span>
+                                )}
+                                {exp.work_type && (
+                                  <span className="text-[10px] font-bold uppercase px-2 py-0.5 rounded bg-surface-container-highest text-on-surface-variant">
+                                    {exp.work_type}
+                                  </span>
+                                )}
+                              </div>
+                            </div>
+                            {(exp.start_date || exp.end_date || exp.is_current) && (
+                              <span className="text-[12px] font-mono-label text-on-surface-variant bg-surface-container-high px-2.5 py-1 rounded-full whitespace-nowrap self-start">
+                                {formatPeriod(exp.start_date)} – {exp.is_current ? 'Present' : (formatPeriod(exp.end_date) || 'Present')}
+                              </span>
+                            )}
+                          </div>
+
+                          {exp.location && (
+                            <p className="text-[12px] text-on-surface-variant flex items-center gap-1 mt-2">
+                              <span className="material-symbols-outlined text-[15px]">location_on</span>
+                              {exp.location}
+                            </p>
+                          )}
+
+                          {exp.description && (
+                            <p className="text-[13px] text-on-surface-variant mt-2 bg-surface-container-lowest p-2.5 rounded-lg border border-outline-variant/60 leading-relaxed">
+                              {exp.description}
+                            </p>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                {/* 5. Projects Section */}
+                <div className="w-full bg-surface-container-low rounded-[24px] p-6 border border-outline-variant/60 shadow-sm">
+                  <div className="flex items-center justify-between mb-4">
+                    <h3 className="font-bold text-[18px] text-on-surface flex items-center gap-2">
+                      <span className="material-symbols-outlined text-purple-500 text-[22px]">rocket_launch</span>
+                      Projects & Portfolio
+                    </h3>
+                    <span className="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-purple-500/10 text-purple-600 dark:text-purple-400">
+                      {projects.length} {projects.length === 1 ? 'Project' : 'Projects'}
+                    </span>
+                  </div>
+
+                  {projects.length === 0 ? (
+                    <div className="flex flex-col items-center justify-center py-8 bg-surface rounded-xl border border-outline-variant text-center">
+                      <span className="material-symbols-outlined text-4xl text-outline mb-1">code</span>
+                      <p className="text-on-surface-variant text-sm font-medium">No projects listed on profile.</p>
+                    </div>
+                  ) : (
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                      {projects.map((proj, idx) => (
+                        <div key={idx} className="p-4 rounded-xl bg-surface border border-outline-variant hover:border-purple-400/40 transition-colors shadow-xs flex flex-col justify-between">
+                          <div>
+                            <div className="flex items-start justify-between gap-2">
+                              <h4 className="font-bold text-[14px] text-on-surface">{proj.title || 'Project'}</h4>
+                              {(proj.start_year || proj.end_year) && (
+                                <span className="text-[11px] font-mono-label text-on-surface-variant bg-surface-container-high px-2 py-0.5 rounded shrink-0">
+                                  {[proj.start_year, proj.end_year].filter(Boolean).join(' – ')}
+                                </span>
+                              )}
+                            </div>
+                            {proj.role && (
+                              <p className="text-[12px] text-primary font-medium mt-0.5">{proj.role}</p>
+                            )}
+                            {proj.organization && (
+                              <p className="text-[11px] text-on-surface-variant mt-0.5">Org: {proj.organization}</p>
+                            )}
+                            {proj.details && (
+                              <p className="text-[12px] text-on-surface-variant mt-2 line-clamp-3 leading-relaxed">
+                                {proj.details}
+                              </p>
+                            )}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+            );
+          })()}
 
           {activeMainTab === 'Reports' && (
             <div className="flex flex-col items-start gap-4 w-full min-h-[522px]">

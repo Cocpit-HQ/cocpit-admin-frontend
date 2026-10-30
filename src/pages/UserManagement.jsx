@@ -19,13 +19,15 @@ export default function UserManagement() {
   const initialStatus = searchParams.get('status') || 'All';
   const initialPage = parseInt(searchParams.get('page')) || 1;
   const initialRole = searchParams.get('role') || 'All';
+  const initialCollege = searchParams.get('college') || 'All';
+  const initialOnboarding = searchParams.get('onboarding') || 'All';
   const initialSearch = searchParams.get('search') || '';
 
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [debugError, setDebugError] = useState(null);
   
-  const [stats, setStats] = useState({ totalUsers: 0, activeUsers: 0, suspendedUsers: 0 });
+  const [stats, setStats] = useState({ totalUsers: 0, activeUsers: 0, suspendedUsers: 0, onboardingComplete: 0 });
   const [totalPages, setTotalPages] = useState(1);
   const [totalCount, setTotalCount] = useState(0);
   const [currentPage, setCurrentPage] = useState(initialPage);
@@ -33,6 +35,8 @@ export default function UserManagement() {
   const [selectedUsers, setSelectedUsers] = useState(new Set());
   const [roleFilter, setRoleFilter] = useState(initialRole);
   const [statusFilter, setStatusFilter] = useState(initialStatus);
+  const [collegeFilter, setCollegeFilter] = useState(initialCollege);
+  const [onboardingFilter, setOnboardingFilter] = useState(initialOnboarding);
   const [searchQuery, setSearchQuery] = useState(initialSearch);
   const [dateRange, setDateRange] = useState({ startDate: null, endDate: null, rangeLabel: 'All Time' });
   
@@ -45,12 +49,15 @@ export default function UserManagement() {
     if (currentPage > 1) params.set('page', currentPage);
     if (roleFilter !== 'All') params.set('role', roleFilter);
     if (statusFilter !== 'All') params.set('status', statusFilter);
+    if (collegeFilter !== 'All') params.set('college', collegeFilter);
+    if (onboardingFilter !== 'All') params.set('onboarding', onboardingFilter);
     if (searchQuery) params.set('search', searchQuery);
     
     setSearchParams(params, { replace: true });
-  }, [currentPage, roleFilter, statusFilter, searchQuery, setSearchParams]);
+  }, [currentPage, roleFilter, statusFilter, collegeFilter, onboardingFilter, searchQuery, setSearchParams]);
   
   const [availableRoles, setAvailableRoles] = useState([]);
+  const [availableColleges, setAvailableColleges] = useState([]);
 
   useEffect(() => {
     const fetchRoles = async () => {
@@ -71,49 +78,76 @@ export default function UserManagement() {
   }, [accessToken]);
 
   useEffect(() => {
-    const fetchUsers = async () => {
+    const fetchColleges = async () => {
       if (!accessToken) return;
-      setLoading(true);
       try {
-        const queryParams = new URLSearchParams({
-          page: currentPage,
-          limit: 8,
-          search: searchQuery,
-          status: statusFilter,
-          role: roleFilter
-        });
-        
-        if (dateRange.startDate) {
-          queryParams.append('startDate', dateRange.startDate.toISOString());
-        }
-        if (dateRange.endDate) {
-          queryParams.append('endDate', dateRange.endDate.toISOString());
-        }
-        
-        const response = await fetch(`/api/admin/users?${queryParams}`, {
-          headers: {
-            'Authorization': `Bearer ${accessToken}`
-          }
+        const response = await fetch('/api/admin/users/colleges', {
+          headers: { 'Authorization': `Bearer ${accessToken}` }
         });
         if (response.ok) {
-          const resData = await response.json();
-          setUsers(resData.data || []);
-          setTotalPages(resData.totalPages || 1);
-          setTotalCount(resData.total || 0);
-          if (resData.stats) setStats(resData.stats);
-        } else {
-          const errText = await response.text();
-          setDebugError(`Status: ${response.status}, Error: ${errText}`);
+          const colleges = await response.json();
+          setAvailableColleges(colleges);
         }
       } catch (err) {
-        console.error('Failed to fetch users:', err);
-        setDebugError('Network Error: ' + err.message);
-      } finally {
-        setLoading(false);
+        console.error('Failed to fetch colleges:', err);
       }
     };
+    fetchColleges();
+  }, [accessToken]);
+
+  const fetchUsers = async () => {
+    if (!accessToken) return;
+    setLoading(true);
+    try {
+      const queryParams = new URLSearchParams({
+        page: currentPage,
+        limit: 8,
+        search: searchQuery,
+        status: statusFilter,
+        role: roleFilter
+      });
+
+      if (collegeFilter !== 'All') {
+        queryParams.append('college', collegeFilter);
+      }
+
+      if (onboardingFilter !== 'All') {
+        queryParams.append('onboarding', onboardingFilter);
+      }
+      
+      if (dateRange.startDate) {
+        queryParams.append('startDate', dateRange.startDate.toISOString());
+      }
+      if (dateRange.endDate) {
+        queryParams.append('endDate', dateRange.endDate.toISOString());
+      }
+      
+      const response = await fetch(`/api/admin/users?${queryParams}`, {
+        headers: {
+          'Authorization': `Bearer ${accessToken}`
+        }
+      });
+      if (response.ok) {
+        const resData = await response.json();
+        setUsers(resData.data || []);
+        setTotalPages(resData.totalPages || 1);
+        setTotalCount(resData.total || 0);
+        if (resData.stats) setStats(resData.stats);
+      } else {
+        const errText = await response.text();
+        setDebugError(`Status: ${response.status}, Error: ${errText}`);
+      }
+    } catch (err) {
+      console.error('Failed to fetch users:', err);
+      setDebugError('Network Error: ' + err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
     fetchUsers();
-  }, [accessToken, currentPage, searchQuery, statusFilter, roleFilter, dateRange]);
+  }, [accessToken, currentPage, searchQuery, statusFilter, roleFilter, collegeFilter, onboardingFilter, dateRange]);
   const [warningModalOpen, setWarningModalOpen] = useState(false);
   const [userToWarn, setUserToWarn] = useState(null);
   const [isSevereWarning, setIsSevereWarning] = useState(false);
@@ -248,7 +282,7 @@ export default function UserManagement() {
     
     if (selectedData.length === 0) return;
 
-    const headers = ['ID', 'Name', 'Email', 'Role', 'Status', 'Joined Date'];
+    const headers = ['ID', 'Name', 'Email', 'Role', 'Status', 'Onboarding', 'Joined Date'];
     const csvRows = [headers.join(',')];
     
     for (const row of selectedData) {
@@ -258,6 +292,7 @@ export default function UserManagement() {
         `"${(row.email || '').replace(/"/g, '""')}"`,
         `"${(row.role || '').replace(/"/g, '""')}"`,
         `"${(row.status || '').replace(/"/g, '""')}"`,
+        `"${row.isOnboardingComplete ? 'Complete' : 'Incomplete'}"`,
         `"${(row.joined || '').replace(/"/g, '""')}"`
       ];
       csvRows.push(values.join(','));
@@ -345,6 +380,14 @@ export default function UserManagement() {
         status: statusFilter,
         role: roleFilter
       });
+
+      if (collegeFilter !== 'All') {
+        queryParams.append('college', collegeFilter);
+      }
+
+      if (onboardingFilter !== 'All') {
+        queryParams.append('onboarding', onboardingFilter);
+      }
       
       if (dateRange.startDate) {
         queryParams.append('startDate', dateRange.startDate.toISOString());
@@ -353,11 +396,9 @@ export default function UserManagement() {
         queryParams.append('endDate', dateRange.endDate.toISOString());
       }
 
-      // ── Option 3 & 4: Full Profile Marketing Reports (CSV or PDF from Backend) ──
-      if (exportFormat === 'marketing_csv' || exportFormat === 'marketing_pdf') {
-        const fmt = exportFormat === 'marketing_pdf' ? 'pdf' : 'csv';
-        const ext = exportFormat === 'marketing_pdf' ? 'pdf' : 'csv';
-        queryParams.append('format', fmt);
+      // ── Option 3: Full Profile Marketing CSV ──
+      if (exportFormat === 'marketing_csv') {
+        queryParams.append('format', 'csv');
         
         const response = await fetch(`/api/admin/users/export-marketing-report?${queryParams}`, {
           headers: { 'Authorization': `Bearer ${accessToken}` }
@@ -368,10 +409,110 @@ export default function UserManagement() {
         const url = URL.createObjectURL(blob);
         const link = document.createElement('a');
         link.setAttribute('href', url);
-        link.setAttribute('download', `cocpit_full_profile_report_${new Date().getTime()}.${ext}`);
+        link.setAttribute('download', `cocpit_full_profile_report_${new Date().getTime()}.csv`);
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);
+        return;
+      }
+
+      // ── Option 4: Full Profile Marketing PDF (Client-Generated with Complete Details) ──
+      if (exportFormat === 'marketing_pdf') {
+        queryParams.append('format', 'json');
+        
+        const response = await fetch(`/api/admin/users/export-marketing-report?${queryParams}`, {
+          headers: { 'Authorization': `Bearer ${accessToken}` }
+        });
+        if (!response.ok) throw new Error('Failed to fetch full profile data from server');
+
+        const result = await response.json();
+        const profileUsers = result.users || [];
+
+        if (profileUsers.length === 0) {
+          alert('No user profile data to export.');
+          setIsExporting(false);
+          setIsExportModalOpen(false);
+          return;
+        }
+
+        const doc = new jsPDF({ orientation: 'landscape' });
+        const activeCount = profileUsers.filter(u => !u.is_suspended && !u.is_deleted).length;
+
+        doc.setFontSize(16);
+        doc.setFont("helvetica", "bold");
+        doc.setTextColor(30, 41, 59);
+        doc.text(`Full Profile Marketing Report - ${dateRange.rangeLabel}`, 14, 15);
+
+        doc.setFontSize(10);
+        doc.setFont("helvetica", "normal");
+        doc.setTextColor(71, 85, 105);
+        doc.text(`Active Users: ${activeCount} | Total Profiles: ${profileUsers.length}`, 14, 22);
+        doc.text(`Filters: Role - ${roleFilter}, Status - ${statusFilter}${collegeFilter !== 'All' ? `, College - ${collegeFilter}` : ''}`, 14, 28);
+        doc.text(`Generated: ${format(new Date(), 'MMM d, yyyy, h:mm a')}`, 14, 34);
+
+        const tableColumn = [
+          "Name / Email",
+          "Role / Industry",
+          "Status / Mobile",
+          "Headline",
+          "Education",
+          "Experience",
+          "Skills"
+        ];
+
+        const tableRows = profileUsers.map(u => {
+          const eduStr = Array.isArray(u.educations) && u.educations.length > 0
+            ? u.educations.map(e => `${e.degree || ''} ${e.school_name ? '@ ' + e.school_name : ''}`).join('\n')
+            : 'N/A';
+
+          const expStr = Array.isArray(u.experiences) && u.experiences.length > 0
+            ? u.experiences.map(e => `${e.title || ''} ${e.company_name ? '@ ' + e.company_name : ''}`).join('\n')
+            : 'N/A';
+
+          const skillsStr = Array.isArray(u.skills) && u.skills.length > 0
+            ? u.skills.join(', ')
+            : 'N/A';
+
+          const statusStr = u.is_deleted ? 'Deleted' : u.is_suspended ? 'Suspended' : 'Active';
+
+          return [
+            `${u.full_name || 'N/A'}\n${u.email || ''}`,
+            `${u.account_type || u.user_type || 'N/A'}\n${u.industry ? 'Ind: ' + u.industry : ''}`,
+            `${statusStr}\n${u.mobile_number || 'N/A'}`,
+            u.headline || 'N/A',
+            eduStr,
+            expStr,
+            skillsStr
+          ];
+        });
+
+        autoTable(doc, {
+          head: [tableColumn],
+          body: tableRows,
+          startY: 40,
+          styles: { fontSize: 7, cellPadding: 2, overflow: 'linebreak' },
+          headStyles: { fillColor: [99, 102, 241] },
+          columnStyles: {
+            0: { cellWidth: 35 },
+            1: { cellWidth: 30 },
+            2: { cellWidth: 25 },
+            3: { cellWidth: 40 },
+            4: { cellWidth: 45 },
+            5: { cellWidth: 45 },
+            6: { cellWidth: 40 }
+          }
+        });
+
+        const pageCount = doc.internal.getNumberOfPages();
+        const pageHeight = doc.internal.pageSize.getHeight();
+        for (let i = 1; i <= pageCount; i++) {
+          doc.setPage(i);
+          doc.setFontSize(8);
+          doc.setTextColor(150, 150, 150);
+          doc.text(`Active Users: ${activeCount} | Page ${i} of ${pageCount}`, 14, pageHeight - 8);
+        }
+
+        doc.save(`cocpit_full_profile_report_${new Date().getTime()}.pdf`);
         return;
       }
 
@@ -388,7 +529,9 @@ export default function UserManagement() {
         Name: u.name,
         Email: u.email,
         Role: u.role || 'N/A',
+        College: u.college || 'N/A',
         Status: u.status,
+        Onboarding: u.isOnboardingComplete ? 'Complete' : 'Incomplete',
         Joined: u.joined ? format(new Date(u.joined), 'MMM d, yyyy') : 'Unknown'
       }));
 
@@ -400,23 +543,151 @@ export default function UserManagement() {
       }
 
       if (exportFormat === 'pdf') {
-        const doc = new jsPDF();
-        doc.text(`User Report - ${dateRange.rangeLabel}`, 14, 15);
-        doc.setFontSize(10);
-        doc.text(`Filters: Role - ${roleFilter}, Status - ${statusFilter}`, 14, 22);
-        
-        const tableColumn = ["ID", "Name", "Email", "Role", "Status", "Joined Date"];
+        const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
+        const totalUsers = exportData.length;
+        const activeUsers = exportData.filter(u => u.Status?.toLowerCase() === 'active').length;
+        const completeUsers = exportData.filter(u => u.Onboarding?.toLowerCase() === 'complete').length;
+        const suspendedUsers = exportData.filter(u => u.Status?.toLowerCase() === 'suspended').length;
+
+        // Top decorative accent bar
+        doc.setFillColor(79, 70, 229);
+        doc.rect(0, 0, 297, 4, 'F');
+
+        // Document Title
+        doc.setFontSize(18);
+        doc.setFont("helvetica", "bold");
+        doc.setTextColor(30, 41, 59);
+        doc.text(`User Directory Report`, 14, 15);
+
+        // Subtitle / Timestamp
+        doc.setFontSize(9);
+        doc.setFont("helvetica", "normal");
+        doc.setTextColor(100, 116, 139);
+        doc.text(`Range: ${dateRange.rangeLabel}   |   Generated: ${format(new Date(), 'MMM d, yyyy, h:mm a')}`, 14, 21);
+
+        // Stats summary container box
+        doc.setFillColor(248, 250, 252);
+        doc.setDrawColor(226, 232, 240);
+        doc.setLineWidth(0.3);
+        doc.roundedRect(14, 24, 269, 13, 2, 2, 'FD');
+
+        doc.setFontSize(8);
+        // Metric 1: Total
+        doc.setFont("helvetica", "bold");
+        doc.setTextColor(71, 85, 105);
+        doc.text("Total Users:", 18, 32);
+        doc.setTextColor(30, 41, 59);
+        doc.text(String(totalUsers), 38, 32);
+
+        // Metric 2: Active
+        doc.setTextColor(71, 85, 105);
+        doc.text("Active:", 56, 32);
+        doc.setTextColor(22, 101, 52);
+        doc.text(String(activeUsers), 69, 32);
+
+        // Metric 3: Onboarding Complete
+        doc.setTextColor(71, 85, 105);
+        doc.text("Onboarded:", 88, 32);
+        doc.setTextColor(5, 150, 105);
+        doc.text(String(completeUsers), 108, 32);
+
+        // Metric 4: Suspended
+        doc.setTextColor(71, 85, 105);
+        doc.text("Suspended:", 126, 32);
+        doc.setTextColor(194, 65, 12);
+        doc.text(String(suspendedUsers), 146, 32);
+
+        // Filters text
+        doc.setTextColor(71, 85, 105);
+        doc.text("Filters:", 166, 32);
+        doc.setFont("helvetica", "normal");
+        doc.setTextColor(100, 116, 139);
+        const filtersStr = `Role: ${roleFilter} | Status: ${statusFilter} | Onboarding: ${onboardingFilter}${collegeFilter !== 'All' ? ` | College: ${collegeFilter}` : ''}`;
+        doc.text(filtersStr, 178, 32);
+
+        const tableColumn = ["# ID", "Full Name", "Email Address", "Role", "College / Institution", "Status", "Onboarding", "Joined Date"];
         const tableRows = exportData.map(row => [
-          row.ID, row.Name, row.Email, row.Role, row.Status, row.Joined
+          `#${row.ID ? String(row.ID).substring(0, 8) : ''}`,
+          row.Name || 'N/A',
+          row.Email || 'N/A',
+          row.Role || 'N/A',
+          row.College || 'N/A',
+          row.Status || 'Active',
+          row.Onboarding || 'Incomplete',
+          row.Joined || 'N/A'
         ]);
 
         autoTable(doc, {
           head: [tableColumn],
           body: tableRows,
-          startY: 28,
-          styles: { fontSize: 8 },
-          headStyles: { fillColor: [79, 70, 229] }
+          startY: 41,
+          margin: { left: 14, right: 14 },
+          styles: { 
+            fontSize: 8, 
+            cellPadding: { top: 3, bottom: 3, left: 2.5, right: 2.5 },
+            overflow: 'linebreak',
+            valign: 'middle'
+          },
+          headStyles: { 
+            fillColor: [30, 41, 59], 
+            textColor: [255, 255, 255], 
+            fontSize: 8, 
+            fontStyle: 'bold',
+            halign: 'left'
+          },
+          alternateRowStyles: { 
+            fillColor: [248, 250, 252] 
+          },
+          columnStyles: {
+            0: { cellWidth: 24, fontStyle: 'bold', textColor: [100, 116, 139] },
+            1: { cellWidth: 40, fontStyle: 'bold', textColor: [30, 41, 59] },
+            2: { cellWidth: 50, textColor: [71, 85, 105] },
+            3: { cellWidth: 32 },
+            4: { cellWidth: 47 },
+            5: { cellWidth: 24, halign: 'center' },
+            6: { cellWidth: 26, halign: 'center' },
+            7: { cellWidth: 26, halign: 'center' }
+          },
+          didParseCell: (data) => {
+            if (data.section === 'body') {
+              if (data.column.index === 5) {
+                if (data.cell.raw === 'Active') {
+                  data.cell.styles.textColor = [22, 101, 52];
+                  data.cell.styles.fontStyle = 'bold';
+                } else if (data.cell.raw === 'Suspended') {
+                  data.cell.styles.textColor = [194, 65, 12];
+                  data.cell.styles.fontStyle = 'bold';
+                } else if (data.cell.raw === 'Deleted') {
+                  data.cell.styles.textColor = [220, 38, 38];
+                }
+              }
+              if (data.column.index === 6) {
+                if (data.cell.raw === 'Complete') {
+                  data.cell.styles.textColor = [5, 150, 105];
+                  data.cell.styles.fontStyle = 'bold';
+                } else {
+                  data.cell.styles.textColor = [217, 119, 6];
+                  data.cell.styles.fontStyle = 'bold';
+                }
+              }
+            }
+          }
         });
+
+        const pageCount = doc.internal.getNumberOfPages();
+        const pageHeight = doc.internal.pageSize.getHeight();
+        for (let i = 1; i <= pageCount; i++) {
+          doc.setPage(i);
+          doc.setDrawColor(226, 232, 240);
+          doc.setLineWidth(0.3);
+          doc.line(14, pageHeight - 11, 283, pageHeight - 11);
+
+          doc.setFontSize(8);
+          doc.setFont("helvetica", "normal");
+          doc.setTextColor(148, 163, 184);
+          doc.text("Cocpit Admin Platform · Confidential User Report", 14, pageHeight - 6);
+          doc.text(`Page ${i} of ${pageCount}`, 283, pageHeight - 6, { align: 'right' });
+        }
 
         doc.save(`users_basic_report_${new Date().getTime()}.pdf`);
       } else {
@@ -494,9 +765,13 @@ export default function UserManagement() {
         </button>
       </div>
 
-      {/* Stat Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-md mb-xl">
-        <div className="bg-indigo-50 dark:bg-[#111827] border border-indigo-100 dark:border-[#2C364B] p-md rounded-xl flex items-center gap-md transition-colors">
+      {/* Stat Cards / Quick Filter Tabs */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-md mb-xl">
+        <div 
+          onClick={() => { setOnboardingFilter('All'); setStatusFilter('All'); setCurrentPage(1); }}
+          className={`bg-indigo-50 dark:bg-[#111827] border ${statusFilter === 'All' && onboardingFilter === 'All' ? 'border-indigo-400 dark:border-indigo-500 shadow-sm ring-1 ring-indigo-400/30' : 'border-indigo-100 dark:border-[#2C364B]'} p-md rounded-xl flex items-center gap-md transition-all cursor-pointer hover:border-indigo-300 dark:hover:border-indigo-600`}
+          title="Click to view all users"
+        >
           <div className="w-10 h-10 rounded-lg bg-indigo-100 dark:bg-[rgba(79,140,255,0.12)] flex items-center justify-center transition-colors">
             <span className="material-symbols-outlined text-indigo-600 dark:text-[#4F8CFF]">groups</span>
           </div>
@@ -506,7 +781,11 @@ export default function UserManagement() {
           </div>
         </div>
 
-        <div className="bg-green-50 dark:bg-[#111827] border border-green-100 dark:border-[#2C364B] p-md rounded-xl flex items-center gap-md transition-colors">
+        <div 
+          onClick={() => { setStatusFilter('Active'); setOnboardingFilter('All'); setCurrentPage(1); }}
+          className={`bg-green-50 dark:bg-[#111827] border ${statusFilter === 'Active' && onboardingFilter === 'All' ? 'border-green-400 dark:border-green-500 shadow-sm ring-1 ring-green-400/30' : 'border-green-100 dark:border-[#2C364B]'} p-md rounded-xl flex items-center gap-md transition-all cursor-pointer hover:border-green-300 dark:hover:border-green-600`}
+          title="Click to view active users"
+        >
           <div className="w-10 h-10 rounded-lg bg-green-100 dark:bg-[rgba(34,197,94,0.12)] flex items-center justify-center transition-colors">
             <span className="material-symbols-outlined text-green-600 dark:text-[#22C55E]">check_circle</span>
           </div>
@@ -516,7 +795,25 @@ export default function UserManagement() {
           </div>
         </div>
 
-        <div className="bg-orange-50 dark:bg-[#111827] border border-orange-100 dark:border-[#2C364B] p-md rounded-xl flex items-center gap-md transition-colors">
+        <div 
+          onClick={() => { setOnboardingFilter('Completed'); setStatusFilter('All'); setCurrentPage(1); }}
+          className={`bg-emerald-50 dark:bg-[#111827] border ${onboardingFilter === 'Completed' ? 'border-emerald-500 dark:border-emerald-500 shadow-sm ring-2 ring-emerald-500/20' : 'border-emerald-100 dark:border-[#2C364B]'} p-md rounded-xl flex items-center gap-md transition-all cursor-pointer hover:border-emerald-300 dark:hover:border-emerald-600`}
+          title="Click to view onboarding complete users"
+        >
+          <div className="w-10 h-10 rounded-lg bg-emerald-100 dark:bg-[rgba(16,185,129,0.15)] flex items-center justify-center transition-colors">
+            <span className="material-symbols-outlined text-emerald-600 dark:text-[#10B981]">how_to_reg</span>
+          </div>
+          <div>
+            <p className="text-[11px] font-semibold text-on-surface-variant uppercase tracking-wider">Onboarding Complete</p>
+            <h3 className="text-xl font-bold text-on-surface">{stats.onboardingComplete || 0}</h3>
+          </div>
+        </div>
+
+        <div 
+          onClick={() => { setStatusFilter('Suspended'); setOnboardingFilter('All'); setCurrentPage(1); }}
+          className={`bg-orange-50 dark:bg-[#111827] border ${statusFilter === 'Suspended' ? 'border-orange-400 dark:border-orange-500 shadow-sm ring-1 ring-orange-400/30' : 'border-orange-100 dark:border-[#2C364B]'} p-md rounded-xl flex items-center gap-md transition-all cursor-pointer hover:border-orange-300 dark:hover:border-orange-600`}
+          title="Click to view suspended users"
+        >
           <div className="w-10 h-10 rounded-lg bg-orange-100 dark:bg-[rgba(245,158,11,0.12)] flex items-center justify-center transition-colors">
             <span className="material-symbols-outlined text-orange-600 dark:text-[#F59E0B]">gavel</span>
           </div>
@@ -557,6 +854,16 @@ export default function UserManagement() {
           />
 
           <FilterDropdown
+            label="College"
+            value={collegeFilter}
+            options={[
+              { label: 'Any', value: 'All' },
+              ...availableColleges.map(c => ({ label: c, value: c }))
+            ]}
+            onChange={(val) => { setCollegeFilter(val); setCurrentPage(1); }}
+          />
+
+          <FilterDropdown
             label="Status"
             value={statusFilter}
             options={[
@@ -567,6 +874,17 @@ export default function UserManagement() {
             ]}
             onChange={(val) => { setStatusFilter(val); setCurrentPage(1); }}
           />
+
+          <FilterDropdown
+            label="Onboarding"
+            value={onboardingFilter}
+            options={[
+              { label: 'Any', value: 'All' },
+              { label: 'Complete', value: 'Completed' },
+              { label: 'Incomplete', value: 'Incomplete' },
+            ]}
+            onChange={(val) => { setOnboardingFilter(val); setCurrentPage(1); }}
+          />
         </div>
 
         <div className="flex items-center gap-md">
@@ -574,6 +892,8 @@ export default function UserManagement() {
             onClick={() => { 
               setStatusFilter('All'); 
               setRoleFilter('All'); 
+              setCollegeFilter('All');
+              setOnboardingFilter('All');
               setSearchQuery(''); 
               setDateRange({ startDate: null, endDate: null, rangeLabel: 'All Time' });
             }}
@@ -661,6 +981,7 @@ export default function UserManagement() {
                 <th className="px-lg py-md font-label-md text-outline uppercase tracking-wider">User</th>
                 <th className="px-lg py-md font-label-md text-outline uppercase tracking-wider">Role</th>
                 <th className="px-lg py-md font-label-md text-outline uppercase tracking-wider">Status</th>
+                <th className="px-lg py-md font-label-md text-outline uppercase tracking-wider">Onboarding</th>
                 <th className="px-lg py-md font-label-md text-outline uppercase tracking-wider text-right">Actions</th>
               </tr>
             </thead>
@@ -695,6 +1016,12 @@ export default function UserManagement() {
                       <div className="flex flex-col">
                         <span className="font-semibold text-on-surface">{user.name}</span>
                         <span className="text-body-sm text-outline">{user.email}</span>
+                        {user.college && (
+                          <span className="text-[11px] text-primary flex items-center gap-1 mt-0.5 font-medium">
+                            <span className="material-symbols-outlined text-[13px]">school</span>
+                            <span className="truncate max-w-[220px]" title={user.college}>{user.college}</span>
+                          </span>
+                        )}
                       </div>
                     </div>
                   </td>
@@ -707,6 +1034,19 @@ export default function UserManagement() {
                     <div className="flex items-center gap-xs">
                       {getStatusDisplay(user.status)}
                     </div>
+                  </td>
+                  <td className="px-lg py-md">
+                    {user.isOnboardingComplete ? (
+                      <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold bg-emerald-100 text-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800/40">
+                        <span className="material-symbols-outlined text-[14px]">check_circle</span>
+                        Complete
+                      </span>
+                    ) : (
+                      <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold bg-amber-100 text-amber-800 dark:bg-amber-950/40 dark:text-amber-400 border border-amber-200 dark:border-amber-800/40">
+                        <span className="material-symbols-outlined text-[14px]">pending</span>
+                        Incomplete
+                      </span>
+                    )}
                   </td>
                   <td className="px-lg py-md text-right">
                     <div className="flex items-center justify-end gap-sm">
