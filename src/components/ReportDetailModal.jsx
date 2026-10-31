@@ -5,9 +5,11 @@ import Button from './Button';
 
 export default function ReportDetailModal({ isOpen, onClose, report, onDeleteContent, onDismissReport, onDismissIndividual, onWarnUser, role }) {
   const [mediaError, setMediaError] = React.useState(false);
+  const [reviewNote, setReviewNote] = React.useState('');
 
   React.useEffect(() => {
     setMediaError(false);
+    setReviewNote('');
   }, [report]);
 
   if (!report) return null;
@@ -18,6 +20,21 @@ export default function ReportDetailModal({ isOpen, onClose, report, onDeleteCon
 
   const footer = (
     <div className="w-full flex flex-col gap-3">
+      {/* Review Note for Reporter in Cockpit */}
+      <div className="w-full text-left">
+        <label className="block text-[11px] font-bold text-gray-500 uppercase tracking-wider mb-1">
+          Review Update Note to Reporter (Optional)
+        </label>
+        <textarea
+          value={reviewNote}
+          onChange={(e) => setReviewNote(e.target.value)}
+          placeholder="e.g. Content reviewed and dismissed; no policy violation was found."
+          className="w-full text-xs p-2.5 border border-gray-200 rounded-xl bg-gray-50 focus:bg-white focus:outline-none focus:border-[#2b07b3] transition-colors resize-none h-16"
+        />
+        <p className="text-[10px] text-gray-400 mt-1">
+          Delivered to the reporter's Cockpit app under Settings &gt; Account status &gt; "Your reports".
+        </p>
+      </div>
       <button 
         onClick={onClose} 
         className="w-full border border-gray-300 text-gray-700 bg-white hover:bg-gray-50 font-bold py-2.5 rounded-xl transition-colors"
@@ -26,7 +43,7 @@ export default function ReportDetailModal({ isOpen, onClose, report, onDeleteCon
       </button>
       <div className="flex gap-3 w-full">
         <button 
-          onClick={() => onDismissReport(reportIds)} 
+          onClick={() => onDismissReport(reportIds, reviewNote)} 
           className="flex-1 bg-[#2b07b3] hover:bg-[#1a0470] text-white font-bold py-2.5 rounded-xl transition-colors shadow-md text-xs sm:text-sm"
         >
           Dismiss All<br/>Reports
@@ -99,10 +116,10 @@ export default function ReportDetailModal({ isOpen, onClose, report, onDeleteCon
                 </div>
                 
                 <h2 className="text-[#2b07b3] text-2xl font-bold mt-3">
-                  {report.type === 'Account' ? (
-                    <Link to={`/profile/${report.postId}`} onClick={onClose} className="hover:underline">{report.contentPreview}</Link>
-                  ) : report.type === 'Organization' ? (
-                    <Link to="/org-profile" onClick={onClose} className="hover:underline">{report.contentPreview}</Link>
+                  {report.type === 'Account' || report.type === 'USER' ? (
+                    <Link to={`/profile/${report.targetUserId || report.postId}`} onClick={onClose} className="hover:underline">{report.contentPreview}</Link>
+                  ) : report.type === 'Organization' || report.type === 'ORGANIZATION' || report.type === 'Company' || report.type === 'COMPANY' ? (
+                    <Link to={`/org-profile?id=${report.targetUserId || report.postId}`} onClick={onClose} className="hover:underline">{report.contentPreview}</Link>
                   ) : (
                     report.contentPreview
                   )}
