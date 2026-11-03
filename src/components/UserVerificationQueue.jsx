@@ -1,11 +1,18 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../AuthContext';
 
-export default function UserVerificationQueue() {
+export default function UserVerificationQueue({ targetUserIdProp, targetStatusProp }) {
   const { accessToken } = useAuth();
+  const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const targetUserId = targetUserIdProp || searchParams.get('userId');
+  const targetStatus = targetStatusProp || searchParams.get('status');
+  const initialFilter = targetStatus === 'Verified' || targetStatus === 'Approved' ? 'Approved' : (targetStatus === 'Rejected' ? 'Rejected' : 'Under Review');
+
   const [verifications, setVerifications] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [filter, setFilter] = useState('Under Review');
+  const [filter, setFilter] = useState(initialFilter);
   const [activeUser, setActiveUser] = useState(null);
 
   // Review & Rejection State
@@ -43,20 +50,73 @@ export default function UserVerificationQueue() {
     }
   }, [accessToken]);
 
-  const filteredList = verifications.filter(item => {
-    if (filter === 'Under Review') {
-      return item.status === 'Under Review' || item.status === 'PENDING';
-    }
-    return item.status === filter;
-  });
+  const filteredList = verifications
+    .filter(item => {
+      if (filter === 'Under Review') {
+        return item.status === 'Under Review' || item.status === 'PENDING';
+      }
+      return item.status === filter;
+    })
+    .sort((a, b) => {
+      if (targetUserId) {
+        const isAMatch = String(a.user_id || '').toLowerCase() === String(targetUserId).toLowerCase() || String(a.id || '').toLowerCase() === String(targetUserId).toLowerCase();
+        const isBMatch = String(b.user_id || '').toLowerCase() === String(targetUserId).toLowerCase() || String(b.id || '').toLowerCase() === String(targetUserId).toLowerCase();
+        if (isAMatch) return -1;
+        if (isBMatch) return 1;
+      }
+      return 0;
+    });
 
   useEffect(() => {
+    if (targetUserId && verifications.length > 0) {
+      const match = verifications.find(v => 
+        String(v.user_id || '').toLowerCase() === String(targetUserId).toLowerCase() ||
+        String(v.id || '').toLowerCase() === String(targetUserId).toLowerCase()
+      );
+      if (match) {
+        if (filter !== match.status) {
+          setFilter(match.status);
+        }
+        setActiveUser(match);
+        return;
+      } else if (accessToken) {
+        // Target user not in verifications list yet; fetch directly from user details
+        fetch(`/api/admin/users/${targetUserId}`, {
+          headers: { 'Authorization': `Bearer ${accessToken}` }
+        })
+          .then(r => r.json())
+          .then(u => {
+            if (u && (u.id || u.user_id)) {
+              const userStatus = u.verification?.status || (u.isIdentityVerified ? 'Approved' : 'Under Review');
+              const stub = {
+                id: u.id || u.user_id,
+                user_id: u.id || u.user_id,
+                name: u.name || u.full_name || 'User',
+                email: u.email || '',
+                avatar_url: u.avatar || u.avatar_url || '',
+                document_type: u.verification?.documentType || 'NATIONAL_ID',
+                status: userStatus,
+                statusBadgeColor: userStatus === 'Approved' ? 'bg-emerald-600' : userStatus === 'Rejected' ? 'bg-rose-600' : 'bg-amber-500',
+                is_verified: Boolean(u.isIdentityVerified || u.verification?.isVerified),
+                front_image_url: null,
+                back_image_url: null,
+                created_at: u.verification?.submittedAt || u.joined || new Date().toISOString()
+              };
+              setVerifications(prev => [stub, ...prev.filter(x => String(x.user_id).toLowerCase() !== String(stub.user_id).toLowerCase())]);
+              setFilter(userStatus);
+              setActiveUser(stub);
+            }
+          })
+          .catch(err => console.error('Error fetching specific user for queue:', err));
+        return;
+      }
+    }
     if (filteredList.length > 0) {
       setActiveUser(filteredList[0]);
     } else {
       setActiveUser(null);
     }
-  }, [filter, verifications]);
+  }, [filter, verifications, targetUserId]);
 
   const stats = {
     underReview: verifications.filter(v => v.status === 'Under Review' || v.status === 'PENDING').length,
@@ -66,6 +126,21 @@ export default function UserVerificationQueue() {
 
   const handleReview = async (status) => {
     if (!activeUser || isSubmitting) return;
+
+    if (status === 'REJECTED' && (activeUser.status === 'Approved' || activeUser.is_verified)) {
+      const confirmed = window.confirm(
+        `Warning: User "${activeUser.name}" is currently APPROVED.\n\nRejecting this verification will REVOKE their verified badge, block them from posting new jobs, pause their active jobs, and enable them to verify again.\n\nDo you wish to proceed?`
+      );
+      if (!confirmed) return;
+    }
+
+    if (status === 'VERIFIED' && activeUser.status === 'Rejected') {
+      const confirmed = window.confirm(
+        `User "${activeUser.name}" was previously REJECTED.\n\nDo you want to re-approve their verification and restore their verified status?`
+      );
+      if (!confirmed) return;
+    }
+
     setIsSubmitting(true);
     try {
       const res = await fetch(`/api/admin/users/verifications/${activeUser.id}/review`, {
@@ -208,17 +283,48 @@ export default function UserVerificationQueue() {
                 </span>
               </div>
               <div className="flex items-center gap-4">
-                {activeUser.avatar_url ? (
-                  <img src={activeUser.avatar_url} alt="" className="w-16 h-16 rounded-full object-cover border-2 border-white/40 shadow-sm" />
-                ) : (
-                  <div className="w-16 h-16 rounded-full bg-white/20 border-2 border-white/40 text-white flex items-center justify-center font-bold text-2xl">
-                    {activeUser.name ? activeUser.name[0]?.toUpperCase() : 'U'}
+                <div 
+                  onClick={() => navigate(`/profile/${activeUser.user_id}`)}
+                  className="cursor-pointer group relative"
+                  title="Click to view user profile"
+                >
+                  {activeUser.avatar_url ? (
+                    <img src={activeUser.avatar_url} alt="" className="w-16 h-16 rounded-full object-cover border-2 border-white/40 shadow-sm group-hover:border-white transition-all" />
+                  ) : (
+                    <div className="w-16 h-16 rounded-full bg-white/20 border-2 border-white/40 group-hover:border-white text-white flex items-center justify-center font-bold text-2xl transition-all">
+                      {activeUser.name ? activeUser.name[0]?.toUpperCase() : 'U'}
+                    </div>
+                  )}
+                </div>
+
+                <div className="flex-1 min-w-0">
+                  <div className="flex flex-wrap items-center gap-2 sm:gap-3">
+                    <h1 
+                      onClick={() => navigate(`/profile/${activeUser.user_id}`)}
+                      className="text-2xl font-bold hover:underline cursor-pointer flex items-center gap-2 group transition-all"
+                      title="Click to open user profile"
+                    >
+                      <span>{activeUser.name}</span>
+                      <span className="material-symbols-outlined text-[20px] opacity-80 group-hover:opacity-100 group-hover:translate-x-0.5 transition-all">open_in_new</span>
+                    </h1>
+
+                    <button
+                      type="button"
+                      onClick={() => navigate(`/profile/${activeUser.user_id}`)}
+                      className="inline-flex items-center gap-1.5 px-3 py-1 bg-white/20 hover:bg-white/30 text-white rounded-full text-xs font-semibold backdrop-blur-sm transition-all cursor-pointer shadow-sm border border-white/20"
+                      title="View user details in User Profile"
+                    >
+                      <span className="material-symbols-outlined text-[15px]">person</span>
+                      View User Profile
+                    </button>
                   </div>
-                )}
-                <div>
-                  <h1 className="text-2xl font-bold">{activeUser.name}</h1>
-                  <p className="text-white/90 text-sm">{activeUser.email}</p>
-                  <p className="text-white/80 text-xs mt-1">User ID: {activeUser.user_id}</p>
+                  <p className="text-white/90 text-sm mt-0.5">{activeUser.email}</p>
+                  <p 
+                    onClick={() => navigate(`/profile/${activeUser.user_id}`)}
+                    className="text-white/80 text-xs mt-1 hover:underline cursor-pointer font-mono inline-block"
+                  >
+                    User ID: {activeUser.user_id}
+                  </p>
                 </div>
               </div>
             </div>
@@ -345,6 +451,25 @@ export default function UserVerificationQueue() {
                 </div>
               </div>
 
+              {/* Accidental Approval / Current Status Notice */}
+              {activeUser.status === 'Approved' && (
+                <div className="mb-4 p-3 bg-amber-50 border border-amber-200 rounded-lg flex items-start gap-2.5">
+                  <span className="material-symbols-outlined text-amber-600 text-lg mt-0.5">warning</span>
+                  <div className="text-xs text-amber-800">
+                    <span className="font-bold">Accidental Approval Correction:</span> This user is currently approved. If this was approved by mistake, click <strong>"Revoke & Reject Verification"</strong> below. It will revoke their badge, pause their active jobs, and enable them to verify again.
+                  </div>
+                </div>
+              )}
+
+              {activeUser.status === 'Rejected' && (
+                <div className="mb-4 p-3 bg-rose-50 border border-rose-200 rounded-lg flex items-start gap-2.5">
+                  <span className="material-symbols-outlined text-rose-600 text-lg mt-0.5">info</span>
+                  <div className="text-xs text-rose-800">
+                    <span className="font-bold">Currently Rejected:</span> {activeUser.rejection_reason ? `Reason: ${activeUser.rejection_reason}.` : 'This verification was previously rejected.'} If this was a mistake, click <strong>"Approve Verification"</strong> to restore them.
+                  </div>
+                </div>
+              )}
+
               {/* Action Buttons */}
               <div className="flex items-center justify-end gap-3 pt-3 border-t border-outline-variant">
                 <button
@@ -354,7 +479,7 @@ export default function UserVerificationQueue() {
                   className="px-5 py-2.5 rounded-lg border border-rose-300 text-rose-700 hover:bg-rose-50 font-bold text-sm flex items-center gap-2 transition-colors cursor-pointer disabled:opacity-50"
                 >
                   <span className="material-symbols-outlined text-lg">cancel</span>
-                  Reject Verification
+                  {activeUser.status === 'Approved' ? 'Revoke & Reject Verification' : 'Reject Verification'}
                 </button>
 
                 <button
@@ -364,7 +489,7 @@ export default function UserVerificationQueue() {
                   className="px-6 py-2.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-sm flex items-center gap-2 transition-colors shadow-sm cursor-pointer disabled:opacity-50"
                 >
                   <span className="material-symbols-outlined text-lg">verified</span>
-                  Verify User
+                  {activeUser.status === 'Rejected' ? 'Re-Approve Verification' : 'Verify User'}
                 </button>
               </div>
             </div>
