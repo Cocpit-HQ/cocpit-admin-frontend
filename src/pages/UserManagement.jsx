@@ -14,9 +14,21 @@ import * as XLSX from 'xlsx';
 import { format } from 'date-fns';
 
 export default function UserManagement() {
-  const [activeTab, setActiveTab] = useState('Directory');
   const { role, accessToken } = useAuth();
   const [searchParams, setSearchParams] = useSearchParams();
+  const urlTab = searchParams.get('tab');
+  const [activeTab, setActiveTab] = useState(
+    urlTab === 'VerificationQueue' || urlTab === 'verification' ? 'VerificationQueue' : 'Directory'
+  );
+
+  useEffect(() => {
+    const tabFromUrl = searchParams.get('tab');
+    if (tabFromUrl === 'VerificationQueue' || tabFromUrl === 'verification') {
+      setActiveTab('VerificationQueue');
+    } else if (tabFromUrl === 'Directory' || tabFromUrl === 'directory') {
+      setActiveTab('Directory');
+    }
+  }, [searchParams]);
   
   const initialStatus = searchParams.get('status') || 'All';
   const initialPage = parseInt(searchParams.get('page')) || 1;
@@ -47,16 +59,29 @@ export default function UserManagement() {
   const [isExporting, setIsExporting] = useState(false);
 
   useEffect(() => {
-    const params = new URLSearchParams();
+    if (activeTab === 'VerificationQueue') {
+      // Preserve tab and verification deep-linking parameters without overwriting with directory params
+      return;
+    }
+
+    const params = new URLSearchParams(searchParams);
     if (currentPage > 1) params.set('page', currentPage);
+    else params.delete('page');
     if (roleFilter !== 'All') params.set('role', roleFilter);
+    else params.delete('role');
     if (statusFilter !== 'All') params.set('status', statusFilter);
+    else params.delete('status');
     if (collegeFilter !== 'All') params.set('college', collegeFilter);
+    else params.delete('college');
     if (onboardingFilter !== 'All') params.set('onboarding', onboardingFilter);
+    else params.delete('onboarding');
     if (searchQuery) params.set('search', searchQuery);
+    else params.delete('search');
     
-    setSearchParams(params, { replace: true });
-  }, [currentPage, roleFilter, statusFilter, collegeFilter, onboardingFilter, searchQuery, setSearchParams]);
+    if (params.toString() !== searchParams.toString()) {
+      setSearchParams(params, { replace: true });
+    }
+  }, [currentPage, roleFilter, statusFilter, collegeFilter, onboardingFilter, searchQuery, activeTab]);
   
   const [availableRoles, setAvailableRoles] = useState([]);
   const [availableColleges, setAvailableColleges] = useState([]);
@@ -797,7 +822,10 @@ export default function UserManagement() {
       </div>
 
       {activeTab === 'VerificationQueue' ? (
-        <UserVerificationQueue />
+        <UserVerificationQueue 
+          targetUserIdProp={searchParams.get('userId')} 
+          targetStatusProp={searchParams.get('status')} 
+        />
       ) : (
         <>
       {/* Stat Cards / Quick Filter Tabs */}
