@@ -1,6 +1,15 @@
+const resolveDocUrl = (url) => {
+  if (!url) return '';
+  if (url.startsWith('http://') || url.startsWith('https://') || url.startsWith('data:') || url.startsWith('blob:')) {
+    return url;
+  }
+  return url.startsWith('/') ? url : '/' + url;
+};
+
 import React, { useState } from 'react';
 import { useNavigate, useLocation, useParams } from 'react-router-dom';
 import { useAuth } from '../AuthContext';
+import OrganizationVerificationModal from '../components/OrganizationVerificationModal';
 
 const defaultOrgData = {
   org_id: '1',
@@ -38,6 +47,7 @@ export default function OrganizationProfile() {
 
   const [mockOrg, setMockOrg] = useState(defaultOrgData);
   const [loading, setLoading] = useState(true);
+  const [verifyModalOpen, setVerifyModalOpen] = useState(false);
 
   React.useEffect(() => {
     if (id && accessToken) {
@@ -102,6 +112,7 @@ export default function OrganizationProfile() {
   const [suspendModalOpen, setSuspendModalOpen] = useState(false);
   const [suspendDuration, setSuspendDuration] = useState('Short Temporary (3-7 days)');
   const [documentModalOpen, setDocumentModalOpen] = useState(false);
+  const [selectedDoc, setSelectedDoc] = useState(null);
   const [activeDocumentStatus, setActiveDocumentStatus] = useState('Pending');
   const [membersModalOpen, setMembersModalOpen] = useState(false);
   const [activityModalOpen, setActivityModalOpen] = useState(false);
@@ -255,10 +266,20 @@ export default function OrganizationProfile() {
                 <span className="material-symbols-outlined text-indigo-600">verified_user</span>
                 <h3 className="font-bold text-on-surface">Verification Documents</h3>
               </div>
-              <span className="bg-orange-100 text-orange-800 text-[10px] font-bold px-2 py-1 rounded-full flex items-center gap-1">
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => setVerifyModalOpen(true)}
+                  className="px-3 py-1 bg-indigo-50 text-indigo-700 hover:bg-indigo-100 rounded-lg text-xs font-semibold transition-colors flex items-center gap-1 border border-indigo-200 cursor-pointer"
+                >
+                  <span className="material-symbols-outlined text-[16px]">verified_user</span>
+                  Verify Account
+                </button>
+                <span className="bg-orange-100 text-orange-800 text-[10px] font-bold px-2 py-1 rounded-full flex items-center gap-1">
                 <span className="w-1.5 h-1.5 rounded-full bg-orange-600"></span>
                 {(mockOrg.documents || []).length} Documents
-              </span>
+                </span>
+              </div>
             </div>
             <div className="p-6 space-y-4">
               
@@ -287,7 +308,7 @@ export default function OrganizationProfile() {
                         </div>
                       </div>
                     </div>
-                    <button onClick={() => setDocumentModalOpen(true)} className="flex items-center justify-center gap-2 px-4 py-2 border border-indigo-200 text-indigo-700 bg-indigo-50 hover:bg-indigo-100 rounded-lg text-sm font-semibold transition-colors shrink-0">
+                    <button onClick={() => { setSelectedDoc(doc); setActiveDocumentStatus(doc.status || "Pending"); setDocumentModalOpen(true); }} className="flex items-center justify-center gap-2 px-4 py-2 border border-indigo-200 text-indigo-700 bg-indigo-50 hover:bg-indigo-100 rounded-lg text-sm font-semibold transition-colors shrink-0">
                       <span className="material-symbols-outlined text-[18px]">visibility</span>
                       View Document
                     </button>
@@ -1015,7 +1036,7 @@ export default function OrganizationProfile() {
               {/* Top toolbar */}
               <div className="h-14 bg-white/95 shrink-0 px-6 flex justify-between items-center border-b border-slate-200">
                 <div className="flex items-center gap-6">
-                  <span className="text-xs font-bold text-slate-800 tracking-wider">PAGE 1 OF 3</span>
+                  <span className="text-xs font-bold text-slate-800 tracking-wider truncate max-w-xs">{selectedDoc?.document_name || "DOCUMENT PREVIEW"}</span>
                   <div className="h-4 w-px bg-slate-300"></div>
                   <div className="flex items-center gap-3">
                     <button className="material-symbols-outlined text-slate-500 hover:text-slate-800 text-[20px]">zoom_out</button>
@@ -1031,200 +1052,57 @@ export default function OrganizationProfile() {
               </div>
 
               {/* Document Scroll Area */}
-              <div className="flex-1 overflow-y-auto p-8 flex flex-col gap-8 items-center">
-                {/* Page 1 */}
-                <div className="w-full max-w-3xl bg-white min-h-[900px] rounded shadow-xl flex flex-col relative shrink-0">
-                  <div className="pt-24 pb-16 px-16 flex-1 flex flex-col">
-                    <div className="flex justify-center mb-12">
-                      <div className="w-20 h-20 rounded-full border border-slate-200 bg-slate-50 flex items-center justify-center text-slate-400">
-                        <span className="material-symbols-outlined text-[40px]">account_balance</span>
-                      </div>
-                    </div>
-                    
-                    <div className="text-center mb-16 space-y-4">
-                      <h1 className="text-4xl font-bold tracking-[0.2em] text-[#0f2546]">CERTIFICATE OF</h1>
-                      <h1 className="text-4xl font-bold tracking-[0.2em] text-[#0f2546]">INCORPORATION</h1>
-                      <p className="text-xl text-slate-500 italic mt-4 font-serif">Of a Private Limited Company</p>
-                    </div>
+              <div className="flex-1 overflow-y-auto p-6 flex flex-col items-center justify-start bg-slate-900/40">
+                <div 
+                  className="w-full flex-1 flex flex-col items-center justify-center transition-transform duration-200"
+                  style={{ transform: `scale(${zoom / 100})`, transformOrigin: 'top center' }}
+                >
+                  {(() => {
+                    const docUrl = resolveDocUrl(selectedDoc?.document_url);
+                    const docName = selectedDoc?.document_name || '';
+                    const isPdf = docUrl?.toLowerCase().includes('.pdf') || 
+                                  docUrl?.startsWith('data:application/pdf') || 
+                                  docName?.toLowerCase().endsWith('.pdf') ||
+                                  selectedDoc?.document_type?.toLowerCase().includes('pdf');
+                    const isImg = docUrl?.match(/\.(jpeg|jpg|gif|png|webp|svg)($|\?)/i) || 
+                                  docUrl?.startsWith('data:image/');
 
-                    <div className="h-px bg-slate-200 w-full mb-12"></div>
-
-                    <div className="text-center space-y-8 flex-1">
-                      <p className="text-lg text-slate-600">The Registrar of Companies for England and Wales, hereby<br/>certifies that</p>
-                      <h2 className="text-2xl font-bold text-[#0f2546]">TECHNOVA GLOBAL LTD</h2>
-                      <p className="text-lg text-slate-600 leading-relaxed">
-                        is this day incorporated under the Companies Act 2006 as a<br/>
-                        private company, that the company is limited by shares, and<br/>
-                        the situation of its registered office is in England and Wales
-                      </p>
-                    </div>
-
-                    <div className="flex justify-between items-end mt-24">
-                      <div>
-                        <p className="text-xs font-bold text-slate-400 tracking-wider mb-2">COMPANY NUMBER</p>
-                        <p className="text-lg font-bold">12948576</p>
-                      </div>
-                      <div className="text-right">
-                        <p className="text-xs font-bold text-slate-400 tracking-wider mb-2">DATE</p>
-                        <p className="text-lg font-mono font-bold tracking-tight">24th October 2023</p>
-                      </div>
-                    </div>
-
-                    <div className="mt-12 flex justify-between items-start">
-                      <div>
-                        <p className="text-xs font-bold text-slate-400 tracking-wider mb-2">GIVEN AT COMPANIES HOUSE</p>
-                        <p className="text-base font-bold">CARDIFF</p>
-                      </div>
-                      <div className="w-24 h-24 bg-slate-50 border border-slate-100 opacity-50"></div>
-                    </div>
-                  </div>
-                  
-                  <div className="absolute bottom-0 right-0 w-32 h-32 bg-slate-100" style={{ clipPath: 'polygon(100% 0, 100% 100%, 0 100%)' }}></div>
-                </div>
-
-                {/* Page 2 */}
-                <div className="w-full max-w-3xl bg-white min-h-[900px] rounded shadow-xl flex flex-col relative shrink-0 p-16">
-                  <div className="border-b-2 border-[#0f2546] pb-6 mb-10 flex justify-between items-end">
-                    <div>
-                      <h2 className="text-2xl font-bold text-[#0f2546] tracking-wide">ARTICLES OF ASSOCIATION</h2>
-                      <p className="text-sm text-slate-500 mt-2">Private Company Limited by Shares</p>
-                    </div>
-                    <div className="text-right">
-                      <div className="w-16 h-16 border-2 border-indigo-100 rounded-full flex items-center justify-center text-indigo-200 mb-2 ml-auto">
-                        <span className="material-symbols-outlined text-3xl">gavel</span>
-                      </div>
-                      <p className="text-[10px] font-bold text-slate-400">PART 1: INTERPRETATION</p>
-                    </div>
-                  </div>
-
-                  <div className="space-y-8 flex-1">
-                    <section>
-                      <h3 className="text-sm font-bold text-slate-800 mb-3 flex items-center gap-2">
-                        <span className="w-6 h-6 bg-slate-100 rounded flex items-center justify-center text-xs">1</span>
-                        Defined Terms
-                      </h3>
-                      <p className="text-sm text-slate-600 leading-relaxed pl-8">
-                        In the articles, unless the context requires otherwise: "articles" means the company's articles of association; "bankruptcy" includes individual insolvency proceedings in a jurisdiction other than England and Wales or Northern Ireland which have an effect similar to that of bankruptcy.
-                      </p>
-                    </section>
-                    
-                    <section>
-                      <h3 className="text-sm font-bold text-slate-800 mb-3 flex items-center gap-2">
-                        <span className="w-6 h-6 bg-slate-100 rounded flex items-center justify-center text-xs">2</span>
-                        Liability of members
-                      </h3>
-                      <p className="text-sm text-slate-600 leading-relaxed pl-8">
-                        The liability of the members is limited to the amount, if any, unpaid on the shares held by them.
-                      </p>
-                    </section>
-                    
-                    <section>
-                      <h3 className="text-sm font-bold text-slate-800 mb-3 flex items-center gap-2">
-                        <span className="w-6 h-6 bg-slate-100 rounded flex items-center justify-center text-xs">3</span>
-                        Directors' general authority
-                      </h3>
-                      <p className="text-sm text-slate-600 leading-relaxed pl-8">
-                        Subject to the articles, the directors are responsible for the management of the company's business, for which purpose they may exercise all the powers of the company.
-                      </p>
-                    </section>
-                    
-                    <div className="h-px bg-slate-100 my-8"></div>
-                    
-                    <div className="grid grid-cols-2 gap-8 mt-12">
-                      <div className="border border-slate-200 rounded p-6 bg-slate-50">
-                        <p className="text-xs font-bold text-slate-500 mb-6">SIGNATURE OF DIRECTOR 1</p>
-                        <div className="border-b border-slate-400 border-dashed pb-2 mb-2">
-                          <span className="font-mono italic text-2xl text-indigo-900 opacity-80">J. Smith</span>
+                    if (!docUrl) {
+                      return (
+                        <div className="w-full max-w-xl bg-white rounded-2xl shadow-xl p-10 text-center my-auto">
+                          <span className="material-symbols-outlined text-slate-400 text-6xl mb-4">description</span>
+                          <h3 className="text-xl font-bold text-slate-800 mb-2">{docName || 'No Document File'}</h3>
+                          <p className="text-sm text-slate-500 mb-6">No preview URL found for this submission.</p>
+                          <div className="bg-slate-50 p-4 rounded-xl text-left text-xs space-y-2 border border-slate-200">
+                            <div><strong className="text-slate-700">Legal Full Name:</strong> {mockOrg?.legal_name || mockOrg?.name}</div>
+                            <div><strong className="text-slate-700">Incorporation Date:</strong> {mockOrg?.incorporation_date || 'N/A'}</div>
+                          </div>
                         </div>
-                        <p className="text-xs text-slate-600">Johnathan Smith</p>
-                      </div>
-                      <div className="border border-slate-200 rounded p-6 bg-slate-50">
-                        <p className="text-xs font-bold text-slate-500 mb-6">SIGNATURE OF DIRECTOR 2</p>
-                        <div className="border-b border-slate-400 border-dashed pb-2 mb-2">
-                          <span className="font-mono italic text-2xl text-indigo-900 opacity-80">A. Davies</span>
-                        </div>
-                        <p className="text-xs text-slate-600">Alice Davies</p>
-                      </div>
-                    </div>
-                  </div>
-                  
-                  <div className="mt-12 flex justify-between items-center text-xs text-slate-400 font-bold border-t border-slate-100 pt-6">
-                    <span>TECHNOVA GLOBAL LTD - 12948576</span>
-                    <span>PAGE 2 OF 3</span>
-                  </div>
-                </div>
+                      );
+                    }
 
-                {/* Page 3 */}
-                <div className="w-full max-w-3xl bg-white min-h-[900px] rounded shadow-xl flex flex-col relative shrink-0 p-16">
-                  <div className="flex justify-between items-start mb-12">
-                    <div className="w-24 h-24 border-4 border-red-600/20 rounded-full flex items-center justify-center relative">
-                      <div className="absolute inset-2 border border-red-600/40 rounded-full flex items-center justify-center">
-                        <span className="text-red-600/60 font-bold text-[10px] text-center uppercase tracking-widest leading-tight -rotate-12">Official<br/>Seal</span>
-                      </div>
-                    </div>
-                    <div className="text-right">
-                      <p className="text-xs font-bold text-slate-400 mb-1">APPENDIX A</p>
-                      <h2 className="text-xl font-bold text-slate-800">Statement of Capital</h2>
-                    </div>
-                  </div>
-
-                  <div className="flex-1">
-                    <p className="text-sm text-slate-600 mb-6">
-                      The total number of shares and total aggregate nominal value of issued share capital at the date of incorporation is detailed below:
-                    </p>
-                    
-                    <div className="border border-slate-200 rounded-lg overflow-hidden mb-12">
-                      <table className="w-full text-sm text-left">
-                        <thead className="bg-slate-50 text-xs font-bold text-slate-500">
-                          <tr>
-                            <th className="px-6 py-4 border-b border-slate-200">Currency</th>
-                            <th className="px-6 py-4 border-b border-slate-200">Class of Shares</th>
-                            <th className="px-6 py-4 border-b border-slate-200 text-right">Number of Shares</th>
-                            <th className="px-6 py-4 border-b border-slate-200 text-right">Aggregate Nominal Value</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          <tr>
-                            <td className="px-6 py-4 border-b border-slate-100 font-medium">GBP</td>
-                            <td className="px-6 py-4 border-b border-slate-100">ORDINARY</td>
-                            <td className="px-6 py-4 border-b border-slate-100 text-right">100</td>
-                            <td className="px-6 py-4 border-b border-slate-100 text-right">£100.00</td>
-                          </tr>
-                          <tr className="bg-slate-50/50 font-bold">
-                            <td className="px-6 py-4" colSpan={2}>TOTAL</td>
-                            <td className="px-6 py-4 text-right">100</td>
-                            <td className="px-6 py-4 text-right">£100.00</td>
-                          </tr>
-                        </tbody>
-                      </table>
-                    </div>
-
-                    <div className="bg-amber-50 border-l-4 border-amber-500 p-4 rounded-r">
-                      <div className="flex items-start gap-3">
-                        <span className="material-symbols-outlined text-amber-600">info</span>
-                        <div>
-                          <h4 className="text-sm font-bold text-amber-900">Prescribed particulars of rights attached to shares</h4>
-                          <p className="text-sm text-amber-700 mt-1 leading-relaxed">
-                            Each share has full rights in the company with respect to voting, dividends and distributions.
-                          </p>
+                    if (isImg) {
+                      return (
+                        <div className="w-full max-w-4xl bg-white rounded-2xl shadow-2xl p-4 flex flex-col items-center">
+                          <img 
+                            src={docUrl} 
+                            alt={docName || 'Verification Document'} 
+                            className="max-w-full max-h-[80vh] object-contain rounded-lg"
+                          />
                         </div>
+                      );
+                    }
+
+                    return (
+                      <div className="w-full h-[80vh] max-w-5xl bg-white rounded-2xl shadow-2xl overflow-hidden flex flex-col border border-slate-700">
+                        <iframe
+                          src={docUrl}
+                          title={docName || 'Verification Document'}
+                          className="w-full h-full border-none"
+                        />
                       </div>
-                    </div>
-                    
-                    <div className="mt-16 flex justify-end">
-                      <div className="w-48">
-                        <p className="text-[10px] font-bold text-slate-400 uppercase mb-2">Electronic Signature</p>
-                        <div className="bg-slate-50 border border-slate-200 rounded px-4 py-3 font-mono text-xs text-slate-500 break-all">
-                          3f8c2b9a1d4e7f0g5h8j2k1m4n7p0q3r
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                  
-                  <div className="mt-12 flex justify-between items-center text-xs text-slate-400 font-bold border-t border-slate-100 pt-6">
-                    <span>TECHNOVA GLOBAL LTD - 12948576</span>
-                    <span>PAGE 3 OF 3</span>
-                  </div>
+                    );
+                  })()}
                 </div>
               </div>
             </div>
@@ -1246,7 +1124,7 @@ export default function OrganizationProfile() {
 
                 <div className="bg-[#f0f4f8] rounded-xl p-4 border border-indigo-100 mb-4 border-l-4 border-l-indigo-600">
                   <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">FILE NAME</p>
-                  <p className="text-sm font-bold text-[#0f2546] truncate">COI_TechNova_Global_2023.pdf</p>
+                  <p className="text-sm font-bold text-[#0f2546] truncate">{selectedDoc?.document_name || "Verification Document"}</p>
                 </div>
 
                 <div className="grid grid-cols-2 gap-4">
@@ -1310,6 +1188,23 @@ export default function OrganizationProfile() {
           </div>
         </div>
       )}
+    
+      {/* Organization Certification / Verification Modal */}
+      <OrganizationVerificationModal
+        isOpen={verifyModalOpen}
+        onClose={() => setVerifyModalOpen(false)}
+        organization={{
+          id: mockOrg.org_id || id,
+          name: mockOrg.name,
+          legal_name: mockOrg.legal_name || mockOrg.name,
+          incorporation_date: mockOrg.incorporation_date,
+          logo_url: mockOrg.logo_url
+        }}
+        onVerificationSubmitted={() => {
+          alert('Verification submitted! Refreshing profile...');
+          window.location.reload();
+        }}
+      />
     </div>
   );
 }
