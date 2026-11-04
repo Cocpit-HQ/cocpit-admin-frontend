@@ -6,6 +6,7 @@ import { useNavigate, useLocation, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../AuthContext';
 import DangerModal from '../components/DangerModal';
 import WarningModal from '../components/WarningModal';
+import UserVerificationQueue from '../components/UserVerificationQueue';
 import DatePickerDropdown from '../components/DatePickerDropdown';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
@@ -15,6 +16,19 @@ import { format } from 'date-fns';
 export default function UserManagement() {
   const { role, accessToken } = useAuth();
   const [searchParams, setSearchParams] = useSearchParams();
+  const urlTab = searchParams.get('tab');
+  const [activeTab, setActiveTab] = useState(
+    urlTab === 'VerificationQueue' || urlTab === 'verification' ? 'VerificationQueue' : 'Directory'
+  );
+
+  useEffect(() => {
+    const tabFromUrl = searchParams.get('tab');
+    if (tabFromUrl === 'VerificationQueue' || tabFromUrl === 'verification') {
+      setActiveTab('VerificationQueue');
+    } else if (tabFromUrl === 'Directory' || tabFromUrl === 'directory') {
+      setActiveTab('Directory');
+    }
+  }, [searchParams]);
   
   const initialStatus = searchParams.get('status') || 'All';
   const initialPage = parseInt(searchParams.get('page')) || 1;
@@ -45,16 +59,29 @@ export default function UserManagement() {
   const [isExporting, setIsExporting] = useState(false);
 
   useEffect(() => {
-    const params = new URLSearchParams();
+    if (activeTab === 'VerificationQueue') {
+      // Preserve tab and verification deep-linking parameters without overwriting with directory params
+      return;
+    }
+
+    const params = new URLSearchParams(searchParams);
     if (currentPage > 1) params.set('page', currentPage);
+    else params.delete('page');
     if (roleFilter !== 'All') params.set('role', roleFilter);
+    else params.delete('role');
     if (statusFilter !== 'All') params.set('status', statusFilter);
+    else params.delete('status');
     if (collegeFilter !== 'All') params.set('college', collegeFilter);
+    else params.delete('college');
     if (onboardingFilter !== 'All') params.set('onboarding', onboardingFilter);
+    else params.delete('onboarding');
     if (searchQuery) params.set('search', searchQuery);
+    else params.delete('search');
     
-    setSearchParams(params, { replace: true });
-  }, [currentPage, roleFilter, statusFilter, collegeFilter, onboardingFilter, searchQuery, setSearchParams]);
+    if (params.toString() !== searchParams.toString()) {
+      setSearchParams(params, { replace: true });
+    }
+  }, [currentPage, roleFilter, statusFilter, collegeFilter, onboardingFilter, searchQuery, activeTab]);
   
   const [availableRoles, setAvailableRoles] = useState([]);
   const [availableColleges, setAvailableColleges] = useState([]);
@@ -756,15 +783,51 @@ export default function UserManagement() {
             <p className="text-body-lg text-on-surface-variant">Review, manage, and moderate your platform's user base.</p>
           </div>
         </div>
-        <button 
-          onClick={() => setIsExportModalOpen(true)}
-          className="bg-primary hover:bg-primary/90 text-on-primary px-lg py-md rounded-xl font-label-lg transition-colors shadow-sm flex items-center gap-sm shrink-0"
-        >
-          <span className="material-symbols-outlined text-[20px]">download</span>
-          Export Report
-        </button>
+        <div className="flex flex-wrap items-center gap-3">
+          {/* Tab Switcher */}
+          <div className="flex bg-indigo-50/70 dark:bg-surface-container-high p-1 rounded-xl shadow-inner border border-outline-variant">
+            <button
+              onClick={() => setActiveTab('Directory')}
+              className={`px-4 py-2 rounded-lg text-sm font-semibold transition-all whitespace-nowrap cursor-pointer ${
+                activeTab === 'Directory'
+                  ? 'bg-white dark:bg-[#1E293B] shadow-sm text-indigo-700 dark:text-indigo-400'
+                  : 'text-on-surface-variant hover:text-on-surface hover:bg-white/50'
+              }`}
+            >
+              User Directory
+            </button>
+            <button
+              onClick={() => setActiveTab('VerificationQueue')}
+              className={`px-4 py-2 rounded-lg text-sm font-semibold transition-all whitespace-nowrap cursor-pointer flex items-center gap-1.5 ${
+                activeTab === 'VerificationQueue'
+                  ? 'bg-white dark:bg-[#1E293B] shadow-sm text-indigo-700 dark:text-indigo-400'
+                  : 'text-on-surface-variant hover:text-on-surface hover:bg-white/50'
+              }`}
+            >
+              <span className="material-symbols-outlined text-[18px]">verified_user</span>
+              Verification Queue
+            </button>
+          </div>
+
+          {activeTab === 'Directory' && (
+            <button 
+              onClick={() => setIsExportModalOpen(true)}
+              className="bg-primary hover:bg-primary/90 text-on-primary px-lg py-md rounded-xl font-label-lg transition-colors shadow-sm flex items-center gap-sm shrink-0"
+            >
+              <span className="material-symbols-outlined text-[20px]">download</span>
+              Export Report
+            </button>
+          )}
+        </div>
       </div>
 
+      {activeTab === 'VerificationQueue' ? (
+        <UserVerificationQueue 
+          targetUserIdProp={searchParams.get('userId')} 
+          targetStatusProp={searchParams.get('status')} 
+        />
+      ) : (
+        <>
       {/* Stat Cards / Quick Filter Tabs */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-md mb-xl">
         <div 
@@ -1224,6 +1287,9 @@ export default function UserManagement() {
         actionText="Permanently Delete"
       />
 
+
+        </>
+      )}
       {/* Export Modal */}
       {isExportModalOpen && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 animate-in fade-in duration-200">

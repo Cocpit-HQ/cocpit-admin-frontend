@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import VerificationQueue from '../components/VerificationQueue';
+import OrganizationVerificationModal from '../components/OrganizationVerificationModal';
 
 // Removed mockOrganizations
 import { Link, useNavigate, useLocation, useSearchParams } from 'react-router-dom';
@@ -41,6 +42,8 @@ export default function Organizations() {
   const [warningModalOpen, setWarningModalOpen] = useState(false);
   const [restrictConfirmModalOpen, setRestrictConfirmModalOpen] = useState(false);
   const [orgToWarn, setOrgToWarn] = useState(null);
+  const [verifyModalOpen, setVerifyModalOpen] = useState(false);
+  const [orgToVerify, setOrgToVerify] = useState(null);
   const [availableIndustries, setAvailableIndustries] = useState([
     'Information Technology',
     'Software & SaaS',
@@ -689,7 +692,19 @@ export default function Organizations() {
                             {org.initials}
                           </div>
                           <div>
-                            <p className="font-body-md font-bold">{org.name}</p>
+                            <div className="flex items-center gap-1.5">
+                              <p className="font-body-md font-bold">{org.name}</p>
+                              {(org.verification_status === 'VERIFIED' || org.verification_status === 'DOMAIN_VERIFIED') && (
+                                <span className="material-symbols-outlined text-blue-500 text-[18px]" title="Verified Organization" style={{ fontVariationSettings: "'FILL' 1" }}>
+                                  verified
+                                </span>
+                              )}
+                              {org.verification_status === 'UNDER_REVIEW' && (
+                                <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-amber-100 text-amber-800">
+                                  Under Review
+                                </span>
+                              )}
+                            </div>
                             <p className="text-body-sm text-on-surface-variant">{org.website}</p>
                           </div>
                         </div>
@@ -714,6 +729,17 @@ export default function Organizations() {
                                 title="Send Warning"
                               >
                                 <span className="material-symbols-outlined text-[20px]">warning</span>
+                              </button>
+                              <button
+                                onClick={(e) => { 
+                                  e.stopPropagation(); 
+                                  setOrgToVerify(org); 
+                                  setVerifyModalOpen(true); 
+                                }}
+                                className="p-xs text-outline hover:text-indigo-600 transition-colors hover:bg-indigo-50 rounded-lg"
+                                title="Verify Account / Certification"
+                              >
+                                <span className="material-symbols-outlined text-[20px]">verified_user</span>
                               </button>
                               <button
                                 onClick={(e) => { e.stopPropagation(); setSelectedOrgs(new Set([org.id])); setRestrictConfirmModalOpen(true); }}
@@ -878,6 +904,21 @@ export default function Organizations() {
           )}
         </>
       )}
+
+      {/* Organization Certification / Verification Modal */}
+      <OrganizationVerificationModal
+        isOpen={verifyModalOpen}
+        onClose={() => {
+          setVerifyModalOpen(false);
+          setOrgToVerify(null);
+        }}
+        organization={orgToVerify}
+        onVerificationSubmitted={(updatedOrg) => {
+          fetchOrganizations();
+          alert(`Verification credentials submitted for "${updatedOrg?.name || 'organization'}". Review the application in the Verification Queue tab.`);
+        }}
+      />
+
     </div>
   );
 }

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../AuthContext';
+import { useEnvironment } from '../EnvironmentContext';
 import ReportRow from '../components/ReportRow';
 import AppealRow from '../components/AppealRow';
 import ReportDetailModal from '../components/ReportDetailModal';
@@ -10,6 +11,7 @@ import ResolvedReportDetailModal from '../components/ResolvedReportDetailModal';
 
 export default function ModerationQueue() {
   const { role, accessToken } = useAuth();
+  const { environment } = useEnvironment();
   const location = useLocation();
   const [reports, setReports] = useState([]);
   const [escalatedReports, setEscalatedReports] = useState([]);
@@ -53,7 +55,8 @@ export default function ModerationQueue() {
         severity
       });
       const res = await fetch(`/api/admin/reports?${queryParams.toString()}`, {
-        headers: { 'Authorization': `Bearer ${accessToken}` }
+        headers: { 'Authorization': `Bearer ${accessToken}`,
+            'x-environment': environment }
       });
       if (res.ok) {
         const data = await res.json();
@@ -74,7 +77,7 @@ export default function ModerationQueue() {
   const fetchAppeals = async () => {
     try {
       const res = await fetch('/api/admin/appeals?status=pending', {
-        headers: { 'Authorization': `Bearer ${accessToken}` }
+        headers: { 'Authorization': `Bearer ${accessToken}`, 'x-environment': environment }
       });
       if (res.ok) {
         const data = await res.json();
@@ -91,7 +94,7 @@ export default function ModerationQueue() {
       
       const fetchReasons = async () => {
         try {
-          const res = await fetch('/api/admin/reports/reasons', { headers: { 'Authorization': `Bearer ${accessToken}` } });
+          const res = await fetch('/api/admin/reports/reasons', { headers: { 'Authorization': `Bearer ${accessToken}`, 'x-environment': environment } });
           if (res.ok) {
             const data = await res.json();
             setReportReasons(data);
@@ -109,7 +112,7 @@ export default function ModerationQueue() {
         fetchReasons()
       ]).finally(() => setLoading(false));
     }
-  }, [accessToken, activePage, escalatedPage, resolvedPage, filterType, filterReason, filterSeverity]);
+  }, [accessToken, environment, activePage, escalatedPage, resolvedPage, filterType, filterReason, filterSeverity]);
 
   const filteredReports = activeTab === 'Escalations' ? escalatedReports : reports;
 
@@ -146,25 +149,35 @@ export default function ModerationQueue() {
       const uniqueReasons = [...new Set(group.reports.map(r => r.reason))];
       const uniqueReporters = new Set(group.reports.map(r => r.reportedBy)).size;
 
+      const latestReportTime = group.reports.reduce((latest, r) => {
+        const t = new Date(r.postTime).getTime();
+        return t > latest ? t : latest;
+      }, 0);
+
+      const maxReportId = group.reports.reduce((max, r) => {
+        const idNum = parseInt(r.id, 10) || 0;
+        return idNum > max ? idNum : max;
+      }, 0);
+
       return {
         ...group,
         highestSeverity,
         uniqueReasons,
         uniqueReporters,
-        reportCount: group.reports.length
+        reportCount: group.reports.length,
+        latestReportTime,
+        maxReportId
       };
     }).sort((a, b) => {
-      if (a.highestSeverity !== b.highestSeverity) {
-        if (a.highestSeverity.includes('Tier 3')) return -1;
-        if (b.highestSeverity.includes('Tier 3')) return 1;
-        if (a.highestSeverity.includes('Tier 2')) return -1;
-        if (b.highestSeverity.includes('Tier 2')) return 1;
+      // Chronological Order: Newest submitted reports first!
+      if (b.latestReportTime !== a.latestReportTime) {
+        return b.latestReportTime - a.latestReportTime;
       }
-      return b.reportCount - a.reportCount;
+      return b.maxReportId - a.maxReportId;
     });
   }, [filteredReports]);
 
-  const updateReportStatusBulk = async (reportIds, status) => {
+  const updateReportStatusBulk = async (reportIds, status, note = null) => {
     try {
       const promises = reportIds.map(id => 
         fetch(`/api/admin/reports/${id}`, {
@@ -173,7 +186,7 @@ export default function ModerationQueue() {
             'Authorization': `Bearer ${accessToken}`,
             'Content-Type': 'application/json'
           },
-          body: JSON.stringify({ status })
+          body: JSON.stringify({ status, note })
         })
       );
       await Promise.all(promises);
@@ -198,8 +211,8 @@ export default function ModerationQueue() {
     }
   };
 
-  const handleDismissFromModal = async (reportIds) => {
-    await updateReportStatusBulk(reportIds, 'dismissed');
+  const handleDismissFromModal = async (reportIds, note = null) => {
+    await updateReportStatusBulk(reportIds, 'dismissed', note);
     setIsModalOpen(false);
     alert("Reports dismissed and moved to Resolved Reports.");
   };

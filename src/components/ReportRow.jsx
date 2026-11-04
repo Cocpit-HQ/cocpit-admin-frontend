@@ -24,7 +24,9 @@ const getTypeConfig = (type) => {
     case 'Account':
     case 'USER': return { icon: 'person', label: 'User', color: 'text-purple-600', bg: 'bg-purple-100' };
     case 'Organization':
-    case 'ORGANIZATION': return { icon: 'business', label: 'Org', color: 'text-orange-600', bg: 'bg-orange-100' };
+    case 'ORGANIZATION':
+    case 'Company':
+    case 'COMPANY': return { icon: 'business', label: 'Company', color: 'text-orange-600', bg: 'bg-orange-100' };
     case 'Job':
     case 'JOB': return { icon: 'work', label: 'Job', color: 'text-indigo-600', bg: 'bg-indigo-100' };
     default: return { icon: 'report', label: type, color: 'text-gray-600', bg: 'bg-gray-100' };
@@ -56,11 +58,11 @@ export default function ReportRow({ report, role, activeTab, onApprove, onReject
           )}
           <div className="flex flex-col gap-xs">
             <p className={`font-body-sm text-on-surface line-clamp-3 leading-tight ${highestSeverity.includes('Tier 3') ? 'italic' : ''}`}>
-              {report.type === 'Account' ? (
-                <Link to={`/profile/${report.postId}`} state={{ from: '/moderation', label: 'Moderation Queue' }} className="hover:underline text-primary">{report.contentPreview || 'User Profile Reported'}</Link>
-              ) : report.type === 'Organization' ? (
-                <Link to="/org-profile" state={{ from: '/moderation', label: 'Moderation Queue' }} className="hover:underline text-primary">{report.contentPreview || 'Organization Profile Reported'}</Link>
-              ) : report.type === 'Job' ? (
+              {report.type === 'Account' || report.type === 'USER' ? (
+                <Link to={`/profile/${report.targetUserId || report.postId}`} state={{ from: '/moderation', label: 'Moderation Queue' }} className="hover:underline text-primary">{report.contentPreview || 'User Profile Reported'}</Link>
+              ) : report.type === 'Organization' || report.type === 'ORGANIZATION' || report.type === 'Company' || report.type === 'COMPANY' ? (
+                <Link to={`/org-profile?id=${report.targetUserId || report.postId}`} state={{ from: '/moderation', label: 'Moderation Queue' }} className="hover:underline text-primary">{report.contentPreview || 'Company Profile Reported'}</Link>
+              ) : report.type === 'Job' || report.type === 'JOB' ? (
                 <Link to="/jobs" state={{ from: '/moderation', label: 'Moderation Queue' }} className="hover:underline text-primary">{report.contentPreview || 'Job Posting Reported'}</Link>
               ) : (
                 report.contentPreview

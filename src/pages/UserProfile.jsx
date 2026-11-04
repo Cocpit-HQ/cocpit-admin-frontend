@@ -434,6 +434,31 @@ export default function UserProfile() {
                       </p>
                     </div>
                   </div>
+
+                  <div className="w-[4px] h-[4px] bg-outline-variant rounded-full"></div>
+
+                  <div 
+                    onClick={() => navigate(`/users?tab=VerificationQueue&userId=${userData?.id || id}&status=${userData?.verification?.status === "Verified" ? "Approved" : (userData?.verification?.status || (userData?.isIdentityVerified ? "Approved" : "Under Review"))}`)}
+                    className="flex flex-row items-center gap-2 cursor-pointer group"
+                    title="Click to view user verification in Verification Queue"
+                  >
+                    <p className="font-normal text-[12px] leading-[16px] flex items-center text-on-surface-variant group-hover:text-primary transition-colors">Verification</p>
+                    <div className="flex flex-row items-center gap-1.5">
+                      <div className={`w-[6px] h-[6px] rounded-full ${
+                        userData.verification?.status === 'Verified' ? 'bg-[#22C55E]' :
+                        userData.verification?.status === 'Under Review' ? 'bg-amber-500' :
+                        userData.verification?.status === 'Rejected' ? 'bg-rose-500' : 'bg-slate-400'
+                      }`}></div>
+                      <p className={`font-normal text-[12px] leading-[16px] flex items-center group-hover:underline ${
+                        userData.verification?.status === 'Verified' ? 'text-[#22C55E]' :
+                        userData.verification?.status === 'Under Review' ? 'text-amber-500' :
+                        userData.verification?.status === 'Rejected' ? 'text-rose-500' : 'text-slate-500'
+                      }`}>
+                        {userData.verification?.status || (userData.isIdentityVerified ? 'Verified' : 'Unverified')}
+                      </p>
+                      <span className="material-symbols-outlined text-[13px] text-on-surface-variant group-hover:text-primary opacity-60 group-hover:opacity-100 transition-opacity">open_in_new</span>
+                    </div>
+                  </div>
                 </div>
 
                 <div className="flex flex-row items-center gap-2 h-[16px] whitespace-nowrap">
@@ -460,11 +485,34 @@ export default function UserProfile() {
               </div>
             </div>
 
-            <div className="relative">
+            <div className="flex items-center gap-2">
               <button
-                onClick={() => setMenuOpen(!menuOpen)}
-                className="box-border flex flex-row items-center justify-center mx-auto w-[40px] h-[40px] border border-outline-variant rounded-[8px] hover:bg-surface-container transition-colors"
+                onClick={() => navigate(`/users?tab=VerificationQueue&userId=${userData?.id || id}&status=${userData?.verification?.status === "Verified" ? "Approved" : (userData?.verification?.status || (userData?.isIdentityVerified ? "Approved" : "Under Review"))}`)}
+                className={`flex items-center gap-1.5 px-3 py-2 rounded-lg border text-xs font-semibold transition-all cursor-pointer shadow-sm ${
+                  userData.verification?.status === 'Under Review'
+                    ? 'bg-amber-50 border-amber-300 text-amber-800 hover:bg-amber-100'
+                    : userData.verification?.status === 'Verified'
+                    ? 'bg-emerald-50 border-emerald-300 text-emerald-800 hover:bg-emerald-100'
+                    : userData.verification?.status === 'Rejected'
+                    ? 'bg-rose-50 border-rose-300 text-rose-800 hover:bg-rose-100'
+                    : 'bg-surface border-outline-variant text-on-surface hover:bg-surface-container'
+                }`}
+                title="View in Verification Queue"
               >
+                <span className="material-symbols-outlined text-[16px]">
+                  {userData.verification?.status === 'Verified' ? 'verified' : 'badge'}
+                </span>
+                <span>
+                  {userData.verification?.status === 'Under Review' ? 'Review Verification' : 'Verification Queue'}
+                </span>
+                <span className="material-symbols-outlined text-[14px]">arrow_forward</span>
+              </button>
+
+              <div className="relative">
+                <button
+                  onClick={() => setMenuOpen(!menuOpen)}
+                  className="box-border flex flex-row items-center justify-center mx-auto w-[40px] h-[40px] border border-outline-variant rounded-[8px] hover:bg-surface-container transition-colors"
+                >
                 <span className="material-symbols-outlined text-on-surface rotate-90 w-[24px] h-[24px] flex items-center justify-center">more_vert</span>
               </button>
               {menuOpen && (
@@ -484,6 +532,7 @@ export default function UserProfile() {
                   )}
                 </div>
               )}
+              </div>
             </div>
           </div>
 
