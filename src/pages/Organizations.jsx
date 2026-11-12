@@ -373,7 +373,7 @@ export default function Organizations() {
   const allSelectedAreSuspended = selectedOrgsList.length > 0 && selectedOrgsList.every(o => o.status === 'Suspended');
 
   return (
-    <div className="pt-8 pb-12 w-full max-w-[1400px] mx-auto px-4">
+    <div className={`w-full ${activeTab === 'VerificationQueue' ? 'max-w-[1640px] mx-auto px-4 sm:px-6 lg:px-8' : 'max-w-[1550px] mx-auto px-4'} pt-4 pb-12`}>
       {/* Page Header */}
       <div className="flex flex-col xl:flex-row xl:items-center justify-between mb-xl gap-md">
         <div className="flex gap-3">

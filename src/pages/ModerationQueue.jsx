@@ -8,6 +8,7 @@ import ReportDetailModal from '../components/ReportDetailModal';
 import WarningModal from '../components/WarningModal';
 import ResolvedReportRow from '../components/ResolvedReportRow';
 import ResolvedReportDetailModal from '../components/ResolvedReportDetailModal';
+import JobVerificationQueue from '../components/analytics-breakdowns/JobVerificationQueue';
 
 export default function ModerationQueue() {
   const { role, accessToken } = useAuth();
@@ -519,13 +520,20 @@ export default function ModerationQueue() {
                   </span>
                 )}
               </button>
+              <button 
+                onClick={() => setActiveTab('Job Verification')}
+                className={`px-sm md:px-lg py-sm rounded-lg font-label-md transition-colors whitespace-nowrap flex items-center gap-1.5 ${activeTab === 'Job Verification' ? 'bg-surface shadow-sm text-on-surface font-semibold' : 'text-on-surface-variant hover:text-on-surface'}`}
+              >
+                <span className="material-symbols-outlined text-[18px]">verified</span>
+                <span>Job Verification</span>
+              </button>
             </div>
           </div>
         </div>
       </div>
 
       {/* FILTER BAR (Shown for Active, Escalations, and Resolved tabs) */}
-      {activeTab !== 'Appeals' && (
+      {activeTab !== 'Appeals' && activeTab !== 'Job Verification' && (
         <div className="flex flex-wrap items-center gap-md bg-surface-container-low p-md border border-outline-variant rounded-xl mb-xl">
           <div className="flex items-center gap-sm">
             <span className="material-symbols-outlined text-on-surface-variant text-[20px]">filter_list</span>
@@ -740,6 +748,13 @@ export default function ModerationQueue() {
               </tbody>
             </table>
           </div>
+        </div>
+      )}
+
+      {/* JOB VERIFICATION TAB */}
+      {activeTab === 'Job Verification' && (
+        <div className="bg-surface-container-lowest border border-outline-variant rounded-xl p-md sm:p-lg shadow-sm">
+          <JobVerificationQueue />
         </div>
       )}
 
