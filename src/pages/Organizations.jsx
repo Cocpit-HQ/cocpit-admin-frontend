@@ -399,7 +399,7 @@ export default function Organizations() {
             <p className="text-on-surface-variant font-body-lg text-body-lg m-0 leading-tight">
               {activeTab === 'Directory'
                 ? 'Manage registered entities, verification status, and platform access.'
-                : 'Review, approve, or reject job postings submitted to the platform.'}
+                : 'Review legal documents, evaluate credentials, and verify registered organizations.'}
             </p>
           </div>
         </div>
@@ -434,12 +434,12 @@ export default function Organizations() {
           {/* Stat Cards */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-md mb-xl">
             {/* Total Organizations */}
-            <div className="bg-surface border-y border-r border-outline-variant border-l-4 border-l-indigo-600 shadow-sm rounded-lg p-md flex justify-between items-start">
+            <div className="bg-surface border-y border-r border-outline-variant border-l-4 border-l-indigo-600 shadow-sm rounded-xl p-md flex justify-between items-start">
               <div className="flex flex-col">
                 <h4 className="text-[13px] font-semibold text-on-surface-variant mb-2">Total Organizations</h4>
                 <div className="flex items-baseline gap-2 mb-1">
                   <span className="text-3xl font-bold text-on-surface">{stats.totalOrganizations.toLocaleString()}</span>
-                  <span className={`text-[12px] font-bold flex items-center ${parseFloat(stats.organizationGrowth) >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                  <span className={`text-[12px] font-bold flex items-center ${parseFloat(stats.organizationGrowth) >= 0 ? 'text-emerald-500' : 'text-red-600'}`}>
                     <span className="material-symbols-outlined text-[14px]">
                       {parseFloat(stats.organizationGrowth) >= 0 ? 'trending_up' : 'trending_down'}
                     </span>
@@ -447,13 +447,13 @@ export default function Organizations() {
                   </span>
                 </div>
               </div>
-              <div className="w-10 h-10 rounded-lg bg-indigo-50 flex items-center justify-center shrink-0">
-                <span className="material-symbols-outlined text-indigo-600">domain</span>
+              <div className="w-9 h-9 rounded-lg bg-indigo-50 flex items-center justify-center shrink-0">
+                <span className="material-symbols-outlined text-indigo-600 text-[20px]">domain</span>
               </div>
             </div>
 
             {/* Pending Verification */}
-            <div className="bg-surface border-y border-r border-outline-variant border-l-4 border-l-indigo-600 shadow-sm rounded-lg p-md flex justify-between items-start">
+            <div className="bg-surface border-y border-r border-outline-variant border-l-4 border-l-amber-400 shadow-sm rounded-xl p-md flex justify-between items-start">
               <div className="flex flex-col">
                 <h4 className="text-[13px] font-semibold text-on-surface-variant mb-2">Pending Verification</h4>
                 <div className="flex items-baseline gap-2 mb-1">
@@ -464,13 +464,13 @@ export default function Organizations() {
                 </div>
                 <p className="text-[12px] italic text-on-surface-variant/70">Requires manual review</p>
               </div>
-              <div className="w-10 h-10 rounded-lg bg-orange-50 flex items-center justify-center shrink-0">
-                <span className="material-symbols-outlined text-orange-600">assignment_late</span>
+              <div className="w-9 h-9 rounded-lg bg-amber-50 flex items-center justify-center shrink-0">
+                <span className="material-symbols-outlined text-amber-500 text-[20px]">assignment_late</span>
               </div>
             </div>
 
             {/* Incomplete Onboarding */}
-            <div className="bg-surface border-y border-r border-outline-variant border-l-4 border-l-indigo-600 shadow-sm rounded-lg p-md flex justify-between items-start">
+            <div className="bg-surface border-y border-r border-outline-variant border-l-4 border-l-indigo-400 shadow-sm rounded-xl p-md flex justify-between items-start">
               <div className="flex flex-col">
                 <h4 className="text-[13px] font-semibold text-on-surface-variant mb-2">Incomplete Onboarding</h4>
                 <div className="flex items-baseline gap-2 mb-1">
@@ -478,13 +478,13 @@ export default function Organizations() {
                 </div>
                 <p className="text-[12px] italic text-on-surface-variant/70">Dropped off in Stage 2</p>
               </div>
-              <div className="w-10 h-10 rounded-lg bg-indigo-50 flex items-center justify-center shrink-0">
-                <span className="material-symbols-outlined text-indigo-600">app_registration</span>
+              <div className="w-9 h-9 rounded-lg bg-indigo-50/80 flex items-center justify-center shrink-0">
+                <span className="material-symbols-outlined text-indigo-400 text-[20px]">apps</span>
               </div>
             </div>
 
             {/* Avg. Verification Time */}
-            <div className="bg-surface border-y border-r border-outline-variant border-l-4 border-l-indigo-600 shadow-sm rounded-lg p-md flex justify-between items-start">
+            <div className="bg-surface border-y border-r border-outline-variant border-l-4 border-l-indigo-600 shadow-sm rounded-xl p-md flex justify-between items-start">
               <div className="flex flex-col">
                 <h4 className="text-[13px] font-semibold text-on-surface-variant mb-2">Avg. Verification Time</h4>
                 <div className="flex items-baseline gap-2 mb-1">
@@ -495,13 +495,13 @@ export default function Organizations() {
                   {parseFloat(stats.avgVerificationTimeChange) > 0 ? '+' : ''}{stats.avgVerificationTimeChange} from previous week
                 </p>
               </div>
-              <div className="w-10 h-10 rounded-lg bg-indigo-50 flex items-center justify-center shrink-0">
-                <span className="material-symbols-outlined text-indigo-600">timer</span>
+              <div className="w-9 h-9 rounded-lg bg-indigo-50 flex items-center justify-center shrink-0">
+                <span className="material-symbols-outlined text-indigo-600 text-[20px]">timer</span>
               </div>
             </div>
 
             {/* Active Organizations */}
-            <div className="bg-surface border-y border-r border-outline-variant border-l-4 border-l-indigo-600 shadow-sm rounded-lg p-md flex justify-between items-start">
+            <div className="bg-surface border-y border-r border-outline-variant border-l-4 border-l-emerald-500 shadow-sm rounded-xl p-md flex justify-between items-start">
               <div className="flex flex-col">
                 <h4 className="text-[13px] font-semibold text-on-surface-variant mb-2">Active Organizations</h4>
                 <div className="flex items-baseline gap-2 mb-1">
@@ -509,13 +509,13 @@ export default function Organizations() {
                 </div>
                 <p className="text-[12px] italic text-on-surface-variant/70">Currently registered & active</p>
               </div>
-              <div className="w-10 h-10 rounded-lg bg-green-50 flex items-center justify-center shrink-0">
-                <span className="material-symbols-outlined text-green-600">check_circle</span>
+              <div className="w-9 h-9 rounded-lg bg-emerald-50 flex items-center justify-center shrink-0">
+                <span className="material-symbols-outlined text-emerald-500 text-[20px]">check_circle</span>
               </div>
             </div>
 
             {/* Suspended Organizations */}
-            <div className="bg-surface border-y border-r border-outline-variant border-l-4 border-l-indigo-600 shadow-sm rounded-lg p-md flex justify-between items-start">
+            <div className="bg-surface border-y border-r border-outline-variant border-l-4 border-l-rose-500 shadow-sm rounded-xl p-md flex justify-between items-start">
               <div className="flex flex-col">
                 <h4 className="text-[13px] font-semibold text-on-surface-variant mb-2">Suspended</h4>
                 <div className="flex items-baseline gap-2 mb-1">
@@ -523,8 +523,8 @@ export default function Organizations() {
                 </div>
                 <p className="text-[12px] italic text-on-surface-variant/70">Action required</p>
               </div>
-              <div className="w-10 h-10 rounded-lg bg-red-50 flex items-center justify-center shrink-0">
-                <span className="material-symbols-outlined text-red-600">gavel</span>
+              <div className="w-9 h-9 rounded-lg bg-rose-50 flex items-center justify-center shrink-0">
+                <span className="material-symbols-outlined text-rose-500 text-[20px]">block</span>
               </div>
             </div>
           </div>
@@ -648,11 +648,11 @@ export default function Organizations() {
           {/* Organizations Table */}
           <div className="bg-surface border border-outline-variant rounded-xl overflow-hidden shadow-sm">
             <div className="overflow-x-auto">
-              <table className="w-full text-left border-collapse">
+              <table className="w-full text-left border-collapse" id="organization-table">
                 <thead className="bg-surface-container-low border-b border-outline-variant">
                   <tr>
                     {role !== 'developer' && (
-                      <th className="p-lg w-12">
+                      <th className="py-3.5 px-4 w-12 text-center">
                         <input
                           type="checkbox"
                           className="rounded border-outline-variant text-primary focus:ring-primary h-4 w-4"
@@ -661,23 +661,23 @@ export default function Organizations() {
                         />
                       </th>
                     )}
-                    <th className="p-lg font-label-md text-label-md text-on-surface-variant uppercase tracking-wider">Organization</th>
-                    <th className="p-lg font-label-md text-label-md text-on-surface-variant uppercase tracking-wider">Industry</th>
-                    <th className="p-lg font-label-md text-label-md text-on-surface-variant uppercase tracking-wider">Founded</th>
-                    <th className="p-lg font-label-md text-label-md text-on-surface-variant uppercase tracking-wider">Location</th>
-                    <th className="p-lg font-label-md text-label-md text-on-surface-variant uppercase tracking-wider">Status</th>
-                    <th className="p-lg font-label-md text-label-md text-on-surface-variant uppercase tracking-wider text-right">Actions</th>
+                    <th className="py-3.5 px-4 font-semibold text-[11px] text-on-surface-variant uppercase tracking-wider">Organization</th>
+                    <th className="py-3.5 px-4 font-semibold text-[11px] text-on-surface-variant uppercase tracking-wider">Industry</th>
+                    <th className="py-3.5 px-4 font-semibold text-[11px] text-on-surface-variant uppercase tracking-wider">Founded</th>
+                    <th className="py-3.5 px-4 font-semibold text-[11px] text-on-surface-variant uppercase tracking-wider">Location</th>
+                    <th className="py-3.5 px-4 font-semibold text-[11px] text-on-surface-variant uppercase tracking-wider">Status</th>
+                    <th className="py-3.5 px-4 font-semibold text-[11px] text-on-surface-variant uppercase tracking-wider text-center w-20">Actions</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-outline-variant">
+                <tbody className="divide-y divide-outline-variant text-xs">
                   {currentOrgs.map(org => (
                     <tr 
                       key={org.id} 
-                      className="hover:bg-surface-container-low transition-colors group cursor-pointer"
+                      className="hover:bg-surface-container-low/70 transition-colors group cursor-pointer"
                       onClick={() => navigate(`/org-profile/${org.id}`, { state: { from: location.pathname + location.search, label: 'Organizations' } })}
                     >
                       {role !== 'developer' && (
-                        <td className="p-lg" onClick={(e) => e.stopPropagation()}>
+                        <td className="py-4 px-4 text-center align-middle" onClick={(e) => e.stopPropagation()}>
                           <input
                             type="checkbox"
                             className="rounded border-outline-variant text-primary focus:ring-primary h-4 w-4"
@@ -686,16 +686,16 @@ export default function Organizations() {
                           />
                         </td>
                       )}
-                      <td className="p-lg">
-                        <div className="flex items-center gap-md">
-                          <div className={`w-12 h-12 rounded-lg flex items-center justify-center font-bold ${getColorClass(org.name)}`}>
+                      <td className="py-4 px-4 align-middle">
+                        <div className="flex items-center gap-3">
+                          <div className={`w-9 h-9 rounded-xl flex items-center justify-center font-bold text-xs shrink-0 shadow-xs ${getColorClass(org.name)}`}>
                             {org.initials}
                           </div>
                           <div>
-                            <div className="flex items-center gap-1.5">
-                              <p className="font-body-md font-bold">{org.name}</p>
+                            <div className="flex items-center gap-1.5 font-semibold text-slate-900 text-xs">
+                              <span>{org.name}</span>
                               {(org.verification_status === 'VERIFIED' || org.verification_status === 'DOMAIN_VERIFIED') && (
-                                <span className="material-symbols-outlined text-blue-500 text-[18px]" title="Verified Organization" style={{ fontVariationSettings: "'FILL' 1" }}>
+                                <span className="material-symbols-outlined text-blue-500 text-[16px] shrink-0" title="Verified Organization" style={{ fontVariationSettings: "'FILL' 1" }}>
                                   verified
                                 </span>
                               )}
@@ -705,57 +705,62 @@ export default function Organizations() {
                                 </span>
                               )}
                             </div>
-                            <p className="text-body-sm text-on-surface-variant">{org.website}</p>
+                            <p className="text-[11px] text-on-surface-variant block mt-0.5">{org.website}</p>
                           </div>
                         </div>
                       </td>
-                      <td className="p-lg">
-                        <span className={`${getIndustryClass(org.industry)} px-sm py-xs rounded-full text-body-sm font-medium`}>
+                      <td className="py-4 px-4 align-middle">
+                        <span className={`${getIndustryClass(org.industry)} px-3 py-1 rounded-full text-[11px] font-medium inline-block`}>
                           {org.industry}
                         </span>
                       </td>
-                      <td className="p-lg text-body-md text-on-surface">{org.founded}</td>
-                      <td className="p-lg text-body-md text-on-surface">{org.location}</td>
-                      <td className="p-lg">
+                      <td className="py-4 px-4 align-middle text-slate-600 font-mono text-[11px] leading-tight whitespace-nowrap">
+                        {org.founded}
+                      </td>
+                      <td className="py-4 px-4 align-middle text-slate-600 text-[11px] max-w-[200px] leading-relaxed">
+                        {org.location}
+                      </td>
+                      <td className="py-4 px-4 align-middle">
                         {getStatusDisplay(org.status)}
                       </td>
-                      <td className="p-lg text-right">
-                        <div className="flex justify-end gap-sm opacity-0 group-hover:opacity-100 transition-opacity">
-                          {role !== 'developer' && (
-                            <>
-                              <button
-                                onClick={(e) => { e.stopPropagation(); setOrgToWarn(org); setWarningModalOpen(true); }}
-                                className="p-xs text-outline hover:text-orange-500 transition-colors hover:bg-orange-50 rounded-lg"
-                                title="Send Warning"
-                              >
-                                <span className="material-symbols-outlined text-[20px]">warning</span>
-                              </button>
-                              <button
-                                onClick={(e) => { 
-                                  e.stopPropagation(); 
-                                  setOrgToVerify(org); 
-                                  setVerifyModalOpen(true); 
-                                }}
-                                className="p-xs text-outline hover:text-indigo-600 transition-colors hover:bg-indigo-50 rounded-lg"
-                                title="Verify Account / Certification"
-                              >
-                                <span className="material-symbols-outlined text-[20px]">verified_user</span>
-                              </button>
-                              <button
-                                onClick={(e) => { e.stopPropagation(); setSelectedOrgs(new Set([org.id])); setRestrictConfirmModalOpen(true); }}
-                                className="p-xs text-outline hover:text-error transition-colors hover:bg-error-container/50 rounded-lg"
-                                title="Suspend Organization"
-                              >
-                                <span className="material-symbols-outlined text-[20px]">gavel</span>
-                              </button>
-                            </>
-                          )}
+                      <td className="py-4 px-4 align-middle text-center" onClick={(e) => e.stopPropagation()}>
+                        <div className="flex items-center justify-center gap-1">
+                          <div className="hidden group-hover:flex items-center gap-1">
+                            {role !== 'developer' && (
+                              <>
+                                <button
+                                  onClick={() => { setOrgToWarn(org); setWarningModalOpen(true); }}
+                                  className="p-1 text-outline hover:text-orange-500 transition-colors hover:bg-orange-50 rounded"
+                                  title="Send Warning"
+                                >
+                                  <span className="material-symbols-outlined text-[18px]">warning</span>
+                                </button>
+                                <button
+                                  onClick={() => { 
+                                    setOrgToVerify(org); 
+                                    setVerifyModalOpen(true); 
+                                  }}
+                                  className="p-1 text-outline hover:text-indigo-600 transition-colors hover:bg-indigo-50 rounded"
+                                  title="Verify Account / Certification"
+                                >
+                                  <span className="material-symbols-outlined text-[18px]">verified_user</span>
+                                </button>
+                                <button
+                                  onClick={() => { setSelectedOrgs(new Set([org.id])); setRestrictConfirmModalOpen(true); }}
+                                  className="p-1 text-outline hover:text-error transition-colors hover:bg-error-container/50 rounded"
+                                  title="Suspend Organization"
+                                >
+                                  <span className="material-symbols-outlined text-[18px]">gavel</span>
+                                </button>
+                              </>
+                            )}
+                          </div>
                           <button 
-                            onClick={(e) => { e.stopPropagation(); navigate(`/org-profile/${org.id}`, { state: { from: location.pathname + location.search, label: 'Organizations' } }); }} 
-                            className="w-10 h-10 flex items-center justify-center rounded-lg hover:bg-surface-container text-outline hover:text-primary transition-colors" 
-                            title="View Profile"
+                            onClick={() => navigate(`/org-profile/${org.id}`, { state: { from: location.pathname + location.search, label: 'Organizations' } })} 
+                            className="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-surface-container transition-colors" 
+                            title="Actions"
                           >
-                            <span className="material-symbols-outlined">visibility</span>
+                            <span className="material-symbols-outlined text-[18px]">more_vert</span>
                           </button>
                         </div>
                       </td>

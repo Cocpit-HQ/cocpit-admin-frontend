@@ -34,8 +34,37 @@ export default function VerificationQueue() {
         }
       });
       const data = await res.json();
-      if (!data.error) {
-        setOrgs(data);
+      if (res.ok && !data.error) {
+        const rawList = Array.isArray(data) ? data : (data?.verifications || []);
+        const normalized = rawList.map(item => {
+          let displayStatus = 'Under Review';
+          let badgeColor = 'bg-[#4f46e5]';
+          const rawStatus = (item.verification_status || item.status || '').toUpperCase();
+          if (rawStatus === 'VERIFIED' || rawStatus === 'APPROVED') {
+            displayStatus = 'Approved';
+            badgeColor = 'bg-emerald-600';
+          } else if (rawStatus === 'REJECTED') {
+            displayStatus = 'Rejected';
+            badgeColor = 'bg-rose-600';
+          } else {
+            displayStatus = 'Under Review';
+            badgeColor = 'bg-[#4f46e5]';
+          }
+          return {
+            ...item,
+            title: item.title || item.name || 'Unnamed Organization',
+            name: item.name || item.title || 'Unnamed Organization',
+            author: item.author || item.owner_name || item.owner_email || 'Unknown',
+            date: item.date || (item.created_at ? new Date(item.created_at).toLocaleDateString() : 'N/A'),
+            status: displayStatus,
+            statusBadgeColor: badgeColor,
+            fullLocation: item.fullLocation || item.location_formatted || item.location || 'N/A',
+            salary: item.salary || item.size || 'N/A',
+            type: item.type || item.industry || 'General',
+            documents: Array.isArray(item.documents) ? item.documents : []
+          };
+        });
+        setOrgs(normalized);
       }
     } catch (err) {
       console.error(err);
@@ -50,7 +79,8 @@ export default function VerificationQueue() {
     }
   }, [accessToken]);
 
-  const filteredOrgs = orgs.filter(org => 
+  const safeOrgs = Array.isArray(orgs) ? orgs : [];
+  const filteredOrgs = safeOrgs.filter(org => 
     filter === 'Under Review' ? (org.status === 'Under Review' || org.status === 'Pending') : org.status === filter
   );
 
@@ -80,9 +110,9 @@ export default function VerificationQueue() {
   }, [activeOrg]);
 
   const stats = {
-    underReview: orgs.filter(j => j.status === 'Under Review' || j.status === 'Pending').length,
-    approved: orgs.filter(j => j.status === 'Approved').length,
-    rejected: orgs.filter(j => j.status === 'Rejected').length
+    underReview: safeOrgs.filter(j => j.status === 'Under Review' || j.status === 'Pending').length,
+    approved: safeOrgs.filter(j => j.status === 'Approved').length,
+    rejected: safeOrgs.filter(j => j.status === 'Rejected').length
   };
 
   const handleFinalReview = async (status) => {
@@ -106,7 +136,7 @@ export default function VerificationQueue() {
         return;
       }
       const data = await res.json();
-      if (!data.error) {
+      if (res.ok && !data.error) {
         alert(`Organization verification ${status === 'VERIFIED' ? 'approved' : 'rejected'} successfully.`);
         if (status === 'VERIFIED') setFilter('Approved');
         else if (status === 'REJECTED') setFilter('Rejected');
@@ -135,7 +165,7 @@ export default function VerificationQueue() {
         })
       });
       const data = await res.json();
-      if (!data.error) {
+      if (res.ok && !data.error) {
         alert('Document status updated.');
         setDocumentModalOpen(false);
         fetchQueue();
@@ -241,7 +271,7 @@ export default function VerificationQueue() {
         <div className={`text-white rounded-2xl p-6 md:p-8 mb-6 relative overflow-hidden shadow-md ${activeOrg.statusBadgeColor || 'bg-[#4f46e5]'}`}>
           <div className="flex justify-between items-start mb-4 relative z-10">
             <span className="bg-white/20 px-3 py-1 rounded-full text-[10px] font-bold tracking-wider uppercase backdrop-blur-sm border border-white/10">
-              {activeOrg.status.toUpperCase().replace(' ', '_')}
+              {(activeOrg.status || 'UNDER REVIEW').toUpperCase().replace(' ', '_')}
             </span>
             <div className="flex gap-2 items-center">
               <button className="w-10 h-10 rounded-full bg-white/10 hover:bg-white/20 backdrop-blur-sm flex items-center justify-center transition-colors border border-white/10">
