@@ -50,6 +50,7 @@ function AppRoutes() {
         <Route path="notifications" element={<Notifications />} />
         <Route path="profile/:id" element={<UserProfile />} />
         <Route path="org-profile/:id" element={<OrganizationProfile />} />
+        <Route path="organizations/:id" element={<OrganizationProfile />} />
       </Route>
       {/* Catch-all route for non-existent paths */}
       <Route path="*" element={<Navigate to="/" replace />} />
