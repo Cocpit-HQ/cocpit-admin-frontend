@@ -6,7 +6,7 @@ import Header from './Header';
 export default function Layout() {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const location = useLocation();
-  const isFullWidthRoute = location.pathname === '/detailed-analytics';
+  const isFullWidthRoute = location.pathname === '/detailed-analytics' || location.pathname.startsWith('/organizations');
 
   return (
     <div className="flex h-screen bg-surface text-on-surface font-body-md overflow-hidden relative">
@@ -18,9 +18,11 @@ export default function Layout() {
       )}
       <Sidebar isOpen={isSidebarOpen} setIsOpen={setIsSidebarOpen} />
       <Header toggleSidebar={() => setIsSidebarOpen(!isSidebarOpen)} />
-      <main className={`flex-1 md:ml-[80px] mt-16 h-[calc(100vh-64px)] w-full transition-all duration-300 ${isFullWidthRoute ? 'overflow-hidden' : 'overflow-y-auto p-4 md:p-margin-desktop'}`}>
+      <main className={`flex-1 md:ml-[80px] mt-16 h-[calc(100vh-64px)] w-full transition-all duration-300 ${isFullWidthRoute ? 'overflow-y-auto p-3 sm:p-5' : 'overflow-y-auto p-4 md:p-margin-desktop'}`}>
         {isFullWidthRoute ? (
-          <Outlet />
+          <div className="w-full">
+            <Outlet />
+          </div>
         ) : (
           <div className="max-w-max-width mx-auto pb-xl">
             <Outlet />
